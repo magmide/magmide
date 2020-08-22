@@ -1,6 +1,6 @@
 (*Require Import a.*)
 
-Inductive bit : Type :=
+(*Inductive bit : Type :=
   | bit_zero
   | bit_one
 .
@@ -25,3 +25,4 @@ Example test_is_one_zero: is_one bit_zero = false.
 Proof. simpl. reflexivity. Qed.
 Example test_is_one_one: is_one bit_one = true.
 Proof. simpl. reflexivity. Qed.
+*)
