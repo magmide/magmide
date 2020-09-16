@@ -1,3 +1,18 @@
+You should probably write out this whole (almost) blog post informally before you really dig into the formal stuff. This is just such a huge undertaking, first understanding what you even precisely want to accomplish is a good idea.
+
+Think of it like writing the documentation before you write the code! You do that all the time since it helps clarify what's special and useful about the code, and what features it needs to have.
+
+
+
+
+
+
+
+
+
+
+
+
 So I guess this whole project has a few beliefs:
 
 - We can and should bring formally verified programming with dependent types to the mainstream.
