@@ -1,1 +1,2 @@
 -R . theorems
+-Q /home/blaine/lab/cpdtlib Cpdt

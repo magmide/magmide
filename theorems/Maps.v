@@ -317,12 +317,12 @@ Theorem t_update_permute: forall (A : Type) (m : total_map A) v1 v2 x1 x2,
 	(x2 !-> v2 ; x1 !-> v1 ; m).
 Proof.
 	intros. unfold t_update. apply functional_extensionality.
-	intros. destruct (eqb_string x1 x) as [H1 | H1] eqn:X1.
-	- destruct (eqb_string x2 x) as [H2 | H2] eqn:X2.
+	intros. destruct (eqb_string x1 x) eqn:X1.
+	- destruct (eqb_string x2 x) eqn:X2.
 		+ rewrite eqb_string_true_iff in X1. rewrite eqb_string_true_iff in X2.
 			subst. destruct H. reflexivity.
 		+ reflexivity.
-	- destruct (eqb_string x2 x) as [H2 | H2] eqn:X2.
+	- destruct (eqb_string x2 x) eqn:X2.
 		+ reflexivity.
 		+ reflexivity.
 Qed.

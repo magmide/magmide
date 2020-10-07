@@ -1,6 +1,13 @@
+\#*.v\#
 *.glob
 *.vo
-*.vo.aux
-*.v.d
+*.vok
+*.vos
+*.aux
+*.d
 
 Makefile
+Makefile.conf
+*.cache
+*.ml
+*.mli

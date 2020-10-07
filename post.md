@@ -1,64 +1,24 @@
-basically this project will have a few large steps:
+- software is important
 
-first we'll define some really basic proof of concept of a theory of known types. this first version will basically just use the "computable terms are a subset of terms, and we only bother to typecheck terms once we've fully reduced them to computable terms". there are a million ways to go about doing this, so we'll just keep it really simple. we'll do this in a "simply typed lambda calculus" so it's easy to reason about.
+- software generally sucks. it's unreliable, brittle, unsafe, and terrible
 
-we'd probably want to demonstrate that this pattern can handle literally any meta-programming-like pattern, including:
+- if software *didn't* suck, then we could confidently use it for a lot more things, to build bigger and more ambitious things, and with less maintenance cost. wouldn't it be nice if voting machines and virtual currencies and government databases were proven to be correct?
 
-- generics
-- bounded generics
-- higher-kinded generics (demonstrate a monad type?)
-- macros of all kinds
+- it doesn't have to be like this, there's this field called formal verification, and it's become very mature and has the *theoretical* tools and practices to make formal verification of *all* code possible and tractable
 
-probably our definition of preservation and soundness etc would be a little more nuanced. we'd probably also require the assumption that the known functions reduced "correctly", something that would depend on the situation
+- the *practical* tools are kinda garbage from an engineering practice perspective (inelegant syntax, way too many features and sugars piled on the project, overly academic/obtuse naming conventions, **awful** package/module system). even though many of the recent advancements in theory enable arbitrary bit/heap manipulating programs, those techniques are trapped inside coq. coq is amazing, but since it's purely functional and doesn't have a way of "escaping" into bit/heap manipulation, it's inefficient compared to what's possible with imperative programming, and it's very difficult and annoying to integrate formally proven programs into larger projects, and it's *impossible* to write a *full* program in coq.
 
+- I want to convince you that this dream is possible, all through a dependently typed assembly language with powerful metaprogramming capabilties that I'm calling `bedrock`. it's an extraordinarily ambitious goal, but we can slowly build up to the full dream, bootstrapping from existing tools and taking some things as a given at different stages. I also want to convince you that software engineers can understand and productively use tools this sophisticated, *especially* if we do a good job creating documentation and educational materials. the promise of the sheer power of a language like this would act as a strong motivation for individual engineers to get up the learning curve, and for the community to create a wealth of learning materials.
 
-all computable types as simply a bit array with some predicate over that bit array. with this we can define n-ary unions, tuples, structs, the "intersection" type that simply "ands" together predicate of the two types
+- first I'll describe the dream in it's final form, and then describe how we can incrementally build up to that
 
-then we can get more interesting by having "pre" typechecks. really what we would be doing there is just trying to allow people authoring higher order "known" functions to prove their functions correct, rather than simply relying on the "this known function will eventually reduce to some terms and *those* terms will be typechecked :shrug:". Basically we want these kinds of authors to have strong typing for their things as well, in a way that goes beyond just typechecking the actual "type value" structs that they happen to be manipulating
-we can think about it this way: in languages like rust, macros just input/output token streams. from a meta-programming perspective, that's like a program just operating on bytestreams at both ends. we want people to be able to type their known functions just as well as all the *actual* functions. what this can allow us to do is typecheck a program, and know *even before we've reduced certain known functions* that those known functions aren't being used appropriately in their context, and won't reduce to terms that will typecheck. in a language that's formally verified, we can then even potentially do the (very scary) potentially very performance enhancing task of *not actually bothering to typecheck the outputs of these known functions*. if we've verified the pre-conditions of the known function, and we have a proof that the known function will always output terms having some particular type, we can just take that type as a given
+- by building a dependent type proof checker with embedded definitions of instructions/storage/heaps and some hardware/os axioms, the type checker could formally verify a truly useful assembly language
 
-after we've defined the semantics of types that consist *only* of bit arrays with a predicate, we can start actually defining the language semantics. the big things are n-ary unions and match statements, module paths and the dag, type definition syntax etc. but also the very interesting and potentially massive area of figuring out how we can prove that a loop (or family of co-recursive functions) will always terminate. since this language would have a rich proof system, doing that can actually be tractable and useful from the perspective of programmers.
+- and then by adding both syntactic and semantic metaprogramming commands, that assembly language could be used to slowly layer more abstractions and high level programming languages on top of the assembly language, enabling full formal verification *of the entire software stack*, all from first principles and without any assumptions between layers. and as a bonus, all of the tools and languages built in bedrock are all in principle interoperable, since they can be unpackaged into simple propositions about bit arrays and abstract instructions
 
-defining and proving correct a type inference algorithm
-
-
-then we have all the cool little ideas:
-
-- the "infecting" types of certain operations. we want infecters for code that potentially panics, diverges, accesses out of bounds memory (unsound), accesses uninitialized memory (unsafe?), or leaks any "primitive" resource (we could make this generic by having some kind of predicate that is "optional" but as a result of being optional infects the result type. so someone could write a library that has optional invariants about the caller needing to give back resources or something like that, and you can represent a program that doesn't maintain these invariants, but then your types will get infected. perhaps a more interesting way to do this is simply by understanding that any predicate over a type that *doesn't actually make any assertions about the type value's byte array* is like this?). it's probably also true that if we do this "infecting" correctly, we can notice programs where *it's certain* that some infected type consequence will happen, and we can warn programmers about it.
-
-- a "loop" command that's different than the "while" command, in the sense that the program doesn't ask for any proof that a "loop" will always terminate, since it's assumed that it might not. we can still maybe have some finer-grained check that simply asks if a loop construct has any code after it, and if it does there has to be *some* way of breaking out of the loop (other than the process being forcefully terminated, such as by receiving some control signal), or else that code is all dead.
-
-- with a tiny language that's so flexible, we can define and reason about a host of ergonomic sugars and optimizations.
-
-- all the little syntax things you like, such as the "block string", the different ways of calling and chaining functions, the idea of allowing syntax transforming known functions (or "keywords") and of allowing these kinds of functions to be attached as "members" of types for maximum ergonomics and allowing things like custom "question mark" effectful operators.
-
-- in our language we can define "stuckness" in a very different way, because even very bad things like panics or memory unsafe operations aren't *stuck*, they're just *infected*. this means that the entire range of valid machine code can be output by this language. this probably means the reasonable default return type of the `main` function of a program (the one that we will assume if they don't provide their own) should be `() | panic`, so we only assume in the common case that the program might be infected with the panic predicate but not any of the "unsoundness" ones.
-
-- "logical" vs normal computable types. logical types would basically only be for logic and verification, and not have any actual output artifacts, which means that all the values inhabiting logical types have to be known at compile time, and we can cheat about how efficient they are to make it more convenient to write proofs about them
-
-- wouldn't it be cool to connect proofs about this language to existing verification efforts around llvm?
-
-
-
-
-
-for co-recursive functions: we can create graphs of dependencies between functions, and we can group them together based on how strongly connected they are. for example
-
-here we mean that a and b both reference the other (and potentially themselves), so once we enter this group we might never leave
-(a - b)
-
-but if a and b point to some other function c, if c doesn't reference a or b (or any function that references a or b), then we'll never visit that group of a and b ever again, *but c might be co-recursive with some other family of functions*. however it's still useful in this situation to understand that we have in some important way *made progress in the recursion*.
-it seems that the important idea of a co-recursive family of functions is that from any of the functions you could go through some arbitrary set of steps to reach any of the other functions.
-
-
-if we unbundle both functions and the loops/conditionals into mere basic blocks like in llvm, then it's possible to do this graph analysis over the entire program in the same way. with some interesting new theories about what it means to make progress towards termination *in data* rather than *in control flow*, we can merge the two to understand and check if programs are certainly terminating.
-we can also unbundle the idea of "making progress in data" to "making progress in predicates", since our types are basically only defined as predicates over bit arrays.
-
-
-
-
-
-
-after all this, we really start to think about the proof checker, and how the proof aspect of the language interacts with the known functions.
-the simplest thing to notice is that theorems are just known functions that transform some instantiation of a logical type (so all the values of the logical type are known at compile time) to a different type.
-the more interesting thing to notice is that the same kind of really slick "tacticals" system that's included in coq can just be *fallible* functions that take props and try to produce proofs of them. this means that the "typecheck" function that the compiler actually uses when compiling code should be exposed to all functions (and therefore of course the known functions), and that it should return some kind of `Result` type. that way tacticals can just call it at will with the proofs they've been constructing, and return successfully if they find something the core typechecking algorithm is happy with.
+- specify the actual bedrock language, the assembly language and metaprogramming capabilities, in coq
+- define the bedrock representation of the syntactic structures and datatypes etc of bedrock, *in* bedrock
+- define the compilation capabilities of bedrock *in* bedrock, but as a computable coq function?
+- in the spirit of the `metacoq` or `coqcoqcorrect` projects, specify a new dependently typed proof checker in coq, but in bedrock datatypes
+- use the compilation function to compile the first version of the bedrock compiler! this first version only outputs an llvm compatible abstract instruction set
+- with this first bootstrapped version of bedrock, the work of building up everything on top of that base can begin. the definitions

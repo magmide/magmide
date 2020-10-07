@@ -1,66 +1,252 @@
-(*
-	okay I feel like I want to have a `compile` function that takes terms and just reduces the knowns, typechecks them, and outputs a string representing the "compiled" program
-	then a `run` function that reduces the knowns and typechecks the program, but then reduces all the terms and outputs the "stdout" of the program
-	this is presupposing that you'll have some kind of effectful commands that append some string to the "stdout". that seems like the more natural way I would prefer to structure a language that I'll eventually be using to learn while making a real imperative language
-*)
+Add LoadPath "/home/blaine/lab/cpdtlib" as Cpdt.
+Set Implicit Arguments. Set Asymmetric Patterns.
+Require Import List Cpdt.CpdtTactics.
 
-Require Import Coq.Strings.String.
-Require Import theorems.Maps.
+Lemma zgtz : 0 > 0 -> False.
+	crush.
+Qed.
 
-Inductive typ: Type :=
-	(*| Generic*)
-	| Bool
-	| Nat
-	| Arrow (input output: typ)
-	| UnionNil
-	| UnionCons (arm_name: string) (arm_type: typ) (rest: typ)
-	| TupleNil
-	| TupleCons (left right: typ)
-	(*| KnownType (type_value: trm)*)
-	(*| KnownValue (value: trm)*)
-.
+Definition pred_strong1 (n : nat) : n > 0 -> nat :=
+	match n with
+		| O => fun pf : 0 > 0 => match zgtz pf with end
+		| S n' => fun _ => n'
+	end.
 
-Inductive Arm: Type :=
-  | arm (arm_name: string).
+Theorem two_gt0 : 2 > 0.
+	crush.
+Qed.
 
-Inductive trm: Type :=
-	| tru | fls
-	| debug_bool
-	(*| nat_const (n: nat)*)
-	(*| nat_plus (left right: trm)*)
-	(*| debug_nat*)
-	| binding (decl_name: string) (after: trm)
-	| usage (var_name: string)
-	| test (conditional iftru iffls: trm)
-	| fn (args_name: string) (output_type: typ) (body: trm)
-	| call (target_fn args: trm)
-	| union_nil
-	| union_cons (arm_name: string) (arm_value: trm) (rest_type: typ)
-	| union_match (tr: trm) (arms: list (string * trm))
-	| tuple_nil
-	| tuple_cons (left right: trm)
-	| tuple_access (tup: trm) (index: nat)
-.
+Eval compute in pred_strong1 two_gt0.
+
+Print sig.
+
+Definition pred_strong2 (s : {n : nat | n > 0}) : nat :=
+	match s with
+		| exist O pf => match zgtz pf with end
+		| exist (S n') _ => n'
+	end.
+
+Eval compute in pred_strong2 (exist _ 2 two_gt0).
+
+Definition pred_strong4 : forall n : nat, n > 0 -> {m : nat | n = S m}.
+	refine (fun n =>
+		match n with
+			| O => fun _ => False_rec _ _
+			| S n' => fun _ => exist _ n' _
+		end); abstract crush.
+Defined.
+
+Print pred_strong4.
+
+Print sumbool.
+
+Notation "'Yes'" := (left _ _).
+Notation "'No'" := (right _ _).
+Notation "'Reduce' x" := (if x then Yes else No) (at level 50).
+
+Definition eq_nat_dec : forall n m : nat, {n = m} + {n <> m}.
+	refine (fix f (n m : nat) : {n = m} + {n <> m} :=
+		match n, m with
+			| O, O => Yes
+			| S n', S m' => Reduce (f n' m')
+			| _, _ => No
+		end); congruence.
+Defined.
+
+Eval compute in eq_nat_dec 2 2.
+Eval compute in eq_nat_dec 2 3.
+
+Definition eq_nat_dec' (n m : nat) : {n = m} + {n <> m}.
+	decide equality.
+Defined.
+
+Require Extraction.
+
+Extract Inductive sumbool => "bool" ["true" "false"].
+Extraction eq_nat_dec'.
+
+Notation "x || y" := (if x then Yes else Reduce y).
+
+Section In_dec.
+	Variable A : Set.
+	Variable A_eq_dec : forall x y : A, {x = y} + {x <> y}.
+
+	Definition In_dec : forall (x : A) (ls : list A), {In x ls} + {~ In x ls}.
+		refine (fix f (x : A) (ls : list A) : {In x ls} + {~ In x ls} :=
+			match ls with
+	| nil => No
+	| x' :: ls' => A_eq_dec x x' || f x ls'
+			end); crush.
+	Defined.
+End In_dec.
+
+Eval compute in In_dec eq_nat_dec 2 (1 :: 2 :: nil).
+Eval compute in In_dec eq_nat_dec 3 (1 :: 2 :: nil).
+
+Extraction In_dec.
+
+Inductive maybe (A : Set) (P : A -> Prop) : Set :=
+| Unknown : maybe P
+| Found : forall x : A, P x -> maybe P.
+
+Notation "{{ x | P }}" := (maybe (fun x => P)).
+Notation "??" := (Unknown _).
+Notation "[| x |]" := (Found _ x _).
 
 
-Fixpoint tuple_lookup (n: nat) (tr: trm): option trm :=
-	match tr with
-	| tuple_cons t tr' => match n with
-		| 0 => Some t
-		| S n' => tuple_lookup n' tr'
-		end
-	| _ => None
-	end
-.
+Definition pred_strong7 : forall n : nat, {{m | n = S m}}.
+	refine (fun n =>
+		match n return {{m | n = S m}} with
+			| O => ??
+			| S n' => [|n'|]
+		end); trivial.
+Defined.
 
-Fixpoint union_lookup (tr: trm) (arms: list (string, (string * trm))): option trm :=
-	match tr with
-	| union_cons tr_arm_name tr_arm_value _ => match arms with
-		| (arm_name, (arm_var, arm_body)) :: arms' => if eqb_string tr_arm_name arm_name
-			then Some (substitute arm_var tr_arm_value arm_body)
-			else union_lookup tr arms'
-		| [] => None
-		end
-  | _ => None
-	end
-.
+Eval compute in pred_strong7 2.
+Eval compute in pred_strong7 0.
+
+Print sumor.
+
+Notation "!" := (False_rec _ _).
+Notation "[ e ]" := (exist _ e _).
+
+Notation "!!" := (inright _ _).
+Notation "[|| x ||]" := (inleft _ [x]).
+
+
+Definition pred_strong8 : forall n : nat, {m : nat | n = S m} + {n = 0}.
+	refine (fun n =>
+		match n with
+			| O => !!
+			| S n' => [||n'||]
+		end); trivial.
+Defined.
+
+Eval compute in pred_strong8 2.
+Eval compute in pred_strong8 0.
+
+
+Notation "x <- e1 ; e2" := (match e1 with
+														 | Unknown => ??
+														 | Found x _ => e2
+													 end)
+(right associativity, at level 60).
+
+
+Definition doublePred : forall n1 n2 : nat, {{p | n1 = S (fst p) /\ n2 = S (snd p)}}.
+	refine (fun n1 n2 =>
+		m1 <- pred_strong7 n1;
+		m2 <- pred_strong7 n2;
+		[|(m1, m2)|]); tauto.
+Defined.
+
+Notation "x <-- e1 ; e2" := (match e1 with
+															 | inright _ => !!
+															 | inleft (exist x _) => e2
+														 end)
+(right associativity, at level 60).
+
+Definition doublePred' : forall n1 n2 : nat,
+	{p : nat * nat | n1 = S (fst p) /\ n2 = S (snd p)}
+	+ {n1 = 0 \/ n2 = 0}.
+	refine (fun n1 n2 =>
+		m1 <-- pred_strong8 n1;
+		m2 <-- pred_strong8 n2;
+		[||(m1, m2)||]); tauto.
+Defined.
+
+Inductive exp : Set :=
+| Nat : nat -> exp
+| Plus : exp -> exp -> exp
+| Bool : bool -> exp
+| And : exp -> exp -> exp.
+
+Inductive type : Set := TNat | TBool.
+
+Inductive hasType : exp -> type -> Prop :=
+| HtNat : forall n,
+	hasType (Nat n) TNat
+| HtPlus : forall e1 e2,
+	hasType e1 TNat
+	-> hasType e2 TNat
+	-> hasType (Plus e1 e2) TNat
+| HtBool : forall b,
+	hasType (Bool b) TBool
+| HtAnd : forall e1 e2,
+	hasType e1 TBool
+	-> hasType e2 TBool
+	-> hasType (And e1 e2) TBool.
+
+Definition eq_type_dec : forall t1 t2 : type, {t1 = t2} + {t1 <> t2}.
+	decide equality.
+Defined.
+
+Notation "e1 ;; e2" := (if e1 then e2 else ??)
+	(right associativity, at level 60).
+
+Definition typeCheck : forall e : exp, {{t | hasType e t}}.
+	Hint Constructors hasType.
+
+	refine (fix F (e : exp) : {{t | hasType e t}} :=
+		match e return {{t | hasType e t}} with
+			| Nat _ => [|TNat|]
+			| Plus e1 e2 =>
+				t1 <- F e1;
+				t2 <- F e2;
+				eq_type_dec t1 TNat;;
+				eq_type_dec t2 TNat;;
+				[|TNat|]
+			| Bool _ => [|TBool|]
+			| And e1 e2 =>
+				t1 <- F e1;
+				t2 <- F e2;
+				eq_type_dec t1 TBool;;
+				eq_type_dec t2 TBool;;
+				[|TBool|]
+		end); crush.
+Defined.
+
+Eval simpl in typeCheck (Nat 0).
+Eval simpl in typeCheck (Plus (Nat 1) (Nat 2)).
+Eval simpl in typeCheck (Plus (Nat 1) (Bool false)).
+
+Notation "e1 ;;; e2" := (if e1 then e2 else !!)
+	(right associativity, at level 60).
+
+Lemma hasType_det : forall e t1,
+	hasType e t1
+	-> forall t2, hasType e t2
+		-> t1 = t2.
+	induction 1; inversion 1; crush.
+Qed.
+
+
+Definition typeCheck' : forall e : exp, {t : type | hasType e t} + {forall t, ~ hasType e t}.
+	Hint Constructors hasType.
+	Hint Resolve hasType_det.
+
+	refine (fix F (e : exp) : {t : type | hasType e t} + {forall t, ~ hasType e t} :=
+		match e return {t : type | hasType e t} + {forall t, ~ hasType e t} with
+			| Nat _ => [||TNat||]
+			| Plus e1 e2 =>
+				t1 <-- F e1;
+				t2 <-- F e2;
+				eq_type_dec t1 TNat;;;
+				eq_type_dec t2 TNat;;;
+				[||TNat||]
+			| Bool _ => [||TBool||]
+			| And e1 e2 =>
+				t1 <-- F e1;
+				t2 <-- F e2;
+				eq_type_dec t1 TBool;;;
+				eq_type_dec t2 TBool;;;
+				[||TBool||]
+		end); clear F; crush' tt hasType; eauto.
+
+Defined.
+
+Eval simpl in typeCheck' (Nat 0).
+Eval simpl in typeCheck' (Plus (Nat 1) (Nat 2)).
+Eval simpl in typeCheck' (Plus (Nat 1) (Bool false)).
+
+Extraction typeCheck'.
