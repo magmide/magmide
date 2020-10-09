@@ -343,7 +343,7 @@ Definition update {A : Type} (m : partial_map A) (x : string) (v : A) :=
 	(x !-> Some v ; m).
 
 (** We introduce a similar notation for partial maps: *)
-Notation "x '|->' v ';' m" := (update m x v)
+Notation "x '|->' v '>>' m" := (update m x v)
 	(at level 100, v at next level, right associativity).
 
 (** We can also hide the last case when it is empty. *)

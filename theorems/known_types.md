@@ -1,4 +1,47 @@
 ```coq
+Inductive typ: Type :=
+  | Unit: typ
+  | Nat: typ
+  | Bool: typ
+  | Arrow: typ -> typ -> typ
+.
+
+Fixpoint typeDenote (t: typ): Set :=
+  match t with
+    | Unit => unit
+    | Nat => nat
+    | Bool => bool
+    | Arrow arg ret => typeDenote arg -> typeDenote ret
+  end.
+
+(*Definition typctx := list type.*)
+
+Inductive exp: list typ -> typ -> Type :=
+| Const: forall env newtyp (value: typeDenote newtyp), exp env newtyp
+| Var: forall env newtyp, member newtyp env -> exp env newtyp
+| App: forall env arg ret, exp env (Arrow arg ret) -> exp env arg -> exp env ret
+| Abs: forall env arg ret, exp (arg :: env) ret -> exp env (Arrow arg ret).
+
+Arguments Const [env].
+
+(*Definition a: exp hlist Bool := Const HNil true.*)
+
+Fixpoint expDenote env t (e: exp env t): hlist typeDenote env -> typeDenote t :=
+  match e with
+    | Const _ value => fun _ => tt
+
+    | Var _ _ mem => fun s => hget s mem
+    | App _ _ _ e1 e2 => fun s => (expDenote e1 s) (expDenote e2 s)
+    | Abs _ _ _ e' => fun s => fun x => expDenote e' (HCons x s)
+  end.
+
+(*Eval simpl in expDenote Const HNil.*)
+
+
+
+
+
+
 (*
   okay I feel like I want to have a `compile` function that takes terms and just reduces the knowns, typechecks them, and outputs a string representing the "compiled" program
   then a `run` function that reduces the knowns and typechecks the program, but then reduces all the terms and outputs the "stdout" of the program

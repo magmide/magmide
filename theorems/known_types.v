@@ -1,252 +1,209 @@
 Add LoadPath "/home/blaine/lab/cpdtlib" as Cpdt.
 Set Implicit Arguments. Set Asymmetric Patterns.
-Require Import List Cpdt.CpdtTactics.
+Require Import List Cpdt.CpdtTactics Cpdt.DepList theorems.Maps Coq.Strings.String.
 
-Lemma zgtz : 0 > 0 -> False.
-	crush.
-Qed.
+(*blaine, you need to write examples of what you'd like to accomplish in the near term*)
+(*some concrete examples of "metaprogramming" in some abstract language is all you need*)
+(*you don't have to prove almost anything about them, at least not at first, just get them working as expected and then prove things about them*)
 
-Definition pred_strong1 (n : nat) : n > 0 -> nat :=
-	match n with
-		| O => fun pf : 0 > 0 => match zgtz pf with end
-		| S n' => fun _ => n'
-	end.
+(*the term type you create *is* the meta datatype! syntactic macros are just functions that operate on the same objects as the compiler*)
 
-Theorem two_gt0 : 2 > 0.
-	crush.
-Qed.
+Inductive ty: Type :=
+	| Ty_Bool: ty
+	| Ty_Arrow (domain: ty) (range: ty): ty.
 
-Eval compute in pred_strong1 two_gt0.
+Inductive tm: Type :=
+	| tm_var (name: string): tm
+	| tm_call (fn: tm) (arg: tm): tm
+	| tm_fn (argname: string) (argty: ty) (body: tm): tm
+	| tm_true: tm
+	| tm_false: tm
+	| tm_if (test: tm) (tbody: tm) (fbody: tm): tm.
 
-Print sig.
+Declare Custom Entry stlc.
+Notation "<{ e }>" := e (e custom stlc at level 99).
+Notation "( x )" := x (in custom stlc, x at level 99).
+Notation "x" := x (in custom stlc at level 0, x constr at level 0).
+Notation "U -> T" := (Ty_Arrow U T) (in custom stlc at level 50, right associativity).
+Notation "x y" := (tm_call x y) (in custom stlc at level 1, left associativity).
+Notation "\ x : t , y" := (tm_fn x t y) (
+	in custom stlc at level 90, x at level 99,
+	t custom stlc at level 99,
+	y custom stlc at level 99,
+	left associativity
+).
+Coercion tm_var : string >-> tm.
+Notation "'Bool'" := Ty_Bool (in custom stlc at level 0).
+Notation "'if' x 'then' y 'else' z" := (tm_if x y z) (
+	in custom stlc at level 89,
+	x custom stlc at level 99,
+	y custom stlc at level 99,
+	z custom stlc at level 99,
+	left associativity
+).
+Notation "'true'" := true (at level 1).
+Notation "'true'" := tm_true (in custom stlc at level 0).
+Notation "'false'" := false (at level 1).
+Notation "'false'" := tm_false (in custom stlc at level 0).
 
-Definition pred_strong2 (s : {n : nat | n > 0}) : nat :=
-	match s with
-		| exist O pf => match zgtz pf with end
-		| exist (S n') _ => n'
-	end.
+Definition x: string := "x".
+Definition y: string := "y".
+Definition z: string := "z".
+Hint Unfold x: core.
+Hint Unfold y: core.
+Hint Unfold z: core.
 
-Eval compute in pred_strong2 (exist _ 2 two_gt0).
+Notation idB := <{\x:Bool, x}>.
+Notation idBB := <{\x:Bool -> Bool, x}>.
 
-Definition pred_strong4 : forall n : nat, n > 0 -> {m : nat | n = S m}.
-	refine (fun n =>
-		match n with
-			| O => fun _ => False_rec _ _
-			| S n' => fun _ => exist _ n' _
-		end); abstract crush.
-Defined.
-
-Print pred_strong4.
-
-Print sumbool.
-
-Notation "'Yes'" := (left _ _).
-Notation "'No'" := (right _ _).
-Notation "'Reduce' x" := (if x then Yes else No) (at level 50).
-
-Definition eq_nat_dec : forall n m : nat, {n = m} + {n <> m}.
-	refine (fix f (n m : nat) : {n = m} + {n <> m} :=
-		match n, m with
-			| O, O => Yes
-			| S n', S m' => Reduce (f n' m')
-			| _, _ => No
-		end); congruence.
-Defined.
-
-Eval compute in eq_nat_dec 2 2.
-Eval compute in eq_nat_dec 2 3.
-
-Definition eq_nat_dec' (n m : nat) : {n = m} + {n <> m}.
-	decide equality.
-Defined.
-
-Require Extraction.
-
-Extract Inductive sumbool => "bool" ["true" "false"].
-Extraction eq_nat_dec'.
-
-Notation "x || y" := (if x then Yes else Reduce y).
-
-Section In_dec.
-	Variable A : Set.
-	Variable A_eq_dec : forall x y : A, {x = y} + {x <> y}.
-
-	Definition In_dec : forall (x : A) (ls : list A), {In x ls} + {~ In x ls}.
-		refine (fix f (x : A) (ls : list A) : {In x ls} + {~ In x ls} :=
-			match ls with
-	| nil => No
-	| x' :: ls' => A_eq_dec x x' || f x ls'
-			end); crush.
-	Defined.
-End In_dec.
-
-Eval compute in In_dec eq_nat_dec 2 (1 :: 2 :: nil).
-Eval compute in In_dec eq_nat_dec 3 (1 :: 2 :: nil).
-
-Extraction In_dec.
-
-Inductive maybe (A : Set) (P : A -> Prop) : Set :=
-| Unknown : maybe P
-| Found : forall x : A, P x -> maybe P.
-
-Notation "{{ x | P }}" := (maybe (fun x => P)).
-Notation "??" := (Unknown _).
-Notation "[| x |]" := (Found _ x _).
+Inductive value: tm -> Prop :=
+	| v_fn: forall arg T body,
+			value <{\arg:T, body}>
+	| v_true:
+			value <{true}>
+	| v_false:
+			value <{false}>.
+Hint Constructors value: core.
 
 
-Definition pred_strong7 : forall n : nat, {{m | n = S m}}.
-	refine (fun n =>
-		match n return {{m | n = S m}} with
-			| O => ??
-			| S n' => [|n'|]
-		end); trivial.
-Defined.
+Reserved Notation "'[' old ':=' new ']' target" (in custom stlc at level 20, old constr).
+Fixpoint subst (old: string) (new: tm) (target: tm): tm :=
+	match target with
+	| <{true}> => <{true}>
+	| <{false}> => <{false}>
+	| tm_var varname =>
+			if string_dec old varname then new else target
+	| <{\var:T, body}> =>
+			if string_dec old var then target else <{\var:T, [old:=new] body}>
+	| <{fn arg}> =>
+			<{([old:=new] fn) ([old:=new] arg)}>
+	| <{if test then tbody else fbody}> =>
+			<{if ([old:=new] test) then ([old:=new] tbody) else ([old:=new] fbody)}>
+	end
 
-Eval compute in pred_strong7 2.
-Eval compute in pred_strong7 0.
+where "'[' old ':=' new ']' target" := (subst old new target) (in custom stlc).
+Hint Unfold subst: core.
 
-Print sumor.
+Check <{[x:=true] x}>.
+Compute <{[x:=true] x}>.
 
-Notation "!" := (False_rec _ _).
-Notation "[ e ]" := (exist _ e _).
+Inductive substi (old: string) (new: tm): tm -> tm -> Prop :=
+	| s_true: substi old new <{true}> <{true}>
+	| s_false: substi old new <{false}> <{false}>
+	| s_var_matches:
+			substi old new (tm_var old) new
+	| s_var_not_matches: forall varname,
+			let varitem := (tm_var varname) in
+			old <> varname -> substi old new varitem varitem
+	| s_fn_matches: forall T body,
+			let fn := <{\old:T, body}> in
+			substi old new fn fn
+	| s_fn_not_matches: forall var T body newbody,
+			old <> var
+			-> substi old new body newbody
+			-> substi old new <{\var:T, body}> <{\var:T, newbody}>
+	| s_fn_call: forall fn newfn arg newarg,
+			substi old new fn newfn
+			-> substi old new arg newarg
+			-> substi old new <{fn arg}> <{newfn newarg}>
+	| s_if: forall test tbody fbody newtest newtbody newfbody,
+			substi old new test newtest
+			-> substi old new tbody newtbody
+			-> substi old new fbody newfbody
+			-> substi old new
+				<{if test then tbody else fbody}>
+				<{if newtest then newtbody else newfbody}>
+.
+Hint Constructors substi: core.
 
-Notation "!!" := (inright _ _).
-Notation "[|| x ||]" := (inleft _ [x]).
+Ltac destruct_if :=
+	crush; match goal with
+		| [ |- context[if ?X then _ else _] ] => destruct X
+	end; crush.
 
-
-Definition pred_strong8 : forall n : nat, {m : nat | n = S m} + {n = 0}.
-	refine (fun n =>
-		match n with
-			| O => !!
-			| S n' => [||n'||]
-		end); trivial.
-Defined.
-
-Eval compute in pred_strong8 2.
-Eval compute in pred_strong8 0.
-
-
-Notation "x <- e1 ; e2" := (match e1 with
-														 | Unknown => ??
-														 | Found x _ => e2
-													 end)
-(right associativity, at level 60).
-
-
-Definition doublePred : forall n1 n2 : nat, {{p | n1 = S (fst p) /\ n2 = S (snd p)}}.
-	refine (fun n1 n2 =>
-		m1 <- pred_strong7 n1;
-		m2 <- pred_strong7 n2;
-		[|(m1, m2)|]); tauto.
-Defined.
-
-Notation "x <-- e1 ; e2" := (match e1 with
-															 | inright _ => !!
-															 | inleft (exist x _) => e2
-														 end)
-(right associativity, at level 60).
-
-Definition doublePred' : forall n1 n2 : nat,
-	{p : nat * nat | n1 = S (fst p) /\ n2 = S (snd p)}
-	+ {n1 = 0 \/ n2 = 0}.
-	refine (fun n1 n2 =>
-		m1 <-- pred_strong8 n1;
-		m2 <-- pred_strong8 n2;
-		[||(m1, m2)||]); tauto.
-Defined.
-
-Inductive exp : Set :=
-| Nat : nat -> exp
-| Plus : exp -> exp -> exp
-| Bool : bool -> exp
-| And : exp -> exp -> exp.
-
-Inductive type : Set := TNat | TBool.
-
-Inductive hasType : exp -> type -> Prop :=
-| HtNat : forall n,
-	hasType (Nat n) TNat
-| HtPlus : forall e1 e2,
-	hasType e1 TNat
-	-> hasType e2 TNat
-	-> hasType (Plus e1 e2) TNat
-| HtBool : forall b,
-	hasType (Bool b) TBool
-| HtAnd : forall e1 e2,
-	hasType e1 TBool
-	-> hasType e2 TBool
-	-> hasType (And e1 e2) TBool.
-
-Definition eq_type_dec : forall t1 t2 : type, {t1 = t2} + {t1 <> t2}.
-	decide equality.
-Defined.
-
-Notation "e1 ;; e2" := (if e1 then e2 else ??)
-	(right associativity, at level 60).
-
-Definition typeCheck : forall e : exp, {{t | hasType e t}}.
-	Hint Constructors hasType.
-
-	refine (fix F (e : exp) : {{t | hasType e t}} :=
-		match e return {{t | hasType e t}} with
-			| Nat _ => [|TNat|]
-			| Plus e1 e2 =>
-				t1 <- F e1;
-				t2 <- F e2;
-				eq_type_dec t1 TNat;;
-				eq_type_dec t2 TNat;;
-				[|TNat|]
-			| Bool _ => [|TBool|]
-			| And e1 e2 =>
-				t1 <- F e1;
-				t2 <- F e2;
-				eq_type_dec t1 TBool;;
-				eq_type_dec t2 TBool;;
-				[|TBool|]
-		end); crush.
-Defined.
-
-Eval simpl in typeCheck (Nat 0).
-Eval simpl in typeCheck (Plus (Nat 1) (Nat 2)).
-Eval simpl in typeCheck (Plus (Nat 1) (Bool false)).
-
-Notation "e1 ;;; e2" := (if e1 then e2 else !!)
-	(right associativity, at level 60).
-
-Lemma hasType_det : forall e t1,
-	hasType e t1
-	-> forall t2, hasType e t2
-		-> t1 = t2.
-	induction 1; inversion 1; crush.
+Theorem substi_correct: forall old new before after,
+	<{ [old:=new]before }> = after <-> substi old new before after.
+Proof.
+	intros. split; generalize after.
+	induction before; destruct_if.
+	induction 1; destruct_if.
 Qed.
 
 
-Definition typeCheck' : forall e : exp, {t : type | hasType e t} + {forall t, ~ hasType e t}.
-	Hint Constructors hasType.
-	Hint Resolve hasType_det.
+Reserved Notation "t '-->' t'" (at level 40).
+Inductive step: tm -> tm -> Prop :=
+	| ST_AppAbs: forall x T2 t1 v2,
+			value v2
+			-> <{(\x:T2, t1) v2}> --> <{ [x:=v2]t1 }>
+	| ST_App1: forall t1 t1' t2,
+			t1 --> t1' ->
+			<{t1 t2}> --> <{t1' t2}>
+	| ST_App2: forall v1 t2 t2',
+			value v1
+			-> t2 --> t2'
+			-> <{ v1 t2}> --> <{v1 t2'}>
+	| ST_IfTrue: forall t1 t2,
+			<{if true then t1 else t2}> --> t1
+	| ST_IfFalse: forall t1 t2,
+			<{if false then t1 else t2}> --> t2
+	| ST_If: forall t1 t1' t2 t3,
+			t1 --> t1'
+			-> <{ if t1 then t2 else t3}> --> <{if t1' then t2 else t3}>
 
-	refine (fix F (e : exp) : {t : type | hasType e t} + {forall t, ~ hasType e t} :=
-		match e return {t : type | hasType e t} + {forall t, ~ hasType e t} with
-			| Nat _ => [||TNat||]
-			| Plus e1 e2 =>
-				t1 <-- F e1;
-				t2 <-- F e2;
-				eq_type_dec t1 TNat;;;
-				eq_type_dec t2 TNat;;;
-				[||TNat||]
-			| Bool _ => [||TBool||]
-			| And e1 e2 =>
-				t1 <-- F e1;
-				t2 <-- F e2;
-				eq_type_dec t1 TBool;;;
-				eq_type_dec t2 TBool;;;
-				[||TBool||]
-		end); clear F; crush' tt hasType; eauto.
+where "t '-->' t'" := (step t t').
 
-Defined.
+Definition relation (X: Type) := X -> X -> Prop.
+Inductive multi {X: Type} (R: relation X): relation X :=
+	| multi_refl: forall (x: X), multi R x x
+	| multi_step: forall (x y z: X),
+			R x y
+			-> multi R y z
+			-> multi R x z.
 
-Eval simpl in typeCheck' (Nat 0).
-Eval simpl in typeCheck' (Plus (Nat 1) (Nat 2)).
-Eval simpl in typeCheck' (Plus (Nat 1) (Bool false)).
+Hint Constructors step: core.
+Notation multistep := (multi step).
+Notation "t1 '-->*' t2" := (multistep t1 t2) (at level 40).
 
-Extraction typeCheck'.
+Tactic Notation "print_goal" :=
+	match goal with |- ?x => idtac x end.
+Tactic Notation "normalize" :=
+	repeat (
+		print_goal; eapply multi_step;
+		[ (eauto 10; fail) | (instantiate; simpl)]
+	);
+	apply multi_refl.
+
+Lemma step_example1':
+	<{idBB idB}> -->* idB.
+Proof. normalize. Qed.
+
+Definition context := partial_map ty.
+
+(*Reserved Notation "ctx '--' t '>>>' T" (at level 101, t custom stlc, T custom stlc at level 0).*)
+Inductive has_type: context -> tm -> ty -> Prop :=
+  | T_Var: forall ctx x T1,
+      ctx x = Some T1 ->
+      ctx -- x >>> T1
+  | T_Abs: forall ctx x T1 T2 t1,
+      (update ctx x T2) -- t1 >>> T1 ->
+      ctx -- \x:T2, t1 >>> (T2 -> T1)
+  | T_App: forall T1 T2 ctx t1 t2,
+      ctx -- t1 >>> (T2 -> T1) ->
+      ctx -- t2 >>> T2 ->
+      ctx -- t1 t2 >>> T1
+  | T_True: forall ctx,
+       ctx -- true >>> Bool
+  | T_False: forall ctx,
+       ctx -- false >>> Bool
+  | T_If: forall t1 t2 t3 T1 ctx,
+       ctx -- t1 >>> Bool ->
+       ctx -- t2 >>> T1 ->
+       ctx -- t3 >>> T1 ->
+       ctx -- if t1 then t2 else t3 >>> T1
+
+where "ctx '--' t '>>>' T" := (has_type ctx t T).
+Hint Constructors has_type: core.
+
+Example typing_example_1:
+	typed empty <{\x:Bool, x}> (Bool -> Bool)
+Proof. auto. Qed.
