@@ -89,3 +89,114 @@ we can also unbundle the idea of "making progress in data" to "making progress i
 after all this, we really start to think about the proof checker, and how the proof aspect of the language interacts with the known functions.
 the simplest thing to notice is that theorems are just known functions that transform some instantiation of a logical type (so all the values of the logical type are known at compile time) to a different type.
 the more interesting thing to notice is that the same kind of really slick "tacticals" system that's included in coq can just be *fallible* functions that take props and try to produce proofs of them. this means that the "typecheck" function that the compiler actually uses when compiling code should be exposed to all functions (and therefore of course the known functions), and that it should return some kind of `Result` type. that way tacticals can just call it at will with the proofs they've been constructing, and return successfully if they find something the core typechecking algorithm is happy with.
+
+
+
+
+---
+
+
+read introduction to separation logic
+https://iris-project.org/pdfs/2019-popl-iron-final.pdf
+https://plv.mpi-sws.org/rustbelt/rbrlx/paper.pdf
+
+https://people.mpi-sws.org/~jung/phd/thesis-screen.pdf
+
+the biggest way to make things more convenient for people is to have the *certified decision procedures* described by CPDT in the form of the type checking functions!!! that means that certain macros or subportions of the language that fit into some decidable type system can just have their type checking function proven and provided as the proof object!
+
+
+rather than have many layers of "typed" compilers each emitting the language of the one below it as described in the foundational proof carrying code paper, we simply have *one* very base low level language with arbitrarily powerful metaprogramming and proof abilities! we can create the higher level compilers as embedded constructs in the low level language. we're building *up* instead of *down*.
+
+
+https://www.cs.cmu.edu/afs/cs.cmu.edu/project/fox-19/member/jcr/www15818As2011/cs818A3-11.html
+(here now: 3.12 More about Annotated Specifications)
+https://www.cs.cmu.edu/afs/cs.cmu.edu/project/fox-19/member/jcr/www15818As2011/ch3.pdf
+
+https://en.wikipedia.org/wiki/Bunched_logic
+http://www.lsv.fr/~demri/OHearnPym99.pdf
+
+https://arxiv.org/pdf/1903.00982.pdf
+https://aaronweiss.us/pubs/popl19-src-oxide-slides.pdf
+
+the real genius of rust is education! people can understand separation logic and formal verification if we teach them well!
+
+a basic theory of binary-representable types would also of course be incredibly useful here.
+it seems that carbon could be specified completely by defining the simple `bit` type, and the basic tuple/record, union, and intersection combinators (it seems that intersection types can/should only be used between named records, and to add arbitrary logical propositions to types? it might make sense to only use intersection (as in `&`) for propositions, and have special `merge` and `concat` etc type transformer known functions to do the other kinds of operations people typically think of as being "intersection". then `&` is simple and well-defined and can be used to put any propositions together? it might also function nicely as the syntactic form for declaring propositions, instead of `must`, so `type Nat = int & >= 0`)
+
+logical propositions are so powerful that they could be the entire mode of specifying the base types! booleans are just a `byte` or whatever with props asserting that it can only hold certain values. traits are just props asserting that there exists an implementation in scope satisfying some shape. and of course arbitrary logical stuff can be done, including separation logic/ghost state type things.
+
+a reason to include the same kind of constructive inductive propositions is because it provides two ways of attacking
+
+a theory of "known" types that allows known functions to produce data structures representing these types is probably the most important first step. it seems you could prove that known types are general enough to provide the language with generics, all kinds of macros, and then dramatically expands the reach of usual static type systems by providing "type functions", which allow arbitrary derivations (you can easily do rust derived traits) and mapping, which allows for the kind of expressivity that typescript mapped and conditional types allows
+
+a general truth to remember about the goals of carbon is to remember what really made rust successful. it didn't shy away from complexity, and it didn't water down what people were capable of achieving, but it did find clean abstractions for complex things, and *especially* it did an amazing job **teaching** people how those concepts work. an amazing next generation language is equal parts good language/abstraction design and pedagogy. if you give people a huge amount of power to build incredible things, *and* you do an excellent job teaching them both how to use and why they should use it, then you've got an amazing project on your hands.
+
+also very important, and something that the academics have *miserably* failed to do (in addition to their language design and the teaching materials, both of which are usually absolutely dreadful), is building the *tooling* for the language. the tools (think `cargo`) and community infrastructure (think the crates system) are probably *more* important on average for the success of a language community than the language itself. people won't use even the most powerful language if it's an absolute godawful chore to accomplish even the smallest thing with it
+
+another thing the academics don't realize and do wrong (especially in coq) is just their conventions for naming things! in Coq basic commands like `Theorem` are both inconveniently capitalized and fully spelled out, but important variable names that could hint to us about the semantic content of a variable are given one letter names! that's completely backwards from a usability standpoint, since commands are something we see constantly, can look up in a single manual, and can have syntax highlighters give us context for; whereas variable names are specific to a project or a function/type/proof. shortening `Theorem` to `th` is perfectly acceptable, and lets us cut down on syntax in a reasonable place so we aren't tempted to do so in unreasonable places. `forall` could/should be shortened to something like `fa` or even a single character like `@`. `@(x: X, y: Y)` could be the "forall tuple", equivalent to `forall (x: X) (y: Y)`
+
+## building a proof checker!
+https://cstheory.stackexchange.com/questions/5836/how-would-i-go-about-learning-the-underlying-theory-of-the-coq-proof-assistant
+https://www.irif.fr/~sozeau/research/publications/drafts/Coq_Coq_Correct.pdf
+https://github.com/coq/coq/tree/master/kernel
+
+you should almost certainly do everything you can to understand how coq works at a basic level, and read some of the very earliest papers on proof checkers/assistants to understand their actual machinery. hopefully the very basics are simple, and most of the work is defining theories etc on top. hopefully the footprint of the actual checker is tiny, and it's the standard libraries and proof tactics and such that really create most of the weight
+
+theory of known types
+carbon (and various projects in carbon) (when thinking about the compiler and checking refinement/dependent types, it probably makes sense to use an SMT solver for only the parts that you can't come up with a solid algorithm for, like the basic type checking, or to only fall back on it when some simple naive algorithm fails to either prove or disprove)
+
+https://www.cs.princeton.edu/~appel/papers/fpcc.pdf
+https://www.google.com/books/edition/Program_Logics_for_Certified_Compilers/ABkmAwAAQBAJ?hl=en&gbpv=1&printsec=frontcover
+
+https://www3.cs.stonybrook.edu/~bender/newpub/2015-BenderFiGi-SICOMP-topsort.pdf
+
+
+https://hal.inria.fr/hal-01094195/document
+https://coq.github.io/doc/V8.9.1/refman/language/cic.html
+https://ncatlab.org/nlab/show/calculus+of+constructions
+https://link.springer.com/content/pdf/10.1007%2F978-0-387-09680-3_24.pdf ????
+
+
+https://softwarefoundations.cis.upenn.edu/lf-current/ProofObjects.html
+has a little portion about type-checking and the trusted base, reassuring
+
+
+
+"Given a type T, the type Πx : T, B will represent the type of dependent
+functions which given a term t : T computes a term of type B[t/x] corresponding to proofs of
+the logical proposition ∀x : T, B. Because types represent logical propositions, the language will
+contain empty types corresponding to unprovable propositions.
+Notations. We shall freely use the notation ∀x : A, B instead of Πx : A, B when B represents
+a proposition."
+
+theorems are just *dependently* typed functions! this means there's a nice "warning" when people construct propositions that don't use their universally quantified arguments, the propositions are vacuous or trivial and don't prove anything about the input.
+
+
+
+a big reason unit tests are actually more annoying and slower in development is the need for fixture data! coming up with either some set of examples, or some fixture dataset, or some model that can generate random data in the right shape is itself a large amount of work that doesn't necessarily complement the actual problem at hand. however proving theorems about your implementation is completely complementary, the proofs lock together with the implementation exactly, and you can prove your whole program correct without ever running it! once someone's skilled with the tool, that workflow is massively efficient, since they never have to leave the "code/typecheck" loop.
+also, proof automation is actually *much more general and easier* than automation of testing. with testing, you need to be able to generate arbitrarily specific models and have checking functions *that aren't the same as the unit under test*. doing that is a huge duplication of effort.
+
+
+
+probably ought to learn about effect systems as well
+
+an infecting proposition for a blocking operation in an async context is a good idea
+
+
+
+https://www.cs.cmu.edu/~rwh/papers/dtal/icfp01.pdf
+http://www.ats-lang.org/
+looking at dml and xanadu might be good
+
+a very plausible reason that projects like dependently-typed-assembly-language and xanadu and ats haven't worked, is that smart separation logic wasn't there yet, and those languages didn't have powerful enough metaprogramming!
+
+in bedrock, the actual *language* can literally just be a powerful dependently typed assembly language along with the arbitrarily powerful meta-programming allowed by known types and some cool "keyword"-like primitives, but then the *programmer facing* language can have structs and functions and all the nice things we're used to but all defined with the meta-programming! the meta-programming is the thing that really allows us to package the hyper-powerful and granular dependent type system into a format that is still usable and can achieve mass adoption. in this way we can kinda call this language "machine scheme/lisp".
+
+
+a mistake everyone's been making when integrating dependant/refinement types into "practical" languages is requiring that only first order logic be used, and therefore that the constraints are *always* automatically solvable. We can still keep those easy forms around just by checking if they're applicable and then using them, but some people need/want more power and we should just give it to them! they'll be on their own to provide proofs, but that's fine!
+we're really making this tradeoff: would we rather have a bunch of languages that are easy to use but lack a bunch of power that makes us routinely create unsafe programs, or occasionally encounter a problem that's a huge pain in the ass to formalize correctness but we're still capable of doing so? I think we definitely want the second! And we can make abstractions to allow us to work in the first area for a subset of easily-shaped problems but still directly have "escape hatches" to the more powerful layer underneath. a full proof checker in a language gives us the exciting option to always include in our meta languages a direct escape hatch right down into the full language!
+
+
+
+
+as a future thing, the whole system can be generic over some set of "hardware axioms" (the memory locations and instructions that are intrinsic to an architecture), along with functions describing how to map the "universal" instructions and operations into the hardware instructions. an "incomplete" mapping could be provided, and compiling programs that included unmapped universal instructions would result in a compiler error

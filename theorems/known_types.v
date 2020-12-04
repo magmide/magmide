@@ -116,18 +116,13 @@ Inductive substi (old: string) (new: tm): tm -> tm -> Prop :=
 .
 Hint Constructors substi: core.
 
-Ltac destruct_if :=
-	crush; match goal with
-		| [ |- context[if ?X then _ else _] ] => destruct X
-	end; crush.
-
-Theorem substi_correct: forall old new before after,
+(*Theorem substi_correct: forall old new before after,
 	<{ [old:=new]before }> = after <-> substi old new before after.
 Proof.
 	intros. split; generalize after.
-	induction before; destruct_if.
-	induction 1; destruct_if.
-Qed.
+	induction before; if_crush.
+	induction 1; if_crush.
+Qed.*)
 
 
 Reserved Notation "t '-->' t'" (at level 40).
@@ -179,31 +174,117 @@ Proof. normalize. Qed.
 
 Definition context := partial_map ty.
 
-(*Reserved Notation "ctx '--' t '>>>' T" (at level 101, t custom stlc, T custom stlc at level 0).*)
-Inductive has_type: context -> tm -> ty -> Prop :=
-  | T_Var: forall ctx x T1,
-      ctx x = Some T1 ->
-      ctx -- x >>> T1
-  | T_Abs: forall ctx x T1 T2 t1,
-      (update ctx x T2) -- t1 >>> T1 ->
-      ctx -- \x:T2, t1 >>> (T2 -> T1)
-  | T_App: forall T1 T2 ctx t1 t2,
-      ctx -- t1 >>> (T2 -> T1) ->
-      ctx -- t2 >>> T2 ->
-      ctx -- t1 t2 >>> T1
-  | T_True: forall ctx,
-       ctx -- true >>> Bool
-  | T_False: forall ctx,
-       ctx -- false >>> Bool
-  | T_If: forall t1 t2 t3 T1 ctx,
-       ctx -- t1 >>> Bool ->
-       ctx -- t2 >>> T1 ->
-       ctx -- t3 >>> T1 ->
-       ctx -- if t1 then t2 else t3 >>> T1
-
-where "ctx '--' t '>>>' T" := (has_type ctx t T).
-Hint Constructors has_type: core.
+Inductive typed: context -> tm -> ty -> Prop :=
+	| T_True: forall ctx, typed ctx <{true}> <{Bool}>
+	| T_False: forall ctx, typed ctx <{false}> <{Bool}>
+	| T_Var: forall ctx varname T,
+			ctx varname = Some T ->
+			typed ctx varname T
+	| T_Abs: forall ctx var Tvar body Tbody,
+			typed (update ctx var Tvar) body Tbody ->
+			typed ctx <{\var:Tvar, body}> <{Tvar -> Tbody}>
+	| T_App: forall ctx fn arg domain range,
+			typed ctx fn <{domain -> range}> ->
+			typed ctx arg domain ->
+			typed ctx <{fn arg}> range
+	| T_If: forall test tbody fbody T ctx,
+			 typed ctx test <{Bool}> ->
+			 typed ctx tbody T ->
+			 typed ctx fbody T ->
+			 typed ctx <{if test then tbody else fbody}> T
+.
+Hint Constructors typed: core.
 
 Example typing_example_1:
-	typed empty <{\x:Bool, x}> (Bool -> Bool)
+	typed empty <{\x:Bool, x}> <{Bool -> Bool}>.
 Proof. auto. Qed.
+
+
+Fixpoint types_equal (T1 T2: ty): {T1 = T2} + {T1 <> T2}.
+	decide equality.
+Defined.
+
+
+Notation "x <- e1 -- e2" := (match e1 with | Some x => e2 | None => None end)
+	(right associativity, at level 60).
+
+Fixpoint type_check (ctx: context) (t: tm): option ty :=
+	match t with
+	| <{true}> => Some <{ Bool }>
+	| <{false}> => Some <{ Bool }>
+	| tm_var varname => ctx varname
+	| <{\var:Tvar, body}> =>
+			Tbody <- type_check (update ctx var Tvar) body --
+			Some <{Tvar -> Tbody}>
+	| <{fn arg}> =>
+			Tfn <- type_check ctx fn --
+			Targ <- type_check ctx arg --
+			match Tfn with
+			| <{Tdomain -> Trange}> =>
+					if types_equal Tdomain Targ then Some Trange else None
+			| _ => None
+			end
+	| <{if test then tbody else fbody}> =>
+			Ttest <- type_check ctx test --
+			Ttbody <- type_check ctx tbody --
+			Tfbody <- type_check ctx fbody --
+			match Ttest with
+			| <{ Bool }> =>
+					if types_equal Ttbody Tfbody then Some Ttbody else None
+			| _ => None
+			end
+	end.
+Hint Unfold type_check.
+
+Ltac solve_by_inverts n :=
+	match goal with | H : ?T |- _ =>
+	match type of T with Prop =>
+		solve [
+			inversion H;
+			match n with S (S (?n')) => subst; solve_by_inverts (S n') end ]
+	end end.
+
+Ltac solve_by_invert :=
+  solve_by_inverts 1.
+
+Ltac if_crush :=
+	crush; repeat match goal with
+		| [ |- context[if ?X then _ else _] ] => destruct X
+	end; crush.
+
+Theorem type_checking_complete: forall ctx t T,
+	typed ctx t T -> type_check ctx t = Some T.
+Proof.
+	intros. induction H; if_crush.
+Qed.
+Hint Resolve type_checking_complete: core.
+
+Theorem type_checking_sound: forall ctx t T,
+	type_check ctx t = Some T -> typed ctx t T.
+Proof.
+	intros ctx t. generalize dependent ctx.
+	induction t; intros ctx T; inversion 1; crush.
+	- rename t1 into fn, t2 into arg.
+		remember (type_check ctx fn) as Fnchk.
+		destruct Fnchk as [TFn|]; try solve_by_invert;
+		destruct TFn as [|Tdomain Trange]; try solve_by_invert;
+		remember (type_check ctx arg) as Argchk;
+		destruct Argchk as [TArg|]; try solve_by_invert.
+		destruct (types_equal Tdomain TArg) eqn: Hd; crush.
+		apply T_App.
+	-
+	-
+
+	intros. generalize dependent T. generalize dependent ctx.
+	induction t; intros ctx T; inversion 1.
+	- crush.
+	-
+		crush.
+	induction t; intros crush.
+Qed.
+Hint Resolve type_checking_sound.
+
+
+Theorem type_checking_correct: forall ctx t T,
+	type_check ctx t = Some T <-> typed ctx t T.
+Proof. crush. Qed.
