@@ -44,7 +44,9 @@ all computable types as simply a bit array with some predicate over that bit arr
 then we can get more interesting by having "pre" typechecks. really what we would be doing there is just trying to allow people authoring higher order "known" functions to prove their functions correct, rather than simply relying on the "this known function will eventually reduce to some terms and *those* terms will be typechecked :shrug:". Basically we want these kinds of authors to have strong typing for their things as well, in a way that goes beyond just typechecking the actual "type value" structs that they happen to be manipulating
 we can think about it this way: in languages like rust, macros just input/output token streams. from a meta-programming perspective, that's like a program just operating on bytestreams at both ends. we want people to be able to type their known functions just as well as all the *actual* functions. what this can allow us to do is typecheck a program, and know *even before we've reduced certain known functions* that those known functions aren't being used appropriately in their context, and won't reduce to terms that will typecheck. in a language that's formally verified, we can then even potentially do the (very scary) potentially very performance enhancing task of *not actually bothering to typecheck the outputs of these known functions*. if we've verified the pre-conditions of the known function, and we have a proof that the known function will always output terms having some particular type, we can just take that type as a given
 
+
 after we've defined the semantics of types that consist *only* of bit arrays with a predicate, we can start actually defining the language semantics. the big things are n-ary unions and match statements, module paths and the dag, type definition syntax etc. but also the very interesting and potentially massive area of figuring out how we can prove that a loop (or family of co-recursive functions) will always terminate. since this language would have a rich proof system, doing that can actually be tractable and useful from the perspective of programmers.
+lexicographic ordering of stack arguments ["Proving termination"](http://www.fstar-lang.org/tutorial/).
 
 defining and proving correct a type inference algorithm
 
@@ -200,3 +202,17 @@ we're really making this tradeoff: would we rather have a bunch of languages tha
 
 
 as a future thing, the whole system can be generic over some set of "hardware axioms" (the memory locations and instructions that are intrinsic to an architecture), along with functions describing how to map the "universal" instructions and operations into the hardware instructions. an "incomplete" mapping could be provided, and compiling programs that included unmapped universal instructions would result in a compiler error
+
+
+
+
+
+
+this is interesting, he's making a lot of the same arguments I am
+https://media.ccc.de/v/34c3-9105-coming_soon_machine-checked_mathematical_proofs_in_everyday_software_and_hardware_development
+https://github.com/mit-plv/bedrock2
+
+
+
+email to adamc@csail.mit.edu:
+I want to help bring formal methods to the mainstream, by learning from Rust
