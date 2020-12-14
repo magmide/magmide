@@ -212,7 +212,19 @@ this is interesting, he's making a lot of the same arguments I am
 https://media.ccc.de/v/34c3-9105-coming_soon_machine-checked_mathematical_proofs_in_everyday_software_and_hardware_development
 https://github.com/mit-plv/bedrock2
 
+http://adam.chlipala.net/frap/frap_book.pdf
 
 
 email to adamc@csail.mit.edu:
 I want to help bring formal methods to the mainstream, by learning from Rust
+
+
+
+`bedrock`
+write `bedrock` post, with lots of specific technical examples
+create unproven functions implementing basic mutating assembly language in coq, using naturals instead of bit sequences
+figure out how to use iris enough to implement some basic allocation examples
+figure out how to use iron enough to implement allocation and deallocation
+
+blog post series discussing the failure of untyped languages/software engineers and the dream of a common formal language
+read basic category theory for computer scientists
