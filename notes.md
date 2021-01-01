@@ -1,3 +1,8 @@
+https://www.ralfj.de/blog/2020/12/14/provenance.html
+john regehr office hours
+
+
+
 - dependent type proof checker with purely logical `prop` and `set?` types
 - definition of bits and bit arrays that are given special treatment
 - definition of representation of logical types by bit arrays
