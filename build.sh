@@ -1,3 +1,0 @@
-pushd theorems
-make
-popd

@@ -1,3 +1,20 @@
+I'm starting to think that what I'm really designing is more a *logic* for typed assembly languages. it's not *quite* like llvm precisely, because to really correctly compile to each individual instruction set, those instruction sets have to be fully specified!
+it seems I'm more moving toward a general logic with a *toolbox* of abstract instruction semantics, each of which can be tied concretely to actual applications. but the full instruction set of any architecture can be specified in full.
+it really does point toward having a few different "families" of programs:
+
+- embedded programs, in which the exact specifications are known up front
+- os programs? ones here the instruction set can be known but things like memory sizes aren't?
+- runtime programs, ones where some existing environment is already provided, often allowing looser assumptions
+
+probably what we want is a "general core" of instructions we assume every machine has some equivalent for, which we can build the more "higher level" languages on top of. then to write a "backend" someone would fully specify the instruction set and tie the real instructions to the general core ones, at least if they wanted to be able to support the higher level languages
+
+
+
+
+
+
+
+
 https://www.ralfj.de/blog/2020/12/14/provenance.html
 john regehr office hours
 
@@ -104,10 +121,6 @@ the more interesting thing to notice is that the same kind of really slick "tact
 
 
 read introduction to separation logic
-https://iris-project.org/pdfs/2019-popl-iron-final.pdf
-https://plv.mpi-sws.org/rustbelt/rbrlx/paper.pdf
-
-https://people.mpi-sws.org/~jung/phd/thesis-screen.pdf
 
 the biggest way to make things more convenient for people is to have the *certified decision procedures* described by CPDT in the form of the type checking functions!!! that means that certain macros or subportions of the language that fit into some decidable type system can just have their type checking function proven and provided as the proof object!
 
