@@ -7,6 +7,8 @@ Existing research around formal methods and program verification, such as in the
 
 Formally verifying the correctness of legacy systems after the fact is necessarily much more difficult than developing new tools from first principles with verification in mind. The only reason I can think of for the post-hoc philosophy is one of terrified pragmatism, where researchers and engineers are too scared to rethink layers that "seem to be working". This seems foolish to me, since we don't *actually* have any confidence those old layers are actually correct. If you start from the bottom and produce fully verified foundations, and every layer you stack on top is itself verified, I conjecture you can move much faster than trying to avoid or work-around bugs in existing legacy foundations.
 
+That work only matters once it has been applied in a way that benefits the world.
+
 The goal behind this project is to answer the question: what would we design if we started from scratch? Rok really is an attempt to lay a completely new foundation for all of computing that could be used to entirely rethink how every layer of software infrastructure works, all the way down to the raw metal.
 
 ## Why Do We Need More Verification?
