@@ -19,9 +19,9 @@ Software is important, and we would like to have more confidence when using it f
 
 ### Bug Rate, Rework, and Velocity
 
-One of the most frustrating experiences when trying to build something is to discover bugs or obvious gaps in a lower layer. When software you implicitly trusted fails for reasons entirely beyond your control, you lose a huge amount of time, and those gaps almost always transitively produce gaps in *your* layer as well, continuing the harmful ripple effect.
+One of the most frustrating experiences when trying to build something is to discover bugs or obvious gaps in a lower layer. When software you implicitly trust fails for reasons entirely beyond your control, you lose a huge amount of time, and those gaps almost always transitively produce gaps in *your* layer as well, continuing the harmful ripple effect.
 
-Even if the correctness of some piece of software isn't "critical", its correctness is still helpful, allowing all its users to simply enjoy its power without interruptions or frustration. The overall velocity of all engineering work can improve dramatically when all layers are made more robust.
+Even if the correctness of some piece of software isn't "critical", its correctness is still helpful. its users can simply enjoy its power without interruptions or frustration. The overall velocity of all engineering work can improve dramatically when all layers are made more robust.
 
 In exactly the same way that [`null` was a billion dollar mistake](TODO), general software incorrectness has probably cost trillions of dollars in lost productivity and potential progress.
 
@@ -86,11 +86,11 @@ checking assertions from the bottom up and in reverse instruction order, keeping
 
 Obviously a language that allows robust verification of any useful program will be an obvious fit for critical software of all kinds, such as blockchains/smart contracts, cryptography, firmware, operating systems, language runtimes, financial/legal/medical applications, web servers, databases, etc. But there are a few specific uses I'm personally excited to pursue once this language is functional.
 
-high-level but statically lowered asynchronous actor-first borrow-checked language, ideal for application domains and high-level targets like webassembly and operating system environments
+high-level but statically lowered asynchronous actor-first borrow-checked language, ideal for application domains and high-level targets like webassembly and operating system environments. inspired by ponylang and its awareness of actor boundaries to allow aliasing in the presence of mutation
 
 metaprogrammable databases
 
-verified tree-like reactivity frameworks
+verified tree-like reactivity frameworks. especially doable with smarter actor-graph-aware lifetime systems
 
 semver enforcing package managers
 

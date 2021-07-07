@@ -1,3 +1,21 @@
+The term "gradual verification" is useful to sell people on what's unique about this project. Rok is tractable for the same reasons something like typescript or mypy is tractable.
+
+
+
+
+An exciting idea, of having the "language" be generic over a *machine*, which includes possibly none or many register (a bit array of known length) or memory location (also a bit array of known length, which accounts for architecture alignment) banks (a possibly infinite list), and a concrete instruction set. Then we can understand the "language" to just be a set of common tools and rules for describing machines.
+
+Some nice things follow from this:
+
+- "artifical" machines such as those supported by a runtime of some sort are easily described
+- machines can have multiple register and memory banks of different sizes, and dependent types could allow us to have different access rules or restrictions or semantics for them each. metaprogramming can "unbundle" these banks into simple names if that makes sense.
+- it becomes pretty simple to check if a machine is "abstract" or "concrete", by determining if all the sizes of register/memory banks are known or unknown (or possibly the correct thing is finite vs infinite?). with that information we can add alerts or something if the memory allocation function of an abstract machine isn't somehow fallible (in a concrete machine, failure to allocate is actually just a program failure! it has a more concrete meaning of having too much data of a specific kind. this concrete semantic failure in a concrete machine is what "bubbles up" to create an infinite but fallible allocation instruction in an abstract machine)
+
+
+
+
+
+
 I'm starting to think that what I'm really designing is more a *logic* for typed assembly languages. it's not *quite* like llvm precisely, because to really correctly compile to each individual instruction set, those instruction sets have to be fully specified!
 it seems I'm more moving toward a general logic with a *toolbox* of abstract instruction semantics, each of which can be tied concretely to actual applications. but the full instruction set of any architecture can be specified in full.
 it really does point toward having a few different "families" of programs:
