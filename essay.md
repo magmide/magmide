@@ -1,3 +1,40 @@
+```
+In the spirit of Richard Gabriel, the Pony philosophy is neither "the-right-thing" nor "worse-is-better". It is "get-stuff-done".
+
+Correctness
+Incorrectness is simply not allowed. It's pointless to try to get stuff done if you can't guarantee the result is correct.
+
+Performance
+Runtime speed is more important than everything except correctness. If performance must be sacrificed for correctness, try to come up with a new way to do things. The faster the program can get stuff done, the better. This is more important than anything except a correct result.
+
+Simplicity
+Simplicity can be sacrificed for performance. It is more important for the interface to be simple than the implementation. The faster the programmer can get stuff done, the better. It's ok to make things a bit harder on the programmer to improve performance, but it's more important to make things easier on the programmer than it is to make things easier on the language/runtime.
+
+Consistency
+Consistency can be sacrificed for simplicity or performance. Don't let excessive consistency get in the way of getting stuff done.
+
+Completeness
+It's nice to cover as many things as possible, but completeness can be sacrificed for anything else. It's better to get some stuff done now than wait until everything can get done later.
+
+The "get-stuff-done" approach has the same attitude towards correctness and simplicity as "the-right-thing", but the same attitude towards consistency and completeness as "worse-is-better". It also adds performance as a new principle, treating it as the second most important thing (after correctness).
+
+https://www.ponylang.io/discover/#what-is-pony
+```
+
+
+
+
+Overall the difference between "the-right-thing" and "worse-is-better" can be understood as the difference between upfront and marginal costs. Doing something right the first time is an upfront cost, and once paid decreases marginal costs *forever*.
+The main problem in software, and the reason "worse-is-better" has been winning in an environment of growth-focused viral capitalism, was that it was basically impossible in practice to actually do something the right way! Since our languages haven't ever supported automatic verification we could only hope to weakly attempt to understand what correct even meant and then actually implement it. This meant the cost to chase the truly right thing was unacceptably uncertain.
+
+Rok promises neither performance nor correctness nor consistency nor completeness, but instead promises the one thing that underlies all of those qualities: knowledge. Complete and total formal knowledge about the program you're writing.
+Rok is simply a raw exposure of the basic elements of computing, in both the real sense of actual machine instructions and the ideal sense of formal logic. These basic elements can be combined in whatever way someone desires, even in the "worse-is-better" way! The main contribution of Rok is that the tradeoffs one makes can be made *and flagged*. Nothing is done without knowledge.
+
+
+
+
+
+
 This project is seeking to solve these problems by creating a Tool, and a Community. The Tool is largely a technical work, but one we will try to build as intuitively and elegantly as possible (in contrast to existing academic tools). The Community includes governance and education materials.
 
 
@@ -87,6 +124,12 @@ checking assertions from the bottom up and in reverse instruction order, keeping
 Obviously a language that allows robust verification of any useful program will be an obvious fit for critical software of all kinds, such as blockchains/smart contracts, cryptography, firmware, operating systems, language runtimes, financial/legal/medical applications, web servers, databases, etc. But there are a few specific uses I'm personally excited to pursue once this language is functional.
 
 high-level but statically lowered asynchronous actor-first borrow-checked language, ideal for application domains and high-level targets like webassembly and operating system environments. inspired by ponylang and its awareness of actor boundaries to allow aliasing in the presence of mutation
+http://jtfmumm.com/blog/2016/03/06/safely-sharing-data-pony-reference-capabilities/
+I like this:
+
+```
+Pony takes a different approach and outlaws infix precedence. Any expression where more than one infix operator is used must use parentheses to remove the ambiguity. If you fail to do this the compiler will complain.
+```
 
 metaprogrammable databases
 
