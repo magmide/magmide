@@ -1,3 +1,7 @@
+look at koka lang
+what rok can add is *unannotated* effects. polymorphic effects in a language like koka seem (at first glance) to require annotation, whereas in rok they are simply implied by the `&` combination of assertions that is inherent to what a type is.
+
+
 The term "gradual verification" is useful to sell people on what's unique about this project. Rok is tractable for the same reasons something like typescript or mypy is tractable.
 
 
