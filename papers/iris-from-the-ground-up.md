@@ -66,3 +66,6 @@ the composition function · defines what happens when you combine resources from
 ghost state view shifts are *consuming*, to update `P ==>_ep Q` you have to update the state, or consume or destroy P. normal propositions `A -> B` are *constructive*, and wands
 
 a mask on a hoare triple is like a set or map keeping track of which invariants are in force. accessing an invariant removes that invariant's *namespace* from the mask.
+
+
+

@@ -17,3 +17,6 @@ pt-split:
 `(l -->_pi1 v) * (e_pi2) <-> (l -->_(pi1 + pi2) v)`
 
 since `e_pi` propositions allow us to demonstrate we've deallocated memory, we can prove a program doesn't leak memory by giving it a hoare triple of `{ e_pi } program { e_pi }` where pi is equal in pre and post, for any pi
+
+
+I got all I needed from this paper I think

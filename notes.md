@@ -1,3 +1,15 @@
+https://iris-project.org/tutorial-pdfs/iris-lecture-notes.pdf
+https://gitlab.mpi-sws.org/iris/tutorial-popl21
+https://gitlab.mpi-sws.org/iris/iris/-/blob/master/docs/heap_lang.md
+https://gitlab.mpi-sws.org/iris/iris/blob/master/docs/proof_mode.md
+
+
+
+
+I like the idea of having a `by` operator that can be used to justify passing a variable as some type with the accompanying proof script. so for example you could say `return x by crush`, or more complicated things such as `return x by (something; something)`
+a small and easy to use operator for embedding the proof language into the computational language would probably go a long way to making Rok popular and easy to understand.
+
+
 look at koka lang
 what rok can add is *unannotated* effects. polymorphic effects in a language like koka seem (at first glance) to require annotation, whereas in rok they are simply implied by the `&` combination of assertions that is inherent to what a type is.
 

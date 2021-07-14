@@ -32,6 +32,11 @@ Rok is simply a raw exposure of the basic elements of computing, in both the rea
 
 
 
+The big ideas I have are these:
+metaprogramming! upwards recombination is much more powerful than downwards compilation
+indented syntax blocks. I know, it wouldn't seem like it! but the simple idea of being able to pass a block of text that has literally any syntax you want, without having to define crazy Notations and operator precedences etc, and since the end of that block is only inferred from indentation, that means this language can have *way more* expressive embedded notations than Coq could. Coq's notation system is fancy and complicated, and that's exactly the problem.
+infecting "tokens" or propositions. this is basically what allows us to instantiate Iris with just a single language that's generic over exact instructions and the machine. we basically define our language to be the most generic concept of a von neumann machine, and then the exact nature of the instructions and machine take it from there.
+
 
 
 
