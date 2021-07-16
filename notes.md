@@ -1,3 +1,93 @@
+http://www.fstar-lang.org/tutorial/
+
+```
+Lexicographic orderings
+F* also provides a convenience to enhance the well-founded ordering << to lexicographic combinations of <<. That is, given two lists of terms v₁, ..., vₙ and u₁, ..., uₙ, F* accepts that the following lexicographic ordering:
+
+v₁ << u₁ \/ (v₁ == u₁ /\ (v₂ << u₂ \/ (v₂ == u₂ /\ ( ... vₙ << uₙ))))
+is also well-founded. In fact, it is possible to prove in F* that this ordering is well-founded, provided << is itself well-founded.
+
+Lexicographic ordering are common enough that F* provides special support to make it convenient to use them. In particular, the notation:
+
+%[v₁; v₂; ...; vₙ] << %[u₁; u₂; ...; uₙ]
+is shorthand for:
+
+v₁ << u₁ \/ (v₁ == u₁ /\ (v₂ << u₂ \/ (v₂ == u₂ /\ ( ... vₙ << uₙ))))
+Let’s have a look at lexicographic orderings at work in proving that the classic ackermann function terminates on all inputs.
+
+let rec ackermann (m n:nat)
+  : Tot nat (decreases %[m;n])
+  = if m=0 then n + 1
+    else if n = 0 then ackermann (m - 1) 1
+    else ackermann (m - 1) (ackermann m (n - 1))
+The decreases %[m;n] syntax tells F* to use the lexicographic ordering on the pair of arguments m, n as the measure to prove this function terminating.
+
+
+
+
+Mutual recursion
+F* also supports mutual recursion and the same check of proving that a measure of the arguments decreases on each (mutually) recursive call applies.
+
+For example, one can write the following code to define a binary tree that stores an integer at each internal node—the keyword and allows defining several types that depend mutually on each other.
+
+To increment all the integers in the tree, we can write the mutually recursive functions, again using and to define incr_tree and incr_node to depend mutually on each other. F* is able to prove that these functions terminate, just by using the default measure as usual.
+
+type tree =
+  | Terminal : tree
+  | Internal : node -> tree
+
+and node = {
+  left : tree;
+  data : int;
+  right : tree
+}
+
+let rec incr_tree (x:tree)
+  : tree
+  = match x with
+    | Terminal -> Terminal
+    | Internal node -> Internal (incr_node node)
+
+and incr_node (n:node)
+  : node
+  = {
+      left = incr_tree n.left;
+      data = n.data + 1;
+      right = incr_tree n.right
+    }
+
+Note
+Sometimes, a little trick with lexicographic orderings can help prove mutually recursive functions correct. We include it here as a tip, you can probably skip it on a first read.
+
+let rec foo (l:list int)
+  : Tot int (decreases %[l;0])
+  = match l with
+    | [] -> 0
+    | x :: xs -> bar xs
+and bar (l:list int)
+  : Tot int (decreases %[l;1])
+  = foo l
+
+What’s happening here is that when foo l calls bar, the argument xs is legitimately a sub-term of l. However, bar l simply calls back foo l, without decreasing the argument. The reason this terminates, however, is that bar can freely call back foo, since foo will only ever call bar again with a smaller argument. You can convince F* of this by writing the decreases clauses shown, i.e., when bar calls foo, l doesn’t change, but the second component of the lexicographic rdering does decrease, i.e., 0 << 1.
+```
+
+```
+bool is_even(unsigned int n) {
+  if (n == 0) return true;
+  else return is_odd(n - 1);
+}
+
+bool is_odd(unsigned int n) {
+  if (n == 0) return false;
+  else return is_even(n - 1);
+}
+```
+
+
+
+
+
+
 https://iris-project.org/tutorial-pdfs/iris-lecture-notes.pdf
 https://gitlab.mpi-sws.org/iris/tutorial-popl21
 https://gitlab.mpi-sws.org/iris/iris/-/blob/master/docs/heap_lang.md
