@@ -1,3 +1,12 @@
+https://www.youtube.com/watch?v=ybrQvs4x0Ps
+
+
+
+https://arxiv.org/abs/2007.00752
+> In this work, we perform a large-scale empirical study to explore how software developers are using Unsafe Rust in real-world Rust libraries and applications. Our results indicate that software engineers use the keyword unsafe in less than 30% of Rust libraries, but more than half cannot be entirely statically checked by the Rust compiler because of Unsafe Rust hidden somewhere in a library's call chain. We conclude that although the use of the keyword unsafe is limited, the propagation of unsafeness offers a challenge to the claim of Rust as a memory-safe language. Furthermore, we recommend changes to the Rust compiler and to the central Rust repository's interface to help Rust software developers be aware of when their Rust code is unsafe.
+
+
+
 http://www.fstar-lang.org/tutorial/
 
 ```
@@ -96,12 +105,17 @@ https://gitlab.mpi-sws.org/iris/iris/blob/master/docs/proof_mode.md
 
 
 
-I like the idea of having a `by` operator that can be used to justify passing a variable as some type with the accompanying proof script. so for example you could say `return x by crush`, or more complicated things such as `return x by (something; something)`
+I like the idea of having a `by` operator that can be used to justify passing a variable as some type with the accompanying proof script. so for example you could say `return x by crush`, or more complicated things such as `return x by (something; something)`. doing `by _` would defer the proof obligation until after the function definition.
 a small and easy to use operator for embedding the proof language into the computational language would probably go a long way to making Rok popular and easy to understand.
 
 
 look at koka lang
 what rok can add is *unannotated* effects. polymorphic effects in a language like koka seem (at first glance) to require annotation, whereas in rok they are simply implied by the `&` combination of assertions that is inherent to what a type is.
+a problem with effectual control flow is that we almost never actually *care* about control flow differences. effects in koka seem to me to be too obsessed with "purity" in the pedantic functional programming sense, rather than in the *logical correctness* sense. I don't terribly care if a subfunction causes yield effects or catches internal exceptions, I care about its performance and if it is correct or not. rok is concerned with *correctness* effects, as in whether a function "poisons" the program with possible divergence or crashes or other issues. if a sub function does *potentially* dangerous things but internally proves them and it doesn't impact performance in a way I need to be aware of, then I don't care. well, it looks like they *largely* understand that.
+what I don't love though is how obsessed they are with effect handlers, to the extent they have `fun` and `val` variants **that are equivalent to just passing down a closure or value!** I guess it allows the effect giving functions to be used in more contexts than would be possible if they just required a function or value
+value capabilities seem cool, but in a world where we can verify everything, a global variable is in fact totally acceptable. hmmm
+here's my main takeaway from koka: I actually think it's pretty cool, but I think it's important to distinguish *control flow* effects from *correctness* effects. they have completely different purposes. in fact I'm hesitant to call what koka has effects at all, they're more like "contextual handlers" or something. maybe it's better just to call what *I'm* adding something else.
+
 
 
 The term "gradual verification" is useful to sell people on what's unique about this project. Rok is tractable for the same reasons something like typescript or mypy is tractable.
