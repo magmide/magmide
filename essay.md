@@ -39,6 +39,12 @@ infecting "tokens" or propositions. this is basically what allows us to instanti
 
 
 
+Why isn't (X) good enough?
+- Rust. Not actually safe, at least within the boundaries of the tool itself.
+- LLVM. Not actually safe, which also means its optimizations can't be as aggressive. Focuses on downwards compilation rather than upwards metaprogrammatic recombination. Perhaps abstracts too much of the machine away in certain circumstances.
+- Coq, Lean
+- Koka, F*, Liquid Haskell
+
 
 This project is seeking to solve these problems by creating a Tool, and a Community. The Tool is largely a technical work, but one we will try to build as intuitively and elegantly as possible (in contrast to existing academic tools). The Community includes governance and education materials.
 
