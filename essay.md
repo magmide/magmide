@@ -31,6 +31,8 @@ Rok promises neither performance nor correctness nor consistency nor completenes
 Rok is simply a raw exposure of the basic elements of computing, in both the real sense of actual machine instructions and the ideal sense of formal logic. These basic elements can be combined in whatever way someone desires, even in the "worse-is-better" way! The main contribution of Rok is that the tradeoffs one makes can be made *and flagged*. Nothing is done without knowledge.
 
 
+If you can prove it you can do it
+
 
 The big ideas I have are these:
 metaprogramming! upwards recombination is much more powerful than downwards compilation. allows truly global interoperability (zero cost, fully verified FFI)

@@ -116,6 +116,18 @@ what I don't love though is how obsessed they are with effect handlers, to the e
 value capabilities seem cool, but in a world where we can verify everything, a global variable is in fact totally acceptable. hmmm
 here's my main takeaway from koka: I actually think it's pretty cool, but I think it's important to distinguish *control flow* effects from *correctness* effects. they have completely different purposes. in fact I'm hesitant to call what koka has effects at all, they're more like "contextual handlers" or something. maybe it's better just to call what *I'm* adding something else.
 
+Honestly it's pretty cool what koka had implemented. But I'm not as excited about it for async, because async code isn't really an effect the more I think about it.
+Async is a type level manifestation of a completely different mode of execution, in which execution is driven primarily by closures rather than by simple function execution. The program must be completely altered in terms of what data structures it produces and how they are processed
+Algebraic effects don't save us! Just be because the async effect can theoretically be composed with any other effect type doesn't mean that's actually a good choice. Async is all about recapturing and efficiently using io downtime to do more cpu work. A program simply must be structured differently in order to actually achieve that goal, and designating
+A function that actually awaits anything has now been effectively colored! It doesn't matter that other effects can exist alongside it, any calling function must either propogate the effect or handle it, which is exactly equivalent to how it works in rust
+The thing that bothers me about the red blue complaint is that it is just ignoring the reality that async programs have to be structured differently if you want to gain the performance benefits. Async functions merely prod engineers to make the right choices given that constraint
+They're of course free to do whatever they like, they can just block futures sequentially, or use the underlying blocking primitives, or use a language with transparent async, but they'll pick up the performance downsides in each case. But as they say you can choose to pick up one end of the stick but not the other
+I'm feeling more and more that other abstractions handle some of these specific cases better, at least from the perspective of how easy they are to reason about
+For example the fun and val versions of koka effects can be thought of as implicit arguments that can be separately passed in a different tuple of arguments. This is the same as giving a handler, but with stricter requirements about resumption which means we don't have to think about saving the stack. If some implicit arguments default to a global "effectful" function, then a call of that function with that default will itself have that effect
+Rok could do algebraic effects but monomorphize all the specific instances, making them zero cost. All of this can be justified using branching instructions
+Functions could use a global "unsure" function equivalent to panic but that takes a symbol and a message and the default implicit value of this function is merely an instantiation of panic that ignores the symbol. Calling functions can provide something to replace the implicit panic and have it statically monomorphized
+
+
 
 
 The term "gradual verification" is useful to sell people on what's unique about this project. Rok is tractable for the same reasons something like typescript or mypy is tractable.
