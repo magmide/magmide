@@ -44,9 +44,22 @@ infecting "tokens" or propositions. this is basically what allows us to instanti
 Why isn't (X) good enough?
 - Rust. Not actually safe, at least within the boundaries of the tool itself.
 - LLVM. Not actually safe, which also means its optimizations can't be as aggressive. Focuses on downwards compilation rather than upwards metaprogrammatic recombination. Perhaps abstracts too much of the machine away in certain circumstances.
-- Coq, Lean
-- Koka, F*, Liquid Haskell
 
+- Coq
+because of metacoq and ml extraction, coq *technically* could be used to do everything in this project. however it's important to note that metacoq defines metaprogramming in coq without extraction, which means it will always perform quite poorly. rok by comparison defines its metaprograming in terms of *compute* rok rather than *theory* rok, so it can perform extremely well.
+but to be truly honest, the real reason coq isn't good enough is because *it has a truly punishing user experience*. it's not good enough for coq to be *powerful*, it has to be *approachable* to meet the goal of making formal verification common in engineering practice
+using myself as an example, I'm an extremely determined and curious person who has been hell-bent on understanding both it and the theory behind it, but since I'm not being led through it in an academic context where all the implicit knowledge is exposed through in-person mentors, it has been extremely challenging
+coq has existed *since the 80s* and is still a very niche tool mostly only used by academics or former academics. rust by comparison doesn't offer anywhere close to the correctness-proving power, and has only been a mature language since 2015, but has achieved truly impressive adoption.
+the most damning accusation I can make against coq is that it isn't even that broadly adopted *in academia*. why aren't almost all papers in mathematics, logic, philosophy, economics, and computer science not verified in coq? and yet approachable tools like python and julia and matlab are much more common? extreme logical power is useless if it can't be readily accessed
+
+- Lean
+I'm frankly not even sure what lean adds over coq. It certainly makes a few better minor design decisions, but it isn't really promising to change the game in any way, at least not sufficiently that it's worth tossing out all the existing work in coq.
+
+- F*, Liquid Haskell
+not fully dependently typed
+
+Our lowest level of abstraction defines the limits of our control
+Coq is least suited to those applications for which it is most necessary. High performance situations like operating systems, embedded systems, safety critical systems are almost always extremely time and resource constrained, and so must have both the greatest amount of performance and correctness.
 
 This project is seeking to solve these problems by creating a Tool, and a Community. The Tool is largely a technical work, but one we will try to build as intuitively and elegantly as possible (in contrast to existing academic tools). The Community includes governance and education materials.
 
@@ -59,7 +72,7 @@ Formally verifying the correctness of legacy systems after the fact is necessari
 
 That work only matters once it has been applied in a way that benefits the world.
 
-The goal behind this project is to answer the question: what would we design if we started from scratch? Rok really is an attempt to lay a completely new foundation for all of computing that could be used to entirely rethink how every layer of software infrastructure works, all the way down to the raw metal.
+The goal behind this project is to answer the question: what would we design if we started from scratch? Rok really is an attempt to lay a completely new foundation for all of computing that could be used to entirely rethink how every layer of software infrastructure works, all the way down to the bare metal.
 
 ## Why Do We Need More Verification?
 
@@ -85,6 +98,13 @@ And of course we have to be humble. It might not work! Hopefully at the very lea
 
 We shouldn't be scared to put the power of a full proof checker into a computation focused language. Not everyone has to use it! And those who do don't have to use it all the time!
 
+- Make it possible: at this moment in time, it isn't really even *possible* to fully verify a truly bare metal program on an arbitrary architecture. This stage focuses on creating the basic Rok compiler
+  - define rok semantics and theories in coq
+  - use extracted ml to compile first runnable version, so rok has been bootstrapped out of coq
+  - complete rok from within
+- Make it productive: bring the project to maturity, with tolerable compiler performance, broad architecture and context support, ergonomic tooling and libraries, good proof methodology, and solid documentation.
+- Make it common: do evangelism, write books to spread rok into different domains, use the tool to create verified infrastructure and new programming environments.
+
 ## Verification Leverage
 
 Verification is obviously very difficult. Although I have some modest theories about ways to speed up/improve automatic theorem proving, and how to teach verification concepts in a more intuitive way that can thereby involve a larger body of engineers, we still can't avoid the fact that refining our abstractions and proving theorems is hard and will remain so.
@@ -96,7 +116,7 @@ But we don't have to make verification completely easy and approachable to still
 
 ## Effect-Aware Tokens and Gradual Correctness
 
-One of the main innovations of Rust was introducing an extremely strict safety-oriented type system, but simultaneously acknowledging its limitations by still allowing `unsafe` operations. By explicitly acknowledging when the type system can't verify the correctnes of program behavior, engineers are much better able to focus on potential problem spots in code. Projects such as [RustBelt](TODO) can then do further work to either increase the sophistication of the type system to allow a larger domain of correct programs, or semantically prove the correctness of `unsafe` operations "on the side". Many other languages also have such "trapdoors" in their type systems, such as [various unsafe operations in Haskell](TODO), [unchecked type coercions in languagess like C or Java](TODO), or [the `any` type in TypeScript](TODO).
+One of the main innovations of Rust was introducing an extremely strict safety-oriented type system, but simultaneously acknowledging its limitations by still allowing `unsafe` operations. By explicitly acknowledging when the type system can't verify the correctness of program behavior, engineers are much better able to focus on potential problem spots in code. Projects such as [RustBelt](TODO) can then do further work to either increase the sophistication of the type system to allow a larger domain of correct programs, or semantically prove the correctness of `unsafe` operations "on the side". Many other languages also have such "trapdoors" in their type systems, such as [various unsafe operations in Haskell](TODO), [unchecked type coercions in languagess like C or Java](TODO), or [the `any` type in TypeScript](TODO).
 
 These various trapdoors allow what we could call gradual correctness or gradual typing, and are pragmatic compromises between what is tractably verifiable and what must be done to write useful software. But these trapdoors have a critical problem: their use is often difficult to audit, control, or reject. Each language community usually must develop specialized linters to detect these uses, and even once their use has been detected, the only way to accept them with confidence is with time-consuming and unreliable human audits or fuzz testing.
 

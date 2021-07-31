@@ -8,11 +8,11 @@
 
 Rok is a dependently-typed, metaprogrammable, abstract assembly language with token effects. This means it's the first and only language that brings together these capabilities:
 
-- Fully Verifiable: Rok has an embedded dependently-typed proof checker, in the spirit of [Coq]() or [Lean](). This means any logical property provable within the [Calculus of Constructions]() can be stated and proven in Rok, including the correctness of programs.
-- Bare Metal Performance: Rok's internal library includes types and theorems formalizing [Von Neumann computation]() and instruction assembly, allowing it to be used to write and verify programs at the lowest level of software abstraction. This means even the most daring and high performance programs can be written, proven correct, and compiled in the same tool.
-- Infinitely Flexible: Rok has extremely powerful metaprogramming tools, allowing manipulation of proofs, functions, and data at compile time. Easily write verified proof tactics, plugins, and even embedded higher-level programming languages within Rok.
+- Fully Verifiable: Rok has an embedded dependently-typed proof checker much like [Coq]() or [Lean](). This means any logical property provable within the [Calculus of Constructions]() can be stated and proven in Rok, including the correctness of programs.
+- Bare Metal Performance: Rok's internal library includes types and theorems formalizing [Von Neumann computation]() and assembly language execution, allowing it to be used to write and verify programs at the lowest level of software abstraction. This means even the most daring and high performance programs can be written, proven correct, and compiled in the same tool.
+- Infinitely Flexible: Rok has extremely powerful and yet simple metaprogramming, allowing manipulation of proofs, functions, and data at compile time. Write verified proof tactics, plugins, and even embedded higher-level programming languages within Rok.
 
-This combination of capabilities opens up possibilities the software has only dared to imagine. Our limits in designing software have mostly been the immense difficulty of safely and correctly composing code together, but Rok can theoretically be infinitely composed. The basic assumptions of software architecture can be entirely reexamined and we can finally let our imaginations lead the way.
+This combination of capabilities opens up possibilities we've only dared to imagine. Our limits in designing software have mostly been defined by the immense difficulty of safely and correctly composing code together, but using Rok any code can be arbitrarily composed. The basic assumptions of software architecture can be entirely reexamined and we can finally let our imaginations lead the way.
 
 ## Who is Rok for?
 
@@ -27,6 +27,11 @@ Rok itself ships with a few different layers of computational language:
 - Thinking about computation in general.
 - Thinking about a specific collection of generalizable instructions in an unknown machine. This means you're reasoning about specific calling conventions.
 - Thinking about blocks with "function arguments"
+
+- `asm_zero`: a truly representational abstract assembly language, used to define the "common core" of all supported architectures
+- `asm_one`: the next level of abstraction, with type definitions and sugars, and llvm style function along with call/ret instructions. must instantiate with a calling convention
+- `core`: a c-like language with normal functions, match/if/for/while/loop/piping structures, functions for malloc/free, but no ownership/lifetime stuff. must instantiate with a calling convention and definitions for malloc/free in the desired environment
+- `system_core`: same c-like language, but with assumptions of "system" calls for thread spawn/join, io, async, etc
 
 
 There can be a `call` instruction that takes a label or address and together with a `ret` instruction abstracts away the details of a calling convention. We assume it does whatever is necessary under the calling convention to set the return address and push arguments to wherever they go.
@@ -101,6 +106,22 @@ The Rok compiler is a program, whose source is written in the Rok abstract assem
 This program includes definitions for the basic ast of Rok. This ast is almost entirely the (path-based) module system, and all the logical stuff (coq equivalents). The abstract assembly language is then entirely defined within this logical language, and metaprogrammatically converted
 
 So you could possibly say that the "object" language is the logical proof one, and the "meta" language is the concrete computational one. However the "object" language has an unusual link back to the "meta" language, since the meta language is defined and proven in terms of the object language.
+
+```
+                    represents and
+                     manipulates
+    +------------------------------------------+
+    |                     |                    |
+    |                     |                    |
+    v                     |                    |
+Logic Rok                 +-------------> Compute Rok
+    |                                          ^
+    |                                          |
+    |                                          |
+    +------------------------------------------+
+                   logically defines
+                 and proves properties
+```
 
 
 The only things the compiler needs to function are:
