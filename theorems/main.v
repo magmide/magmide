@@ -51,6 +51,14 @@ Section Sized.
 				(S counter)
 				(vinsert dest ((eval_operand bank val) + (bank !!! dest)) bank)
 	.
+	Hint Constructors step: core.
+
+	Theorem step_pointing_not_stuck: forall (program: list Instruction) counter bank i,
+		(lookup counter program) = Some i
+		-> (i = InstExit) \/ exists counter' bank', @step program counter bank counter' bank'.
+	Proof.
+		intros ??? [] ?; try solve [auto]; right; eauto.
+	Qed.
 
 	Fixpoint execute_program_unsafe
 		(fuel: nat) (program: list Instruction)
@@ -58,7 +66,7 @@ Section Sized.
 	: option RegisterBank :=
 		match (lookup counter program) with
 		| None => None
-		| Some inst => match fuel, inst with
+		| Some i => match fuel, i with
 			| _, InstExit => Some bank
 			| 0, _ => None
 			| S f, InstMov src dest => execute_program_unsafe
