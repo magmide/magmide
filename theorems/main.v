@@ -19,6 +19,7 @@ Proof.
 	intros ???%(lookup_lt_is_Some_2 l index);
 	unfold is_Some in *; assumption.
 Qed.
+(*lookup_lt_Some*)
 
 Definition closer_to target: nat -> nat -> Prop :=
 	fun next cur => (target - next) < (target - cur).
@@ -41,49 +42,6 @@ Definition closer_to_end {T} (arr: list T) := closer_to (length arr).
 
 Theorem closer_to_end_well_founded {T} (arr: list T): well_founded (closer_to_end arr).
 Proof. apply closer_to_well_founded. Qed.
-
-
-Section well_founded_compatibility.
-	Variable A B: Type.
-	Variable RA: A -> A -> Prop.
-	Variable RB: B -> B -> Prop.
-
-	Variable RB_well_founded: well_founded RB.
-	Variable f: A -> B.
-	Hypothesis H_compat: forall a1 a2: A, RA a1 a2 <-> RB (f a1) (f a2).
-
-	Theorem well_founded_compat: well_founded RA.
-	Proof.
-constructor.
-
-unfold well_founded in *.
-constructor.
-intros.
-rename y into a1; rename a into a2.
-
-specialize (H_compat a1 a2).
-remember (f a1) as b1; remember (f a2) as b2.
-destruct H_compat as [H_compat_A H_compat_B].
-specialize (H_compat_A H) as ?.
-
-
-specialize (RB_well_founded b1) as Hb1.
-specialize (RB_well_founded b2) as Hb2.
-inversion Hb1.
-
-
-specialize (Acc_inv RB_well_founded).
-
-	Qed.
-
-Check RB_well_founded.
-
-EndSection well_founded_compatibility.
-
-(*
-forall (?A ?B: Type) (?RA: ?A -> ?A -> Prop) (?RW: ?B -> ?B -> Prop) -> _
-*)
-
 
 Example t1: ([# 4; 2] !!! 0%fin) = 4.
 Proof. reflexivity. Qed.
@@ -122,6 +80,89 @@ Section Sized.
 	.
 	Hint Constructors Instruction: core.
 
+	Record MachineState := state {
+		counter: nat;
+		registers: RegisterBank
+	}.
+	Notation "'within' program cur" :=
+		(cur.(counter) < (length program))
+		(at level 10, program at next level, cur at next level, only parsing).
+
+	Notation "'cur_instr' cur program" := (lookup cur.(counter) program)
+		(at level 10, cur at next level, program at next level, only parsing).
+
+	Notation "'eval' cur val" :=
+		(eval_operand cur.(registers) val)
+		(at level 10, cur at next level, val at next level, only parsing).
+
+	Notation "'get' cur reg" :=
+		(cur.(registers) !!! reg)
+		(at level 10, cur at next level, reg at next level, only parsing).
+
+	Notation "'update' cur dest val" :=
+		(vinsert dest val cur.(registers))
+		(at level 10, cur at next level, dest at next level, val at next level, only parsing).
+
+	Notation "'incr' cur" :=
+		(S cur.(counter))
+		(at level 10, cur at next level, only parsing).
+
+	Inductive step
+		{program: list Instruction}
+	: MachineState -> MachineState -> Prop :=
+		| step_Mov: forall cur src dest,
+			(cur_instr cur program) = Some (InstMov src dest)
+			-> step cur (state
+				(incr cur)
+				(update cur dest (eval cur src))
+			)
+
+		| step_Add: forall cur val dest,
+			(cur_instr cur program) = Some (InstAdd val dest)
+			-> step cur (state
+				(incr cur)
+				(update cur dest ((eval cur val) + (get cur dest)))
+			)
+
+		(*| step_Jump: forall cur to,
+			(cur_instr cur program) = Some (InstJump to)
+			-> exists next, find_label program to = Some next
+			-> step next bank*)
+
+		(*| step_BranchEq_Eq: forall cur a b to,
+			(cur_instr cur program) = Some (InstBranchEq a b to)
+			-> a = b
+			-> exists next, find_label program to = Some next
+			-> step next bank
+		| step_BranchEq_Neq: forall cur a b to,
+			(cur_instr cur program) = Some (InstBranchEq a b to)
+			-> a <> b
+			-> step (S cur) bank*)
+
+		(*| step_BranchNeq_Neq: forall cur a b to,
+			(cur_instr cur program) = Some (InstBranchNeq Ne b to)
+			-> a <> b
+			-> exists next, find_label program to = Some next
+			-> step next bank
+		| step_BranchNeq_Eq: forall cur a b to,
+			(cur_instr cur program) = Some (InstBranchNeq Ne b to)
+			-> a = b
+			-> step (S cur) bank*)
+	.
+	Hint Constructors step: core.
+
+	Theorem step_always_within: forall program cur next,
+		@step program cur next
+		-> within program cur.
+	Proof.
+		intros ???; inversion 1;
+		match goal with
+		| [ H : _ !! counter _ = Some _ |- _ ] =>
+			apply lookup_lt_Some in H; assumption
+		end.
+	Qed.
+
+
 	Inductive branching: Instruction -> Prop :=
 		(*| branch_BranchEq: forall a b to, branching (InstBranchEq a b to)*)
 		(*| branch_BranchNeq: forall a b to, branching (InstBranchNeq a b to)*)
@@ -134,64 +175,12 @@ Section Sized.
 	.
 	Hint Constructors terminating: core.
 
-	(*Notation "'appear' instr program cur" :=
-		((lookup cur program) = Some instr) (at level 70).*)
-
-	Record MachineState := state {
-		counter: nat;
-		registers: RegisterBank
-	}.
-
-	Inductive step
-		{program: list Instruction} {cur} {bank}
-	: nat -> RegisterBank -> Prop :=
-		| step_Mov: forall src dest,
-			(lookup cur program) = Some (InstMov src dest)
-			-> step
-				(S cur)
-				(vinsert dest (eval_operand bank src) bank)
-
-		| step_Add: forall val dest,
-			(lookup cur program) = Some (InstAdd val dest)
-			-> step
-				(S cur)
-				(vinsert dest ((eval_operand bank val) + (bank !!! dest)) bank)
-
-		(*| step_Jump: forall to,
-			(lookup cur program) = Some (InstJump to)
-			-> exists next, find_label program to = Some next
-			-> step next bank*)
-
-		(*| step_BranchEq_Eq: forall a b to,
-			(lookup cur program) = Some (InstBranchEq a b to)
-			-> a = b
-			-> exists next, find_label program to = Some next
-			-> step next bank
-		| step_BranchEq_Neq: forall a b to,
-			(lookup cur program) = Some (InstBranchEq a b to)
-			-> a <> b
-			-> step (S cur) bank*)
-
-		(*| step_BranchNeq_Neq: forall a b to,
-			(lookup cur program) = Some (InstBranchNeq Ne b to)
-			-> a <> b
-			-> exists next, find_label program to = Some next
-			-> step next bank
-		| step_BranchNeq_Eq: forall a b to,
-			(lookup cur program) = Some (InstBranchNeq Ne b to)
-			-> a = b
-			-> step (S cur) bank*)
-	.
-	Hint Constructors step: core.
-
-	Theorem terminating_stuck instr:
+	Theorem terminating_stuck instr program cur next:
 		terminating instr
-		-> (
-			forall program cur next b1 b2, (lookup cur program) = Some instr
-			-> ~(@step program cur b1 next b2)
-		).
+		-> (cur_instr cur program) = Some instr
+		-> ~(@step program cur next).
 	Proof.
-		intros Hterminating ?????? Hstep;
+		intros Hterminating ? Hstep;
 		inversion Hterminating; inversion Hstep; crush.
 	Qed.
 
@@ -200,45 +189,117 @@ Section Sized.
 		Acc_intro: (forall y, R y x -> Acc R y) -> Acc R x
 	*)
 
-	Definition program_counter_well_founded program :=
-		(*well_founded (fun next cur => exists b1 b2, @step program cur b1 next b2).*)
-		forall b1 b2, well_founded (fun next cur => @step program cur b1 next b2).
-
-	Inductive terminated: list Instruction -> Prop :=
-		| terminated_End: forall instr,
+	Inductive sequential: list Instruction -> Prop :=
+		| sequential_End: forall instr,
 			terminating instr
-			-> terminated [instr]
+			-> sequential [instr]
 
-		| terminated_Cons: forall instr rest,
-			~(branching instr)
-			-> ~(terminating instr)
-			-> terminated rest
-			-> terminated (instr :: rest)
+		| sequential_Cons: forall instr rest,
+			(*~(branching instr)*)
+			sequential rest
+			-> sequential (instr :: rest)
 	.
-	Hint Constructors terminated: core.
+	Hint Constructors sequential: core.
 
-	Theorem terminated_step_increments program:
-		terminated program
-		-> forall cur next b1 b2, @step program cur b1 next b2
-		-> next = S cur.
+	Theorem sequential_not_empty program:
+		sequential program -> 0 < length program.
+	Proof. inversion 1; crush. Qed.
+
+	Theorem sequential_step_increments program cur next:
+		sequential program
+		-> @step program cur next
+		-> next.(counter) = (incr cur).
 	Proof.
-		intros Hterminated ???? Hstep;
-		inversion Hterminated; inversion Hstep; crush.
+		intros Hsequential Hstep;
+		inversion Hsequential; inversion Hstep; crush.
 	Qed.
 
-	(*
-	*)
-
-
-	Theorem terminated_always_terminates: forall program,
-		terminated program
-		-> program_counter_well_founded program.
+	Theorem sequential_step_safe program cur next:
+		sequential program
+		-> @step program cur next
+		-> within program next.
 	Proof.
-unfold program_counter_well_founded.
-intros.
-induction H.
+intros Hsequential Hstep;
+specialize (step_always_within Hstep) as Hwithin;
+specialize (sequential_step_increments Hsequential Hstep) as Hincr;
+rewrite -> Hincr.
+induction Hsequential.
 -
+admit.
+
+(*
+inversion Hstep
+subst; simpl in *; inversion H.
+rewrite <- H0  in H1.
+rewrite lookup_cons in H1.
+assert (Hc: counter cur = 0) by lia.
+rewrite Hc in *.
+discriminate.*)
+-
+specialize (sequential_not_empty Hsequential) as Hrest.
+
+simpl in *.
+rewrite <- Hincr in *.
+apply lt_n_S.
+
+
+
+clear Hstep Hincr H H0; subst cur0.
+
+assert (Hlenprogram: 1 < length program).
+{
+subst program.
+simpl in *.
+destruct (length rest); crush.
+
+}
+
+intros.
+
+
+assert (Hmorerest: 1 < length rest).
+
+
+simpl length in Hwithin.
+
+crush.
+specialize (Hs0 rest).
+
+idtac.
+
+crush.
+
+
+
+unfold lookup in H1; unfold list_lookup in H1.
+
+specialize (terminating_stuck H H1) as Hdumb.
+
+
++
+
+subst.
+
+rewrite <- H0 in *; simpl in *.
+
+
+		Qed.
+
+	Theorem sequential_always_terminates program:
+		sequential program
+		-> program_well_founded program.
+	Proof.
+unfold program_well_founded.
+induction 1.
+
+-
+inversion H.
 specialize (terminating_stuck H).
+constructor; intros.
+apply H1 in H2; try exfalso; solve_assumption.
++apply (absurd H2).
+
+intros Hsequential.
 intros.
 constructor.
 
@@ -277,7 +338,7 @@ intros ?. induction 1.
 
 
 	Theorem existent_not_stuck: forall program cur bank instr,
-		(lookup cur program) = Some instr
+		(cur_instr cur program) = Some instr
 		->
 			terminating instr
 			\/ exists cur' bank', @step program cur bank cur' bank'.
@@ -292,7 +353,7 @@ intros ?. induction 1.
 		terminated program
 		->
 
-		(lookup cur program) = Some instr
+		(cur_instr cur program) = Some instr
 		->
 			terminating instr
 			\/ exists next bank', @step program cur bank next bank'.
@@ -303,7 +364,7 @@ intros ?. induction 1.
 		(fuel: nat) (program: list Instruction)
 		(cur: nat) (bank: RegisterBank)
 	: option RegisterBank :=
-		match (lookup cur program) with
+		match (cur_instr cur program) with
 		| None => None
 		| Some i => match fuel, i with
 			| _, InstExit => Some bank
