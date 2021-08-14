@@ -8,6 +8,13 @@ Ltac solve_crush := try solve [crush].
 Ltac solve_assumption := try solve [assumption].
 Ltac subst_injection H := injection H; intros; subst; clear H.
 
+Notation "'impossible'" := (False_rec _ _).
+Notation "'here' item" := (exist _ item _) (at level 10, item at next level).
+
+Notation "'Yes'" := (left _ _).
+Notation "'No'" := (right _ _).
+Notation "'Reduce' x" := (if x then Yes else No) (at level 50).
+
 Theorem valid_index_not_None {T}: forall (l: list T) index,
 	index < (length l) -> (lookup index l) <> None.
 Proof.
@@ -45,6 +52,30 @@ Proof. apply closer_to_well_founded. Qed.
 
 Example t1: ([# 4; 2] !!! 0%fin) = 4.
 Proof. reflexivity. Qed.
+
+Theorem numeric_capped_incr_safe total begin cap index:
+	total = begin + cap
+	-> 0 < cap
+	-> index < begin
+	-> S index < total.
+Proof. lia. Qed.
+
+Theorem capped_incr_safe {T} (total begin cap: list T) index:
+	total = begin ++ cap
+	-> 0 < length cap
+	-> index < length begin
+	-> S index < length total.
+Proof.
+	intros Htotal Hcap Hindex;
+	assert (Hlen: length total = (length begin) + (length cap))
+		by solve [rewrite Htotal; apply app_length];
+	apply (numeric_capped_incr_safe Hlen Hcap Hindex).
+Qed.
+
+(*
+app_length: ∀ (A: Type) (l l': list A), length (l ++ l') = length l + length l'
+last_length: ∀ (A: Type) (l: list A) (a: A), length (l ++ [a]) = S (length l)
+*)
 
 Section Sized.
 	Variable size: nat.
@@ -84,7 +115,7 @@ Section Sized.
 		counter: nat;
 		registers: RegisterBank
 	}.
-	Notation "'within' program cur" :=
+	Notation "'Within' program cur" :=
 		(cur.(counter) < (length program))
 		(at level 10, program at next level, cur at next level, only parsing).
 
@@ -151,17 +182,16 @@ Section Sized.
 	.
 	Hint Constructors step: core.
 
-	Theorem step_always_within: forall program cur next,
+	Theorem step_always_Within program cur next:
 		@step program cur next
-		-> within program cur.
+		-> Within program cur.
 	Proof.
-		intros ???; inversion 1;
+		inversion 1;
 		match goal with
-		| [ H : _ !! counter _ = Some _ |- _ ] =>
+		| [ H: _ !! counter _ = Some _ |- _ ] =>
 			apply lookup_lt_Some in H; assumption
 		end.
 	Qed.
-
 
 	Inductive branching: Instruction -> Prop :=
 		(*| branch_BranchEq: forall a b to, branching (InstBranchEq a b to)*)
@@ -170,28 +200,180 @@ Section Sized.
 	.
 	Hint Constructors branching: core.
 
-	Inductive terminating: Instruction -> Prop :=
-		| terminating_Exit: terminating InstExit
+	Inductive stopping: Instruction -> Prop :=
+		| stopping_Exit: stopping InstExit
 	.
-	Hint Constructors terminating: core.
+	Hint Constructors stopping: core.
 
-	Theorem terminating_stuck instr program cur next:
-		terminating instr
-		-> (cur_instr cur program) = Some instr
+	Definition is_stopping: forall instr, {stopping instr} + {~(stopping instr)}.
+		refine (fun instr =>
+			match instr with | InstExit => Yes | _ => No end
+		); try constructor; inversion 1.
+	Defined.
+
+	Theorem stopping_stuck instr:
+		stopping instr
+		-> forall program cur next,
+		(cur_instr cur program) = Some instr
 		-> ~(@step program cur next).
 	Proof.
-		intros Hterminating ? Hstep;
-		inversion Hterminating; inversion Hstep; crush.
+		intros Hstopping ???? Hstep;
+		inversion Hstopping; inversion Hstep; crush.
 	Qed.
+
+	Theorem not_stopping_not_stuck instr:
+		~(stopping instr)
+		-> forall program cur,
+		(cur_instr cur program) = Some instr
+		-> exists next, @step program cur next.
+	Proof.
+		destruct instr; try contradiction; eauto.
+	Qed.
+
+	Definition execute_instruction: forall instr (cur: MachineState), ~stopping instr -> MachineState.
+		refine (fun instr cur =>
+			match instr with
+			| InstMov src dest => fun _ => (state
+				(incr cur)
+				(update cur dest (eval cur src))
+			)
+			| InstAdd val dest => fun _ => (state
+				(incr cur)
+				(update cur dest ((eval cur val) + (get cur dest)))
+			)
+			| _ => fun _ => impossible
+			end
+		); contradiction.
+	Defined.
+
+	Theorem execute_instruction_implements_step program instr cur (H: ~(stopping instr)):
+		(cur_instr cur program) = Some instr
+		-> @step program cur (@execute_instruction instr cur H).
+	Proof.
+		destruct instr; try contradiction; crush.
+	Qed.
+	Hint Resolve execute_instruction_implements_step: core.
+
+	(*
+	Fix:
+		forall (A: Type) (R: A -> A -> Prop),
+		well_founded R
+		->
+			forall P: A -> Type,
+			(forall x: A, (forall y: A, R y x -> P y) -> P x) ->
+			forall x: A, P x
+	*)
+
+	Definition program_step_alignment program (progress: MachineState -> MachineState -> Prop) :=
+		forall cur next, @step program cur next -> progress next cur.
+
+	Theorem program_safe_always_Some:
+		forall program initial,
+			Within program initial
+			-> (forall cur next, @step program cur next -> Within program next)
+			-> forall cur,
+					cur = (execute_instruction instr cur H)
+					-> cur_instr cur program <> None.
+	Proof.
+intros ????[bad].
+unfold not.
+
+
+	Qed.
+
+	Inductive step_trace program: forall cur next, (list @step program cur next) -> Prop :=
+		| trace_Exit: forall cur next,
+			@step program cur next
+			-> (cur_instr next program) = Some InstExit
+			-> trace program cur next [@step program cur next]
+		| trace_Step
+	.
+
+
+	Definition execute_program:
+		forall
+			(program: list Instruction) (initial: MachineState)
+			(safe: Within program initial)
+			(program_safe: forall cur next, @step program cur next -> Within program next)
+			(progress: MachineState -> MachineState -> Prop)
+			(progress_wf: well_founded progress)
+			(program_progress: program_step_alignment program progress),
+		MachineState
+	.
+		refine (fun program initial safe program_safe progress progress_wf program_progress => (
+			Fix progress_wf (fun _ => MachineState) (
+				fun cur (execute_program: forall next, (progress next cur) -> MachineState) =>
+					match (cur_instr cur program) with
+					| None => impossible
+					| Some instr =>
+						if (is_stopping instr) then cur
+						else (execute_program (@execute_instruction instr cur _) _)
+					end
+		)) initial).
+(*rename l0 into v;*)
+(*rename l into safe;*)
+
+-
+apply p.
+admit.
+-
+
+
+apply execute_instruction_implements_step.
+
+destruct instr; try contradiction; constructor.
++
+apply
+
+crush.
+
+apply (not_stopping_not_stuck n) in n.
+
+
+
+	Defined.
+
+	Fixpoint execute_program_unsafe
+		(fuel: nat) (program: list Instruction)
+		(cur: nat) (bank: RegisterBank)
+	: option RegisterBank :=
+		match (cur_instr cur program) with
+		| None => None
+		| Some i => match fuel, i with
+			| _, InstExit => Some bank
+			| 0, _ => None
+			| S f, InstMov src dest => execute_program_unsafe
+				f program (S cur)
+				(vinsert dest (eval_operand bank src) bank)
+			| S f, InstAdd val dest => execute_program_unsafe
+				f program (S cur)
+				(vinsert dest ((eval_operand bank val) + (bank !!! dest)) bank)
+			end
+		end
+	.
+
 
 	(*
 	Inductive Acc (R: A -> A -> Prop) x: Prop :=
 		Acc_intro: (forall y, R y x -> Acc R y) -> Acc R x
 	*)
 
+	(*
+	The really important thing is the sequential list of instructions can have anything appended to it, but as long as it's something non empty the sequential block is safe to execute
+	It's probably a good idea to create a prop as the opposite of branching for all the instructions that have a step but don't merely increment the counter
+
+	basically I want to rethink this concept of sequential to be more in line with a basic block
+	essentially that the purely sequential *portion* of a basic block is both safe and the step relation is well founded
+	more work is required later in order to prove what happens *after* the sequential segment
+
+	so I'm going to create a sequential prop that cateogorizes *instructions*, and then a "basic block" definitional prop that just says an entire list of instructions are sequential
+
+	later we can add constructors to the sequential prop that apply to conditional branches, but only given that their branch condition is false
+	*)
+
 	Inductive sequential: list Instruction -> Prop :=
 		| sequential_End: forall instr,
-			terminating instr
+			stopping instr
 			-> sequential [instr]
 
 		| sequential_Cons: forall instr rest,
@@ -217,130 +399,22 @@ Section Sized.
 	Theorem sequential_step_safe program cur next:
 		sequential program
 		-> @step program cur next
-		-> within program next.
+		-> Within program next.
 	Proof.
-intros Hsequential Hstep;
-specialize (step_always_within Hstep) as Hwithin;
-specialize (sequential_step_increments Hsequential Hstep) as Hincr;
-rewrite -> Hincr.
-induction Hsequential.
--
-admit.
-
-(*
-inversion Hstep
-subst; simpl in *; inversion H.
-rewrite <- H0  in H1.
-rewrite lookup_cons in H1.
-assert (Hc: counter cur = 0) by lia.
-rewrite Hc in *.
-discriminate.*)
--
-specialize (sequential_not_empty Hsequential) as Hrest.
-
-simpl in *.
-rewrite <- Hincr in *.
-apply lt_n_S.
-
-
-
-clear Hstep Hincr H H0; subst cur0.
-
-assert (Hlenprogram: 1 < length program).
-{
-subst program.
-simpl in *.
-destruct (length rest); crush.
-
-}
-
-intros.
-
-
-assert (Hmorerest: 1 < length rest).
-
-
-simpl length in Hwithin.
-
-crush.
-specialize (Hs0 rest).
-
-idtac.
-
-crush.
-
-
-
-unfold lookup in H1; unfold list_lookup in H1.
-
-specialize (terminating_stuck H H1) as Hdumb.
-
-
-+
-
-subst.
-
-rewrite <- H0 in *; simpl in *.
-
 
 		Qed.
 
-	Theorem sequential_always_terminates program:
+	Theorem sequential_step_well_founded program:
 		sequential program
 		-> program_well_founded program.
 	Proof.
-unfold program_well_founded.
-induction 1.
-
--
-inversion H.
-specialize (terminating_stuck H).
-constructor; intros.
-apply H1 in H2; try exfalso; solve_assumption.
-+apply (absurd H2).
-
-intros Hsequential.
-intros.
-constructor.
-
-+
-crush.
-constructor.
-intros.
-unfold not in H.
-specialize (H0 H).
-apply H0 in H.
-
-apply H0 in H.
-
-
-intros.
-
-
--
-
-constructor.
-
-(*
-either terminated shows that we only have one terminating instruction left, in which case no step can be produced and so this is the root
-or
-*)
-
-apply (well_founded_lt_compat nat (fun a => target - a)).
-
-intros ?. induction 1.
-
--
-
-
-
 	Qed.
 
 
 	Theorem existent_not_stuck: forall program cur bank instr,
 		(cur_instr cur program) = Some instr
 		->
-			terminating instr
+			stopping instr
 			\/ exists cur' bank', @step program cur bank cur' bank'.
 	Proof. intros ??? [] ?; eauto. Qed.
 
@@ -355,29 +429,10 @@ intros ?. induction 1.
 
 		(cur_instr cur program) = Some instr
 		->
-			terminating instr
+			stopping instr
 			\/ exists next bank', @step program cur bank next bank'.
 	Proof. intros ??? [] ?; eauto. Qed.
 
-
-	Fixpoint execute_program_unsafe
-		(fuel: nat) (program: list Instruction)
-		(cur: nat) (bank: RegisterBank)
-	: option RegisterBank :=
-		match (cur_instr cur program) with
-		| None => None
-		| Some i => match fuel, i with
-			| _, InstExit => Some bank
-			| 0, _ => None
-			| S f, InstMov src dest => execute_program_unsafe
-				f program (S cur)
-				(vinsert dest (eval_operand bank src) bank)
-			| S f, InstAdd val dest => execute_program_unsafe
-				f program (S cur)
-				(vinsert dest ((eval_operand bank val) + (bank !!! dest)) bank)
-			end
-		end
-	.
 End Sized.
 
 Arguments Literal {size} _.

@@ -1,4 +1,18 @@
 ```v
+Theorem absurd_stuck instr:
+  ~(stopping instr)
+  -> forall program cur,
+  (cur_instr cur program) = Some instr
+  -> (forall next, ~(@step program cur next))
+  -> False.
+Proof.
+  intros Hstopping ?? Hcur Hstuck;
+  specialize (not_stopping_not_stuck Hstopping program cur Hcur) as [next];
+  specialize Hstuck with next; contradiction.
+Qed.s
+
+
+
 Theorem absurd_well_founded_minimal {T} (P: T -> T -> Prop) (least other: T):
   well_founded P
   -> P least other
