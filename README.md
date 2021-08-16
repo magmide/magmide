@@ -94,7 +94,7 @@ core.program@
 ```
 
 
-
+perhaps given all arguments then conclusion is a better syntax for implications, for readability
 
 
 
@@ -109,7 +109,7 @@ So you could possibly say that the "object" language is the logical proof one, a
 
 ```
                     represents and
-                     manipulates
+                      manipulates
     +------------------------------------------+
     |                     |                    |
     |                     |                    |
@@ -120,7 +120,7 @@ Logic Rok                 +-------------> Compute Rok
     |                                          |
     +------------------------------------------+
                    logically defines
-                 and proves properties
+                      and verifies
 ```
 
 

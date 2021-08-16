@@ -1,3 +1,6 @@
+stop trying to make functional programming happen, it isn't going to happen
+
+
 ```
 In the spirit of Richard Gabriel, the Pony philosophy is neither "the-right-thing" nor "worse-is-better". It is "get-stuff-done".
 
@@ -41,6 +44,10 @@ infecting "tokens" or propositions. this is basically what allows us to instanti
 
 
 
+Nested environments! the tradeoffs made while designing the operating system can directly inform the proof obligations and effects of nested environments
+
+
+
 Why isn't (X) good enough?
 - Rust. Not actually safe, at least within the boundaries of the tool itself.
 - LLVM. Not actually safe, which also means its optimizations can't be as aggressive. Focuses on downwards compilation rather than upwards metaprogrammatic recombination. Perhaps abstracts too much of the machine away in certain circumstances.
@@ -63,6 +70,14 @@ Coq is least suited to those applications for which it is most necessary. High p
 
 This project is seeking to solve these problems by creating a Tool, and a Community. The Tool is largely a technical work, but one we will try to build as intuitively and elegantly as possible (in contrast to existing academic tools). The Community includes governance and education materials.
 
+- vale
+not a true assembly embedding? not generic to many machines? no metaprogramming? not intended to achieve broad adoption.
+
+- bedrock
+Proprietary! It's essential systems like this aren't only controlled by corporations and governments.
+http://adam.chlipala.net/papers/BedrockICFP13/BedrockICFP13.pdf
+https://plv.csail.mit.edu/bedrock/
+https://bedrocksystems.com/products/
 
 
 
