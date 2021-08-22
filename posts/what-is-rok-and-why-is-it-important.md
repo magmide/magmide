@@ -1,3 +1,19 @@
+Verified hardware simulators are easy with rok
+
+Engineers want tools that can give them stronger guarantees about safety robustness and performance, but that tool has to be tractably usable and respect their time
+
+This idea exists in incentive no man's land. Academics won't think about it or care about it because it merely applies existing work, so they'll trudge along in their tenure track and keep publishing post hoc verifications of existing systems. Engineers won't think about or care about it because it can't make money quickly or be made into a service or even very quickly be used to improve some service
+This is an idea that carries basically zero short term benefits, but incalculable long term ones, mainly in the way it could shift the culture of software and even mathematics and logic if successful.
+This project is hoping and gambling that it itself won't even be the truly exciting innovation, but some other project that builds upon it, and that wouldn't have happened otherwise. I'm merely hoping to be the pair of shoulders someone else stands on, and I hope the paradigm shift this project creates is merely assumed to be obvious, that they'll think we were insane to write programs and not prove them correct
+
+
+
+
+
+
+
+
+
 stop trying to make functional programming happen, it isn't going to happen
 
 
@@ -49,6 +65,7 @@ Nested environments! the tradeoffs made while designing the operating system can
 
 
 Why isn't (X) good enough?
+
 - Rust. Not actually safe, at least within the boundaries of the tool itself.
 - LLVM. Not actually safe, which also means its optimizations can't be as aggressive. Focuses on downwards compilation rather than upwards metaprogrammatic recombination. Perhaps abstracts too much of the machine away in certain circumstances.
 
