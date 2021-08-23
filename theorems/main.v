@@ -8,25 +8,44 @@ Ltac solve_crush := try solve [crush].
 Ltac solve_assumption := try solve [assumption].
 Ltac subst_injection H := injection H; intros; subst; clear H.
 
-Notation "'impossible'" := (False_rec _ _).
-Notation "'here' item" := (exist _ item _) (at level 10, item at next level).
+Notation "'impossible'" := (False_rect _ _).
+Notation "'this' item" := (exist _ item _) (at level 10, item at next level).
+Notation "'use' item" := (proj1_sig item) (at level 10, item at next level).
+
+Section convert_subset.
+	Variable T: Type.
+	Variable P Q: T -> Prop.
+	Theorem convert_subset: {t | P t} -> (forall t: T, P t -> Q t) -> {t | Q t}.
+	Proof. intros []; eauto. Qed.
+End convert_subset.
+Arguments convert_subset {T} {P} {Q} _ _.
+
+Notation "'convert' item" := (convert_subset item _) (at level 10, item at next level).
 
 Notation "'Yes'" := (left _ _).
 Notation "'No'" := (right _ _).
 Notation "'Reduce' x" := (if x then Yes else No) (at level 50).
 
-Theorem valid_index_not_None {T}: forall (l: list T) index,
+Theorem valid_index_not_None {T} (l: list T) index:
 	index < (length l) -> (lookup index l) <> None.
 Proof.
-	intros ????%lookup_ge_None; lia.
+	intros ??%lookup_ge_None; lia.
 Qed.
-Theorem valid_index_Some {T}: forall (l: list T) index,
+Theorem valid_index_Some {T} (l: list T) index:
 	index < (length l) -> exists t, (lookup index l) = Some t.
 Proof.
-	intros ???%(lookup_lt_is_Some_2 l index);
+	intros ?%(lookup_lt_is_Some_2 l index);
 	unfold is_Some in *; assumption.
 Qed.
 (*lookup_lt_Some*)
+Definition safe_lookup {T} index (l: list T):
+	index < (length l) -> {t | (lookup index l) = Some t}
+.
+	intros ?%valid_index_not_None;
+	destruct (lookup index l) eqn:Hlook; try contradiction;
+	rewrite <- Hlook; apply (exist _ t Hlook).
+Defined.
+
 
 Definition closer_to target: nat -> nat -> Prop :=
 	fun next cur => (target - next) < (target - cur).
@@ -122,6 +141,9 @@ Section Sized.
 	Notation "'cur_instr' cur program" := (lookup cur.(counter) program)
 		(at level 10, cur at next level, program at next level, only parsing).
 
+	Notation "'get_instr' cur program" := (@safe_lookup _ cur.(counter) program _)
+		(at level 10, cur at next level, program at next level, only parsing).
+
 	Notation "'eval' cur val" :=
 		(eval_operand cur.(registers) val)
 		(at level 10, cur at next level, val at next level, only parsing).
@@ -182,6 +204,14 @@ Section Sized.
 	.
 	Hint Constructors step: core.
 
+	(*Inductive step_trace program: forall cur next, (list @step program cur next) -> Prop :=
+		| trace_Exit: forall cur next,
+			@step program cur next
+			-> (cur_instr next program) = Some InstExit
+			-> trace program cur next [@step program cur next]
+		| trace_Step
+	.*)
+
 	Theorem step_always_Within program cur next:
 		@step program cur next
 		-> Within program cur.
@@ -230,29 +260,53 @@ Section Sized.
 		destruct instr; try contradiction; eauto.
 	Qed.
 
-	Definition execute_instruction: forall instr (cur: MachineState), ~stopping instr -> MachineState.
+	Definition NextState program instr cur next :=
+		(cur_instr cur program) = Some instr
+		-> @step program cur next.
+
+	Definition execute_instruction:
+		forall instr (cur: MachineState), ~stopping instr
+		-> {next: MachineState | forall program, NextState program instr cur next}
+	.
 		refine (fun instr cur =>
 			match instr with
-			| InstMov src dest => fun _ => (state
+			| InstMov src dest => fun _ => this (state
 				(incr cur)
 				(update cur dest (eval cur src))
 			)
-			| InstAdd val dest => fun _ => (state
+			| InstAdd val dest => fun _ => this (state
 				(incr cur)
 				(update cur dest ((eval cur val) + (get cur dest)))
 			)
 			| _ => fun _ => impossible
 			end
-		); contradiction.
+		); unfold NextState; destruct instr; try contradiction; crush.
 	Defined.
 
-	Theorem execute_instruction_implements_step program instr cur (H: ~(stopping instr)):
-		(cur_instr cur program) = Some instr
-		-> @step program cur (@execute_instruction instr cur H).
-	Proof.
-		destruct instr; try contradiction; crush.
-	Qed.
-	Hint Resolve execute_instruction_implements_step: core.
+	Definition WellFormed program := forall cur next,
+		Within program cur
+		-> @step program cur next
+		-> Within program next.
+
+	Definition execute_program_unknown_termination
+		(program: list Instruction) (well_formed: WellFormed program)
+	:
+		nat -> forall cur, Within program cur -> option MachineState
+	.
+		refine (fix go fuel cur _ :=
+			let (instr, _) := (get_instr cur program) in
+			if (is_stopping instr) then Some cur
+			else match fuel with
+			| 0 => None
+			| S fuel' =>
+				let (next, _) := (@execute_instruction instr cur _) in
+				go fuel' next _
+			end
+		);
+		unfold NextState in *; try assumption;
+		apply (well_formed cur next); crush.
+		(*step_always_Within*)
+	Defined.
 
 	(*
 	Fix:
@@ -267,68 +321,23 @@ Section Sized.
 	Definition program_step_alignment program (progress: MachineState -> MachineState -> Prop) :=
 		forall cur next, @step program cur next -> progress next cur.
 
-	Theorem program_safe_always_Some:
-		forall program initial,
-			Within program initial
-			-> (forall cur next, @step program cur next -> Within program next)
-			-> forall cur,
-					cur = (execute_instruction instr cur H)
-					-> cur_instr cur program <> None.
-	Proof.
-intros ????[bad].
-unfold not.
-
-
-	Qed.
-
-	Inductive step_trace program: forall cur next, (list @step program cur next) -> Prop :=
-		| trace_Exit: forall cur next,
-			@step program cur next
-			-> (cur_instr next program) = Some InstExit
-			-> trace program cur next [@step program cur next]
-		| trace_Step
+	Definition execute_program
+		(program: list Instruction) (well_formed: WellFormed program)
+		(progress: MachineState -> MachineState -> Prop)
+		(progress_wf: well_founded progress)
+		(program_progress: program_step_alignment program progress)
+	:
+		forall cur, Within program cur -> MachineState
 	.
-
-
-	Definition execute_program:
-		forall
-			(program: list Instruction) (initial: MachineState)
-			(safe: Within program initial)
-			(program_safe: forall cur next, @step program cur next -> Within program next)
-			(progress: MachineState -> MachineState -> Prop)
-			(progress_wf: well_founded progress)
-			(program_progress: program_step_alignment program progress),
-		MachineState
-	.
-		refine (fun program initial safe program_safe progress progress_wf program_progress => (
-			Fix progress_wf (fun _ => MachineState) (
-				fun cur (execute_program: forall next, (progress next cur) -> MachineState) =>
-					match (cur_instr cur program) with
-					| None => impossible
-					| Some instr =>
-						if (is_stopping instr) then cur
-						else (execute_program (@execute_instruction instr cur _) _)
-					end
-		)) initial).
-(*rename l0 into v;*)
-(*rename l into safe;*)
-
--
-apply p.
-admit.
--
-
-
-apply execute_instruction_implements_step.
-
-destruct instr; try contradiction; constructor.
-+
-apply
-
-crush.
-
-apply (not_stopping_not_stuck n) in n.
-
+		refine (Fix progress_wf (fun _ => MachineState) (
+			fun cur _ exec =>
+				let (instr, _) := (get_instr cur program) in
+				if (is_stopping instr) then cur
+				else
+					let (next, _) := (@execute_instruction instr cur _) in
+					exec next _ _
+			)
+		).
 
 
 	Defined.
