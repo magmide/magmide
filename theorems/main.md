@@ -33,6 +33,14 @@ Section well_founded_compatibility.
   Hypothesis H_compat_A: forall a1 a2: A, (RA a1 a2) -> (RB (f a1) (f a2)).
   Hypothesis H_compat_B: forall a1 a2: A, (RB (f a1) (f a2)) -> (RA a1 a2).
 
+  https://github.com/charguer/tlc/blob/master/src/LibWf.v
+
+  <!-- you could maybe use this induction principle -->
+  https://coq.inria.fr/library/Coq.Init.Wf.html
+  <!-- Theorem well_founded_ind :
+    forall P:A -> Prop,
+      (forall x:A, (forall y:A, R y x -> P y) -> P x) -> forall a:A, P a. -->
+
   Theorem yo:
     forall min other, RB (f min) (f other) -> Acc RA min.
   Proof.

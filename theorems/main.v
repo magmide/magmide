@@ -1,6 +1,6 @@
 Add LoadPath "/home/blaine/personal/cpdtlib" as Cpdt.
 Set Implicit Arguments. Set Asymmetric Patterns.
-Require Import List String Cpdt.CpdtTactics.
+Require Import List String Cpdt.CpdtTactics Coq.Program.Wf.
 From stdpp Require Import base fin vector options.
 Import ListNotations.
 
@@ -8,9 +8,30 @@ Ltac solve_crush := try solve [crush].
 Ltac solve_assumption := try solve [assumption].
 Ltac subst_injection H := injection H; intros; subst; clear H.
 
-Notation "'impossible'" := (False_rect _ _).
-Notation "'this' item" := (exist _ item _) (at level 10, item at next level).
-Notation "'use' item" := (proj1_sig item) (at level 10, item at next level).
+Notation impossible := (False_rect _ _).
+Notation this item := (exist _ item _).
+Notation use item := (proj1_sig item).
+
+
+Section g.
+	Variable T: Type.
+	Variable P: T -> Prop.
+
+	Inductive obligation: Type :=
+		| obligation_remaining (t: T)
+	.
+
+	Variable decideP: forall t, partial (P t).
+	Theorem yo:
+		forall (items: list T) (Q: list T -> Prop),
+		(Forall Q items)
+		-> ()
+
+	(*https://coq.inria.fr/library/Coq.Lists.List.html#Forall*)
+
+	(*what I do is some kind of flat map over the list, returning option obligation*)
+End g.
+
 
 Section convert_subset.
 	Variable T: Type.
@@ -20,11 +41,11 @@ Section convert_subset.
 End convert_subset.
 Arguments convert_subset {T} {P} {Q} _ _.
 
-Notation "'convert' item" := (convert_subset item _) (at level 10, item at next level).
+Notation convert item := (convert_subset item _).
 
-Notation "'Yes'" := (left _ _).
-Notation "'No'" := (right _ _).
-Notation "'Reduce' x" := (if x then Yes else No) (at level 50).
+Notation Yes := (left _ _).
+Notation No := (right _ _).
+Notation Reduce x := (if x then Yes else No).
 
 Theorem valid_index_not_None {T} (l: list T) index:
 	index < (length l) -> (lookup index l) <> None.
@@ -69,7 +90,7 @@ Definition closer_to_end {T} (arr: list T) := closer_to (length arr).
 Theorem closer_to_end_well_founded {T} (arr: list T): well_founded (closer_to_end arr).
 Proof. apply closer_to_well_founded. Qed.
 
-Example t1: ([# 4; 2] !!! 0%fin) = 4.
+Example test__vec_total_lookup: ([# 4; 2] !!! 0%fin) = 4.
 Proof. reflexivity. Qed.
 
 Theorem numeric_capped_incr_safe total begin cap index:
@@ -134,31 +155,26 @@ Section Sized.
 		counter: nat;
 		registers: RegisterBank
 	}.
-	Notation "'Within' program cur" :=
-		(cur.(counter) < (length program))
-		(at level 10, program at next level, cur at next level, only parsing).
+	Notation Within program cur :=
+		(cur.(counter) < (length program)) (only parsing).
 
-	Notation "'cur_instr' cur program" := (lookup cur.(counter) program)
-		(at level 10, cur at next level, program at next level, only parsing).
+	Notation cur_instr cur program :=
+		(lookup cur.(counter) program) (only parsing).
 
-	Notation "'get_instr' cur program" := (@safe_lookup _ cur.(counter) program _)
-		(at level 10, cur at next level, program at next level, only parsing).
+	Notation get_instr cur program :=
+		(@safe_lookup _ cur.(counter) program _) (only parsing).
 
-	Notation "'eval' cur val" :=
-		(eval_operand cur.(registers) val)
-		(at level 10, cur at next level, val at next level, only parsing).
+	Notation eval cur val :=
+		(eval_operand cur.(registers) val) (only parsing).
 
-	Notation "'get' cur reg" :=
-		(cur.(registers) !!! reg)
-		(at level 10, cur at next level, reg at next level, only parsing).
+	Notation get cur reg :=
+		(cur.(registers) !!! reg) (only parsing).
 
-	Notation "'update' cur dest val" :=
-		(vinsert dest val cur.(registers))
-		(at level 10, cur at next level, dest at next level, val at next level, only parsing).
+	Notation update cur dest val :=
+		(vinsert dest val cur.(registers)) (only parsing).
 
-	Notation "'incr' cur" :=
-		(S cur.(counter))
-		(at level 10, cur at next level, only parsing).
+	Notation incr cur :=
+		(S cur.(counter)) (only parsing).
 
 	Inductive step
 		{program: list Instruction}
@@ -260,13 +276,13 @@ Section Sized.
 		destruct instr; try contradiction; eauto.
 	Qed.
 
-	Definition NextState program instr cur next :=
-		(cur_instr cur program) = Some instr
-		-> @step program cur next.
+	Notation NextStep program instr cur next :=
+		((cur_instr cur (program%list)) = Some instr -> @step (program%list) cur next)
+		(only parsing).
 
 	Definition execute_instruction:
 		forall instr (cur: MachineState), ~stopping instr
-		-> {next: MachineState | forall program, NextState program instr cur next}
+		-> {next: MachineState | forall program, NextStep program instr cur next}
 	.
 		refine (fun instr cur =>
 			match instr with
@@ -280,92 +296,105 @@ Section Sized.
 			)
 			| _ => fun _ => impossible
 			end
-		); unfold NextState; destruct instr; try contradiction; crush.
+		); destruct instr; try contradiction; auto.
 	Defined.
 
-	Definition WellFormed program := forall cur next,
-		Within program cur
-		-> @step program cur next
-		-> Within program next.
-
-	Definition execute_program_unknown_termination
-		(program: list Instruction) (well_formed: WellFormed program)
+	Definition execute_program_unsafe
+		(program: list Instruction)
 	:
-		nat -> forall cur, Within program cur -> option MachineState
+		nat -> MachineState -> option MachineState
 	.
-		refine (fix go fuel cur _ :=
-			let (instr, _) := (get_instr cur program) in
-			if (is_stopping instr) then Some cur
-			else match fuel with
-			| 0 => None
-			| S fuel' =>
-				let (next, _) := (@execute_instruction instr cur _) in
-				go fuel' next _
-			end
-		);
-		unfold NextState in *; try assumption;
-		apply (well_formed cur next); crush.
-		(*step_always_Within*)
-	Defined.
-
-	(*
-	Fix:
-		forall (A: Type) (R: A -> A -> Prop),
-		well_founded R
-		->
-			forall P: A -> Type,
-			(forall x: A, (forall y: A, R y x -> P y) -> P x) ->
-			forall x: A, P x
-	*)
-
-	Definition program_step_alignment program (progress: MachineState -> MachineState -> Prop) :=
-		forall cur next, @step program cur next -> progress next cur.
-
-	Definition execute_program
-		(program: list Instruction) (well_formed: WellFormed program)
-		(progress: MachineState -> MachineState -> Prop)
-		(progress_wf: well_founded progress)
-		(program_progress: program_step_alignment program progress)
-	:
-		forall cur, Within program cur -> MachineState
-	.
-		refine (Fix progress_wf (fun _ => MachineState) (
-			fun cur _ exec =>
-				let (instr, _) := (get_instr cur program) in
-				if (is_stopping instr) then cur
-				else
+		refine (fix go steps cur :=
+			match (cur_instr cur program) with
+			| None => None
+			| Some instr =>
+				if (is_stopping instr) then Some cur
+				else match steps with
+				| 0 => None
+				| S steps' =>
 					let (next, _) := (@execute_instruction instr cur _) in
-					exec next _ _
-			)
-		).
-
-
+					go steps' next
+				end
+			end
+		); assumption.
 	Defined.
 
-	Fixpoint execute_program_unsafe
-		(fuel: nat) (program: list Instruction)
-		(cur: nat) (bank: RegisterBank)
-	: option RegisterBank :=
-		match (cur_instr cur program) with
-		| None => None
-		| Some i => match fuel, i with
-			| _, InstExit => Some bank
-			| 0, _ => None
-			| S f, InstMov src dest => execute_program_unsafe
-				f program (S cur)
-				(vinsert dest (eval_operand bank src) bank)
-			| S f, InstAdd val dest => execute_program_unsafe
-				f program (S cur)
-				(vinsert dest ((eval_operand bank val) + (bank !!! dest)) bank)
-			end
+	Notation WellFormed program :=
+		(forall cur next, @step program cur next -> Within program next).
+
+	Definition partialOut (P: Prop) (x: partial P) :=
+		match x return (match x with | Proved _ => P | Uncertain => True end) with
+		| Proved pf => pf
+		| Uncertain => I
 		end
 	.
 
+	Definition check_instruction_well_formed: forall instr index len_program,
+		{
+			forall program cur next,
+			(lookup program index) = Some instr
+			-> @step program cur next
+			-> cur.(counter) = index
+			-> len_program <= (length program)
+			-> Within program next
+		} + {}
+	.
 
-	(*
-	Inductive Acc (R: A -> A -> Prop) x: Prop :=
-		Acc_intro: (forall y, R y x -> Acc R y) -> Acc R x
-	*)
+	Definition check_program_well_formed: list Instruction -> partial (WellFormed program).
+		refine (fun program =>
+			let len_program := (length program) in
+			(fix go program len_program :=
+			match program with
+			| [] => Yes
+			| instr :: program' =>
+				if (is_stopping instr) then go program' len_program
+				else
+			end) program len_program
+		).
+	Defined.
+
+	Ltac program_well_formed :=
+		match goal with
+		| [ |- WellFormed ?program] => exact (partialOut (check_program_well_formed program))
+		end.
+
+	Definition execute_program_unknown_termination
+		(program: list Instruction)
+		(well_formed: WellFormed program)
+	:
+		nat -> forall cur, Within program cur -> option MachineState
+	.
+		refine (fix go steps cur _ :=
+			let (instr, _) := (get_instr cur program) in
+			if (is_stopping instr) then Some cur
+			else match steps with
+			| 0 => None
+			| S steps' =>
+				let (next, _) := (@execute_instruction instr cur _) in
+				go steps' next _
+			end
+		); eauto.
+	Defined.
+
+	Section execute_program.
+		Variable program: list Instruction.
+		Variable well_formed: WellFormed program.
+		Variable progress: MachineState -> MachineState -> Prop.
+		Variable progress_wf: well_founded progress.
+		Variable program_progress:
+			forall cur next, @step program cur next -> progress next cur.
+
+		Program Fixpoint execute_program
+			cur (H: Within program cur) {wf progress cur}
+		: MachineState :=
+			let (instr, _) := (get_instr cur program) in
+			if (is_stopping instr) then cur
+			else
+				let (next, _) := (@execute_instruction instr cur _) in
+				execute_program next _
+		.
+		Solve All Obligations with eauto.
+	End execute_program.
 
 	(*
 	The really important thing is the sequential list of instructions can have anything appended to it, but as long as it's something non empty the sequential block is safe to execute
