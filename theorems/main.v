@@ -12,27 +12,6 @@ Notation impossible := (False_rect _ _).
 Notation this item := (exist _ item _).
 Notation use item := (proj1_sig item).
 
-
-Section g.
-	Variable T: Type.
-	Variable P: T -> Prop.
-
-	Inductive obligation: Type :=
-		| obligation_remaining (t: T)
-	.
-
-	Variable decideP: forall t, partial (P t).
-	Theorem yo:
-		forall (items: list T) (Q: list T -> Prop),
-		(Forall Q items)
-		-> ()
-
-	(*https://coq.inria.fr/library/Coq.Lists.List.html#Forall*)
-
-	(*what I do is some kind of flat map over the list, returning option obligation*)
-End g.
-
-
 Section convert_subset.
 	Variable T: Type.
 	Variable P Q: T -> Prop.
@@ -46,6 +25,132 @@ Notation convert item := (convert_subset item _).
 Notation Yes := (left _ _).
 Notation No := (right _ _).
 Notation Reduce x := (if x then Yes else No).
+
+
+Inductive partial (P: Prop): Type :=
+	| Done: P -> partial P
+	| Undone: partial P
+.
+Arguments Undone {P}.
+
+Section find_obligations.
+	Context {T: Type}.
+	Variable P: T -> Prop.
+
+	Theorem combine_Done_Undone: forall items done undone,
+		Permutation items (done ++ undone)
+		-> Forall P done -> Forall P undone
+		-> Forall P items.
+	Proof.
+		intros ??? Hpermutation ??; assert (Happ: Forall P (done ++ undone))
+			by solve [apply Forall_app_2; assumption];
+		setoid_rewrite Hpermutation; assumption.
+	Qed.
+
+	Variable compute_partial: forall t: T, partial (P t).
+
+	Definition split_by_maybe: forall items: list T, {
+		pair | Permutation items (pair.1 ++ pair.2) /\ Forall P pair.1
+	}.
+		refine (fix split_by_maybe items :=
+			match items with
+			| [] => this ([], [])
+			| item :: items' =>
+				let (pair, H) := split_by_maybe items' in
+				match (compute_partial item) with
+				| Done _ => this ((item :: pair.1), pair.2)
+				| Undone => this (pair.1, (item :: pair.2))
+				end
+			end
+		);
+		intros; split; simpl in *; try destruct H;
+		try solve [setoid_rewrite H; apply Permutation_middle]; auto.
+	Defined.
+
+	Definition find_obligations_function: forall items, {
+		obligations | Forall P obligations -> Forall P items
+	}.
+		refine (fun items =>
+			let (pair, H) := split_by_maybe items in
+			this pair.2
+		);
+		destruct H; apply (combine_Done_Undone H); assumption.
+	Defined.
+
+	Theorem use_find_obligations_function:
+		forall items found, found = find_obligations_function items
+		-> Forall P (use found) -> Forall P items.
+	Proof. intros ?[]; auto. Qed.
+
+End find_obligations.
+
+
+Module test__find_obligations.
+	Definition P n := n < 4 \/ n < 6.
+	Definition compute_partial: forall n, partial (P n).
+		refine (fun n => if (lt_dec n 4) then (Done _) else Undone); unfold P; lia.
+	Defined.
+
+	Definition items := [0; 1; 2; 4; 3; 2; 5].
+	Theorem items__find_obligations: Forall P items.
+	Proof.
+let pf := constr:(find_obligations_function P compute_partial items) in
+pose pf.
+
+
+let pf := eval compute in (find_obligations_function P compute_partial items) in
+idtac pf;
+pose (proj2_sig pf).
+let obligations := eval compute in (proj1_sig pf) in
+pose obligations;
+let H := eval compute in () in
+pose H.
+
+let i := fresh "obligations" in
+generalize .
+pose obligations.
+
+
+idtac.
+
+
+		find_obligations compute_partial items.
+apply s.
+let yo := eval compute in (proj1_sig s) in idtac.
+
+eval compute in (use s).
+apply o.
+apply Forall_fold_right; simpl; repeat split.
+
+
+simpl.
+
+End test__find_obligations.
+
+
+Ltac find_obligations compute_partial items :=
+	match goal with
+	| [ |- Forall ?P ?items] =>
+		let obligations := eval compute in (find_obligations_function P compute_partial items) in
+		pose obligations
+		(*; destruct obligations as [f o]*)
+		apply (use_find_obligations_function yo)
+		(*remember () as H;*)
+		(*destruct H as [? H]; apply H;*)
+		(*apply Forall_fold_right; simpl; repeat split*)
+		(*;
+		idtac;
+		apply Forall_fold_right; simpl; repeat split*)
+	(*Forall_forall*)
+	(*Forall_nth*)
+	(*Forall_lookup*)
+	(*Forall_lookup_total*)
+	end.
+
+
+
+Theorem append_single_cons {T: Type}: forall (t: T) l, t :: l = [t] ++ l.
+Proof. induction l; auto. Qed.
 
 Theorem valid_index_not_None {T} (l: list T) index:
 	index < (length l) -> (lookup index l) <> None.
@@ -113,8 +218,8 @@ Proof.
 Qed.
 
 (*
-app_length: ∀ (A: Type) (l l': list A), length (l ++ l') = length l + length l'
-last_length: ∀ (A: Type) (l: list A) (a: A), length (l ++ [a]) = S (length l)
+app_length: (l l': list A), length (l ++ l') = length l + length l'
+last_length: (l: list A) (a: A), length (l ++ [a]) = S (length l)
 *)
 
 Section Sized.
