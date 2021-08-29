@@ -117,6 +117,12 @@ Inductive partial (P: Prop): Type :=
 	| Found: P -> partial P
 	| NotFound: partial P
 .
+(*Inductive partial (P: Prop): Type :=
+	| Proven: P -> partial P
+	| Falsified: ~P -> partial P
+	| Unknown: partial P
+.*)
+
 Notation found := (Found _).
 Notation notfound := (NotFound _).
 
