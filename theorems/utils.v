@@ -114,17 +114,13 @@ Qed.
 
 
 Inductive partial (P: Prop): Type :=
-	| Found: P -> partial P
-	| NotFound: partial P
-.
-(*Inductive partial (P: Prop): Type :=
 	| Proven: P -> partial P
-	| Falsified: ~P -> partial P
+	(*| Falsified: ~P -> partial P*)
 	| Unknown: partial P
-.*)
-
-Notation found := (Found _).
-Notation notfound := (NotFound _).
+.
+Notation proven := (Proven _).
+Notation unknown := (Unknown _).
+Notation provenif test := (if test then proven else unknown).
 
 Section find_obligations.
 	Context {T: Type}.
@@ -151,8 +147,8 @@ Section find_obligations.
 			| item :: items' =>
 				let (pair, H) := split_by_maybe items' in
 				match (compute_partial item) with
-				| Found _ => this ((item :: pair.1), pair.2)
-				| NotFound => this (pair.1, (item :: pair.2))
+				| Proven _ => this ((item :: pair.1), pair.2)
+				| Unknown => this (pair.1, (item :: pair.2))
 				end
 			end
 		);
@@ -217,7 +213,7 @@ Ltac find_obligations P compute_partial items :=
 Module test__find_obligations.
 	Definition P n := (n < 4 \/ n < 6).
 	Definition compute_partial: forall n, partial (P n).
-		refine (fun n => if (lt_dec n 4) then found else notfound); unfold P; lia.
+		refine (fun n => if (lt_dec n 4) then proven else unknown); unfold P; lia.
 	Defined.
 
 	Definition items := [0; 1; 2; 4; 3; 2; 5].
@@ -237,3 +233,13 @@ Module test__find_obligations.
 		forall index (H: index < length items), P (use (safe_lookup items H)).
 	Proof. find_obligations P compute_partial items; lia. Qed.
 End test__find_obligations.
+
+
+(*
+Inductive Result (T: Type) (E: Type): Type :=
+	| Ok (value: T)
+	| Err (error: E).
+
+Arguments Ok {T} {E} _.
+Arguments Err {T} {E} _.
+*)

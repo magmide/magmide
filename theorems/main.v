@@ -5,6 +5,8 @@ From stdpp Require Import base fin vector options.
 Import ListNotations.
 Require Import theorems.utils.
 
+(*Definition list_index_induction: forall (P: )*)
+
 Example test__vec_total_lookup: ([# 4; 2] !!! 0%fin) = 4.
 Proof. reflexivity. Qed.
 
@@ -128,6 +130,23 @@ Section Sized.
 		end.
 	Qed.
 
+	Inductive sequential: Instruction -> Prop :=
+		| sequential_Mov: forall src dest, sequential (InstMov src dest)
+		| sequential_Add: forall val dest, sequential (InstAdd val dest)
+	.
+	Hint Constructors sequential: core.
+	(*Definition is_sequential*)
+
+	Theorem sequential_always_next instr:
+		sequential instr
+		-> forall (program: list Instruction) cur next,
+		(cur_instr cur program) = Some instr
+		-> @step program cur next
+		-> counter next = S (counter cur).
+	Proof.
+		intros ????? Hstep; destruct instr; inversion Hstep; auto.
+	Qed.
+
 	Inductive branching: Instruction -> Prop :=
 		(*| branch_BranchEq: forall a b to, branching (InstBranchEq a b to)*)
 		(*| branch_BranchNeq: forall a b to, branching (InstBranchNeq a b to)*)
@@ -139,7 +158,6 @@ Section Sized.
 		| stopping_Exit: stopping InstExit
 	.
 	Hint Constructors stopping: core.
-
 	Definition is_stopping: forall instr, {stopping instr} + {~(stopping instr)}.
 		refine (fun instr =>
 			match instr with | InstExit => Yes | _ => No end
@@ -209,41 +227,54 @@ Section Sized.
 	Defined.
 
 	Notation WellFormed program :=
-		(forall cur next, @step program cur next -> Within program next).
+		(forall cur next, @step program cur next -> Within program next)
+		(only parsing).
 
-	Definition check_instruction_well_formed index len_program: forall instr, partial (
+	Notation InstWellFormed len_program instr index := (
 		forall program cur next,
-		(lookup index program) = Some instr
+		len_program <= (length program)
+		-> lookup (index%nat) program = Some instr
+		-> cur.(counter) = (index%nat)
 		-> @step program cur next
-		-> cur.(counter) = index
-		-> len_program <= (length program)
 		-> Within program next
-	).
-		refine (fun instr =>
-			if (is_stopping instr) then found
-			else if (lt_dec (S index) len_program) then found else notfound
+	) (only parsing).
+
+	Theorem InstWellFormed_implies_WellFormed program instr index:
+		(InstWellFormed (length program) instr index)
+		-> lookup index program = Some instr
+		-> forall cur next, cur.(counter) = index
+		-> @step program cur next
+		-> Within program next.
+	Proof. eauto. Qed.
+
+	Definition check_instruction_well_formed len_program:
+		forall instr index, partial (InstWellFormed len_program instr index)
+	.
+		refine (fun instr index =>
+			if (is_stopping instr) then proven
+			else if (lt_dec (S index) len_program) then proven else unknown
 			(*if (is_sequential instr)*)
 		);
-		intros ??? Hsome Hstep ??; subst;
+		intros ???? Hsome Hcounter Hstep; subst;
 		try apply (stopping_stuck s Hsome) in Hstep;
 		destruct instr; inversion Hstep; try contradiction; simpl in *; subst; lia.
 	Defined.
 
-
-	Definition check_program_well_formed program :=
-		find_obligations (fun instr => ) (check_instruction_well_formed)
-		check_program_well_formed
-
-	Definition check_program_well_formed: list Instruction -> partial (WellFormed program).
+	Definition check_program_well_formed: forall program, {
+		obligations | Forall (fun instr index, InstWellFormed) obligations -> WellFormed program
+	}.
 		refine (fun program =>
 			let len_program := (length program) in
-			(fix go program len_program :=
-			match program with
-			| [] => Yes
-			| instr :: program' =>
-				if (is_stopping instr) then go program' len_program
-				else
-			end) program len_program
+			(fix go index program len_program :=
+				match program with
+				| [] => []
+				| instr :: program' =>
+					if (check_instruction_well_formed len_program instr index) then
+						go (S index) program' len_program
+					else
+						(instr :: (go (S index) program' len_program))
+				end
+			) 0 program len_program
 		).
 	Defined.
 
@@ -406,27 +437,6 @@ Example test__redundant_doubling:
 		(length redundant_doubling) redundant_doubling 0 [#0] = Some [#8].
 Proof. reflexivity. Qed.
 
-(*
-that can run a program to completion but can fail and requires fuel
-then prove that a particular linear program can be run with a *safe* variant since it decreases on a well-founded order
-then prove that any purely dag-like program can be run safely
-then figure out how to prove that any labeled program that proof justifies cyclic jumps can be run safely
-*)
-
-(*
-Definition mergeSort: list A -> list A.
-refine (Fix lengthOrder wf (fun => list A)
-	(fun
-		(ls: list A)
-		(mergeSort: forall ls': list A, lengthOrder ls' ls -> list A)
-	=>
-			if le_lt_dec 2 (length ls)
-			then let lss := split ls in
-			merge (mergeSort (fst lss)) (mergeSort (snd lss))
-			else ls)
-); subst lss; eauto.
-Defined.
-*)
 
 Notation val := Operand (only parsing).
 Notation expr := Instruction (only parsing).
@@ -448,26 +458,14 @@ main: (this label is implicit)
 	Mov 0 $r1
 	{{ $r1 = 0 }}
 loop:
-	{{ exists n < 10. $r1 = n }}
+	{{ exists n < 10, $r1 = n }}
 	Add 1 $r1
-	{{ exists n <= 10. $r1 = n + 1}}
+	{{ exists n <= 10, $r1 = n + 1}}
 	BranchNeq $r1 10 loop
 done:
 	{{ $r1 = 10 }}
-	Exit $r1
-
+	Exit
 *)
 
 
 Inductive Bit: Type := B0 | B1.
-
-
-
-
-Inductive Result (T: Type) (E: Type): Type :=
-	| Ok (value: T)
-	| Err (error: E).
-
-Arguments Ok {T} {E} _.
-Arguments Err {T} {E} _.
-
