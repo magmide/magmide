@@ -230,7 +230,7 @@ Section Sized.
 		(forall cur next, @step program cur next -> Within program next)
 		(only parsing).
 
-	Notation InstWellFormed len_program instr index := (
+	Notation InstWellFormed len_program := (fun index instr =>
 		forall program cur next,
 		len_program <= (length program)
 		-> lookup (index%nat) program = Some instr
@@ -239,13 +239,34 @@ Section Sized.
 		-> Within program next
 	) (only parsing).
 
-	Theorem InstWellFormed_implies_WellFormed program instr index:
-		(InstWellFormed (length program) instr index)
-		-> lookup index program = Some instr
-		-> forall cur next, cur.(counter) = index
-		-> @step program cur next
-		-> Within program next.
-	Proof. eauto. Qed.
+	Theorem index_pairs_InstWellFormed_implies_WellFormed program:
+		Forall (fun p => InstWellFormed (length program) p.1 p.2) (imap pair program)
+		-> WellFormed program.
+	Proof.
+intros H ?? Hstep.
+rewrite Forall_lookup in H.
+evar (instr: Instruction).
+eapply H; try lia; try assumption.
+-
+apply index_pairs_lookup_forward.
+destruct Hstep; eauto.
++ instantiate (instr := (InstMov src dest)).
+specialize (H cur.(counter) (cur.(counter), instr)).
+
+
+rewrite (index_pairs_lookup_back program pair instr cur.(counter) index_pair_equality) in H.
+
+
+eapply H; simpl in *; subst; try lia; try assumption.
+-
+inversion Hstep; auto.
+
+
+
+
+apply index_pairs_lookup_back.
+
+	Qed.
 
 	Definition check_instruction_well_formed len_program:
 		forall instr index, partial (InstWellFormed len_program instr index)

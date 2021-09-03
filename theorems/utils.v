@@ -112,6 +112,29 @@ Proof.
 	apply (numeric_capped_incr_safe Hlen Hcap Hindex).
 Qed.
 
+Theorem index_pairs_lookup_forward {A B}:
+	forall (items: list A) (f: nat -> A -> B) item index,
+	lookup index items = Some item -> lookup index (imap f items) = Some (f index item).
+Proof.
+	induction items; intros ??[]?;
+	try solve [apply (IHitems (compose f S)); assumption];
+	naive_solver.
+Qed.
+
+Theorem index_pairs_lookup_back {A B}:
+	forall (items: list A) (f: nat -> A -> B) item index,
+	(forall index i1 i2, f index i1 = f index i2 -> i1 = i2)
+	-> lookup index (imap f items) = Some (f index item)
+	-> lookup index items = Some item.
+Proof.
+	induction items; intros ??[]Hf?;
+	try solve [injection H; intros ?%Hf; naive_solver];
+	try solve [apply (IHitems (compose f S)); eauto];
+	naive_solver.
+Qed.
+
+Theorem index_pair_equality {A B} (a: A) (b1 b2: B): (a, b1) = (a, b2) -> b1 = b2.
+Proof. naive_solver. Qed.
 
 Inductive partial (P: Prop): Type :=
 	| Proven: P -> partial P
