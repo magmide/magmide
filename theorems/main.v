@@ -5,8 +5,6 @@ From stdpp Require Import base fin vector options.
 Import ListNotations.
 Require Import theorems.utils.
 
-(*Definition list_index_induction: forall (P: )*)
-
 Example test__vec_total_lookup: ([# 4; 2] !!! 0%fin) = 4.
 Proof. reflexivity. Qed.
 
@@ -239,70 +237,37 @@ Section Sized.
 		-> Within program next
 	) (only parsing).
 
+	Theorem step_implies_instr program cur next:
+		@step program cur next -> exists instr, (cur_instr cur program) = Some instr.
+	Proof. intros []; eauto. Qed.
+
+	Notation IndexPairsWellFormed program :=
+		(fun index_instr => InstWellFormed (length program) index_instr.1 index_instr.2)
+		(only parsing).
+
 	Theorem index_pairs_InstWellFormed_implies_WellFormed program:
-		Forall (fun p => InstWellFormed (length program) p.1 p.2) (imap pair program)
+		Forall (IndexPairsWellFormed program) (imap pair program)
 		-> WellFormed program.
 	Proof.
-intros H ?? Hstep.
-rewrite Forall_lookup in H.
-evar (instr: Instruction).
-eapply H; try lia; try assumption.
--
-apply index_pairs_lookup_forward.
-destruct Hstep; eauto.
-+ instantiate (instr := (InstMov src dest)).
-specialize (H cur.(counter) (cur.(counter), instr)).
-
-
-rewrite (index_pairs_lookup_back program pair instr cur.(counter) index_pair_equality) in H.
-
-
-eapply H; simpl in *; subst; try lia; try assumption.
--
-inversion Hstep; auto.
-
-
-
-
-apply index_pairs_lookup_back.
-
+		intros H ?? Hstep; rewrite Forall_lookup in H;
+		specialize (step_implies_instr Hstep) as [instr];
+		specialize (H cur.(counter) (cur.(counter), instr));
+		eapply H; eauto; apply index_pairs_lookup_forward; assumption.
 	Qed.
 
 	Definition check_instruction_well_formed len_program:
-		forall instr index, partial (InstWellFormed len_program instr index)
+		forall index_instr, partial (InstWellFormed len_program index_instr.1 index_instr.2)
 	.
-		refine (fun instr index =>
-			if (is_stopping instr) then proven
-			else if (lt_dec (S index) len_program) then proven else unknown
+		refine (fun index_instr =>
+			if (is_stopping index_instr.2) then proven
+			else if (lt_dec (S index_instr.1) len_program) then proven else unknown
 			(*if (is_sequential instr)*)
 		);
+		destruct index_instr as [index instr]; simpl in *;
 		intros ???? Hsome Hcounter Hstep; subst;
 		try apply (stopping_stuck s Hsome) in Hstep;
 		destruct instr; inversion Hstep; try contradiction; simpl in *; subst; lia.
 	Defined.
-
-	Definition check_program_well_formed: forall program, {
-		obligations | Forall (fun instr index, InstWellFormed) obligations -> WellFormed program
-	}.
-		refine (fun program =>
-			let len_program := (length program) in
-			(fix go index program len_program :=
-				match program with
-				| [] => []
-				| instr :: program' =>
-					if (check_instruction_well_formed len_program instr index) then
-						go (S index) program' len_program
-					else
-						(instr :: (go (S index) program' len_program))
-				end
-			) 0 program len_program
-		).
-	Defined.
-
-	Ltac program_well_formed :=
-		match goal with
-		| |- WellFormed ?program => exact (partialOut (check_program_well_formed program))
-		end.
 
 	Definition execute_program_unknown_termination
 		(program: list Instruction)
@@ -342,87 +307,12 @@ apply index_pairs_lookup_back.
 		Solve All Obligations with eauto.
 	End execute_program.
 
-	(*
-	The really important thing is the sequential list of instructions can have anything appended to it, but as long as it's something non empty the sequential block is safe to execute
-	It's probably a good idea to create a prop as the opposite of branching for all the instructions that have a step but don't merely increment the counter
-
-	basically I want to rethink this concept of sequential to be more in line with a basic block
-	essentially that the purely sequential *portion* of a basic block is both safe and the step relation is well founded
-	more work is required later in order to prove what happens *after* the sequential segment
-
-	so I'm going to create a sequential prop that cateogorizes *instructions*, and then a "basic block" definitional prop that just says an entire list of instructions are sequential
-
-	later we can add constructors to the sequential prop that apply to conditional branches, but only given that their branch condition is false
-	*)
-
-	Inductive sequential: list Instruction -> Prop :=
-		| sequential_End: forall instr,
-			stopping instr
-			-> sequential [instr]
-
-		| sequential_Cons: forall instr rest,
-			(*~(branching instr)*)
-			sequential rest
-			-> sequential (instr :: rest)
-	.
-	Hint Constructors sequential: core.
-
-	Theorem sequential_not_empty program:
-		sequential program -> 0 < length program.
-	Proof. inversion 1; crush. Qed.
-
-	Theorem sequential_step_increments program cur next:
-		sequential program
-		-> @step program cur next
-		-> next.(counter) = (incr cur).
-	Proof.
-		intros Hsequential Hstep;
-		inversion Hsequential; inversion Hstep; crush.
-	Qed.
-
-	Theorem sequential_step_safe program cur next:
-		sequential program
-		-> @step program cur next
-		-> Within program next.
-	Proof.
-
-		Qed.
-
-	Theorem sequential_step_well_founded program:
-		sequential program
-		-> program_well_founded program.
-	Proof.
-	Qed.
-
-
-	Theorem existent_not_stuck: forall program cur bank instr,
-		(cur_instr cur program) = Some instr
-		->
-			stopping instr
-			\/ exists cur' bank', @step program cur bank cur' bank'.
-	Proof. intros ??? [] ?; eauto. Qed.
-
-	Theorem terminated_wf: forall program,
-		terminated program
-		->
-		-> well_founded (remaining)
-
-	Theorem terminated_not_stuck: forall program,
-		terminated program
-		->
-
-		(cur_instr cur program) = Some instr
-		->
-			stopping instr
-			\/ exists next bank', @step program cur bank next bank'.
-	Proof. intros ??? [] ?; eauto. Qed.
-
 End Sized.
 
 Arguments Literal {size} _.
 Arguments Register {size} _.
 
-Arguments execute_program_unsafe {size} _ _ _ _.
+Arguments execute_program_unsafe {size} _ _ _.
 
 Arguments InstMov {size} _ _.
 Arguments InstAdd {size} _ _.
@@ -430,36 +320,80 @@ Arguments InstAdd {size} _ _.
 (*Arguments InstBranchNeq {size} _ _ _.*)
 Arguments InstExit {size}.
 
+Notation Within program cur :=
+	(cur.(counter) < (length program)) (only parsing).
 
-Definition redundant_additions: list (Instruction 1) := [
-	InstMov (Literal 0) (0%fin);
-	InstAdd (Literal 1) (0%fin);
-	InstAdd (Literal 1) (0%fin);
-	InstAdd (Literal 1) (0%fin);
-	InstAdd (Literal 1) (0%fin);
-	InstAdd (Literal 1) (0%fin);
-	InstExit
-].
-Example test__redundant_additions:
-	execute_program_unsafe
-		(length redundant_additions) redundant_additions 0 [#0] = Some [#5].
-Proof. reflexivity. Qed.
+Notation WellFormed program :=
+	(forall cur next, @step _ program cur next -> Within program next)
+	(only parsing).
+
+Notation InstWellFormed len_program := (fun index instr =>
+	forall program cur next,
+	len_program <= (length program)
+	-> lookup (index%nat) program = Some instr
+	-> cur.(counter) = (index%nat)
+	-> @step _ program cur next
+	-> Within program next
+) (only parsing).
+
+Notation IndexPairsWellFormed program :=
+	(fun index_instr => InstWellFormed (length program) index_instr.1 index_instr.2)
+	(only parsing).
+
+Ltac program_well_formed :=
+	match goal with
+	| |- WellFormed ?program =>
+		let program_type := type of program in
+		match program_type with | list (Instruction ?size) =>
+			apply index_pairs_InstWellFormed_implies_WellFormed;
+			find_obligations__helper
+				(IndexPairsWellFormed program)
+				(@check_instruction_well_formed size (length program))
+				(imap pair program)
+		end
+	end.
 
 
-Definition redundant_doubling: list (Instruction 1) := [
-	InstMov (Literal 1) (0%fin);
-	InstAdd (Register 0%fin) (0%fin);
-	InstAdd (Register 0%fin) (0%fin);
-	InstAdd (Register 0%fin) (0%fin);
-	InstExit
-].
-Example test__redundant_doubling:
-	execute_program_unsafe
-		(length redundant_doubling) redundant_doubling 0 [#0] = Some [#8].
-Proof. reflexivity. Qed.
+Module redundant_additions.
+	Definition program: list (Instruction 1) := [
+		InstMov (Literal 0) (0%fin);
+		InstAdd (Literal 1) (0%fin);
+		InstAdd (Literal 1) (0%fin);
+		InstAdd (Literal 1) (0%fin);
+		InstAdd (Literal 1) (0%fin);
+		InstAdd (Literal 1) (0%fin);
+		InstExit
+	].
+	Theorem well_formed: WellFormed program. Proof. program_well_formed. Qed.
+	Theorem within: Within program (state 0 [#0]). Proof. simpl; lia. Qed.
+
+	Example test:
+		execute_program_unknown_termination
+			well_formed (length program) (state 0 [#0]) within
+		= Some (state 6 [#5]).
+	Proof. reflexivity. Qed.
+End redundant_additions.
+
+Module redundant_doubling.
+	Definition program: list (Instruction 1) := [
+		InstMov (Literal 1) (0%fin);
+		InstAdd (Register 0%fin) (0%fin);
+		InstAdd (Register 0%fin) (0%fin);
+		InstAdd (Register 0%fin) (0%fin);
+		InstExit
+	].
+	Theorem well_formed: WellFormed program. Proof. program_well_formed. Qed.
+	Theorem within: Within program (state 0 [#0]). Proof. simpl; lia. Qed.
+
+	Example test:
+		execute_program_unknown_termination
+			well_formed (length program) (state 0 [#0]) within
+		= Some (state 4 [#8]).
+	Proof. reflexivity. Qed.
+End redundant_doubling.
 
 
-Notation val := Operand (only parsing).
+(*Notation val := Operand (only parsing).
 Notation expr := Instruction (only parsing).
 
 Notation of_val := InstExit (only parsing).
@@ -469,7 +403,7 @@ Definition to_val (e: expr): option val :=
 	| InstExit _ v => Some v
 	| _ => None
 	end.
-
+*)
 (*
 	So the first program I'm interested in verifying is this one.
 	I want to obviously verify it's safe and such, but also I want to be
@@ -488,5 +422,4 @@ done:
 	Exit
 *)
 
-
-Inductive Bit: Type := B0 | B1.
+(*Inductive Bit: Type := B0 | B1.*)
