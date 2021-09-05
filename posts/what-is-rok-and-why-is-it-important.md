@@ -9,6 +9,9 @@ This project is hoping and gambling that it itself won't even be the truly excit
 
 
 
+https://mattkimber.co.uk/avoiding-growth-by-accretion/
+Most effects aren't really effects but environmental capabilities, although sometimes those capabilities come with effects
+
 
 
 
