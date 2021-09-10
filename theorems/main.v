@@ -1,12 +1,17 @@
 Add LoadPath "/home/blaine/lab/cpdtlib" as Cpdt.
 Set Implicit Arguments. Set Asymmetric Patterns.
 Require Import List String Cpdt.CpdtTactics Coq.Program.Wf.
-From stdpp Require Import base fin vector options.
+From stdpp Require Import base fin vector options natmap.
 Import ListNotations.
 Require Import theorems.utils.
 
-Example test__vec_total_lookup: ([# 4; 2] !!! 0%fin) = 4.
+(*From stdpp Require Import natmap.
+Definition test__natmap_lookup_m: natmap nat := {[ 3 := 2; 0 := 2 ]}.
+Example test__natmap_lookup: test__natmap_lookup_m !! 3 = Some 2.
 Proof. reflexivity. Qed.
+
+Example test__vec_total_lookup: ([# 4; 2] !!! 0%fin) = 4.
+Proof. reflexivity. Qed.*)
 
 Section Sized.
 	Variable size: nat.

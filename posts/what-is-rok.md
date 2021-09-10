@@ -1,3 +1,12 @@
+# What is Rok and why is it important?
+
+Rok is a dependently typed, metaprogrammable proof checker with an integrated abstract assembly language with fractional effect types
+
+
+
+Includes things that can be built, some of which I intend to build.
+
+
 Verified hardware simulators are easy with rok
 
 Engineers want tools that can give them stronger guarantees about safety robustness and performance, but that tool has to be tractably usable and respect their time
@@ -102,6 +111,8 @@ https://bedrocksystems.com/products/
 
 
 Existing research around formal methods and program verification, such as in the deepspec project, I believe focuses extremely foolishly on old software workflows and tools. C and LLVM, despite being extremely powerful tools that profoundly advanced computing in their time, are still necessarily "legacy" tools, and so only very clunkily fit into formal verification. Even Rust, as modern as it is, wasn't ever designed with formal verification in mind from the beginning, and inherited many possibly unhelpful assumptions, such as the operating system syscall model, LLVM itself, and the C++ memory model.
+
+The ability to fully verify any program down to the metal completely unlocks the kinds of systems and abstractions we can build! The very act of building such a powerful tool removes all non-negotiable barriers in our way.
 
 Formally verifying the correctness of legacy systems after the fact is necessarily much more difficult than developing new tools from first principles with verification in mind. The only reason I can think of for the post-hoc philosophy is one of terrified pragmatism, where researchers and engineers are too scared to rethink layers that "seem to be working". This seems foolish to me, since we don't *actually* have any confidence those old layers are actually correct. If you start from the bottom and produce fully verified foundations, and every layer you stack on top is itself verified, I conjecture you can move much faster than trying to avoid or work-around bugs in existing legacy foundations.
 
@@ -209,5 +220,6 @@ safe foreign code execution without sandboxing
 
 new operating system paradigms
 when it's possible to check foreign code for safety, completely new ways of thinking about operating systems open up
+capability-typed micro kernel
 
 universal typed messaging format
