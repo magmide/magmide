@@ -2,6 +2,7 @@
 
 Rok is a dependently typed, metaprogrammable proof checker with an integrated abstract assembly language with fractional effect types
 
+This post is intended for anyone in the software engineering space, meant to persuade you we desperately need something like Rok and that the design choices it makes are the right ones to achieve our goals. If you want a deep dive on the technical design of Rok, please read [The Technical Design of Rok](), and if you want to feel what it would be like to learn Rok once it's finished, please read [Introduction to Rok]().
 
 
 Includes things that can be built, some of which I intend to build.
@@ -23,10 +24,27 @@ Most effects aren't really effects but environmental capabilities, although some
 
 
 
+https://project-oak.github.io/rust-verification-tools/2021/09/01/retrospective.html
+we have to go all the way. anything less than the capabilities given by a full proof checker proving theories on the literal environment abstractions isn't going to be good enough, will always have bugs and hard edges and cases that can't be done. but those full capabilties can *contain* other more "ad hoc" things like fuzzers, quickcheck libraries, test generators, etc. we must build upon a rok!
+
+
 
 
 
 stop trying to make functional programming happen, it isn't going to happen
+
+## project values
+
+- **Correctness**: this project should be a flexible toolkit capable of verifying and compiling any software for any architecture or environment. It should make it as easy as possible to model the abstractions presented by any hardware or host system with full and complete fidelity.
+- **Clarity**: this project should be accessible to as many people as possible, because it doesn't matter how powerful a tool is if no one can understand it. To guide us in this pursuit we have a few maxims: speak plainly and don't use jargon when simpler words could be just as precise; don't use a term unless you've given some path for the reader to understand it, if a topic has prerequisites point readers toward them; assume your reader is capable but busy; use fully descriptive words, not vague abbreviations and symbols.
+- **Practicality**: a tool must be usable, both in terms of the demands it makes and its design. This tool is intended to be used by busy people building real things with real stakes.
+- **Performance**: often those programs which absolutely must be fast are also those which absolutely must be correct. Infrastructural software is constantly depended on, and must perform well.
+
+These values inherently reinforce one another. As we gain more ability to guarantee correctness, we can make programs faster and solve more problems. As our tools become faster, they become more usable. Guaranteeing correctness saves others time and headache dealing with our bugs. As we improve clarity, more people gather to help improve the project, making it even better in every way.
+
+secondary values, simplicity before consistency before completeness.
+
+cultural values, code of conduct, we're accepting and open and humble.
 
 
 ```
