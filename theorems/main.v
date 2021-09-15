@@ -14,9 +14,13 @@ Example test__vec_total_lookup: ([# 4; 2] !!! 0%fin) = 4.
 Proof. reflexivity. Qed.*)
 
 Section Sized.
-	Variable size: nat.
+	Context {size: nat}.
 	Notation RegisterBank := (vec nat size).
 	Notation register := (fin size).
+	Record MachineState := state {
+		counter: nat;
+		registers: RegisterBank
+	}.
 
 	Inductive Operand: Type :=
 		| Literal (n: nat)
@@ -24,11 +28,11 @@ Section Sized.
 	.
 
 	Definition eval_operand
-		(bank: RegisterBank) (operand: Operand)
+		(cur: MachineState) (operand: Operand)
 	: nat :=
 		match operand with
 		| Literal n => n
-		| Register r => (bank !!! r)
+		| Register r => (cur.(registers) !!! r)
 		end
 	.
 
@@ -37,19 +41,15 @@ Section Sized.
 		| InstMov (src: Operand) (dest: register)
 		| InstAdd (val: Operand) (dest: register)
 
-		(*| InstJump (to: string)*)
-		(*| InstBranchEq (a: Operand) (b: Operand) (to: string)*)
-		(*| InstBranchNeq (a: Operand) (b: Operand) (to: string)*)
+		(*| InstJump (to: nat)*)
+		(*| InstBranchEq (a: Operand) (b: Operand) (to: nat)*)
+		(*| InstBranchNeq (a: Operand) (b: Operand) (to: nat)*)
 
 		(*| InstStore (src: Operand) (dest: Operand)*)
 		(*| InstLoad (src: Operand) (dest: register)*)
 	.
 	Hint Constructors Instruction: core.
 
-	Record MachineState := state {
-		counter: nat;
-		registers: RegisterBank
-	}.
 	Notation Within program cur :=
 		(cur.(counter) < (length program)) (only parsing).
 
@@ -58,9 +58,6 @@ Section Sized.
 
 	Notation get_instr cur program :=
 		(@safe_lookup _ cur.(counter) program _) (only parsing).
-
-	Notation eval cur val :=
-		(eval_operand cur.(registers) val) (only parsing).
 
 	Notation get cur reg :=
 		(cur.(registers) !!! reg) (only parsing).
@@ -71,60 +68,93 @@ Section Sized.
 	Notation incr cur :=
 		(S cur.(counter)) (only parsing).
 
-	Inductive step
-		{program: list Instruction}
+	Inductive Step
+		(program: list Instruction)
 	: MachineState -> MachineState -> Prop :=
-		| step_Mov: forall cur src dest,
+		| Step_Mov: forall cur src dest,
 			(cur_instr cur program) = Some (InstMov src dest)
-			-> step cur (state
+			-> Step program cur (state
 				(incr cur)
-				(update cur dest (eval cur src))
+				(update cur dest (eval_operand cur src))
 			)
 
-		| step_Add: forall cur val dest,
+		| Step_Add: forall cur val dest,
 			(cur_instr cur program) = Some (InstAdd val dest)
-			-> step cur (state
+			-> Step program cur (state
 				(incr cur)
-				(update cur dest ((eval cur val) + (get cur dest)))
+				(update cur dest ((eval_operand cur val) + (get cur dest)))
 			)
 
-		(*| step_Jump: forall cur to,
+		(*| Step_Jump: forall cur to,
 			(cur_instr cur program) = Some (InstJump to)
-			-> exists next, find_label program to = Some next
-			-> step next bank*)
+			-> Step program next bank*)
 
-		(*| step_BranchEq_Eq: forall cur a b to,
+		(*| Step_BranchEq_Eq: forall cur a b to,
 			(cur_instr cur program) = Some (InstBranchEq a b to)
 			-> a = b
-			-> exists next, find_label program to = Some next
-			-> step next bank
-		| step_BranchEq_Neq: forall cur a b to,
+			-> Step program next bank
+		| Step_BranchEq_Neq: forall cur a b to,
 			(cur_instr cur program) = Some (InstBranchEq a b to)
 			-> a <> b
-			-> step (S cur) bank*)
+			-> Step program (S cur) bank*)
 
-		(*| step_BranchNeq_Neq: forall cur a b to,
+		(*| Step_BranchNeq_Neq: forall cur a b to,
 			(cur_instr cur program) = Some (InstBranchNeq Ne b to)
 			-> a <> b
-			-> exists next, find_label program to = Some next
-			-> step next bank
-		| step_BranchNeq_Eq: forall cur a b to,
+			-> Step program next bank
+		| Step_BranchNeq_Eq: forall cur a b to,
 			(cur_instr cur program) = Some (InstBranchNeq Ne b to)
 			-> a = b
-			-> step (S cur) bank*)
+			-> Step program (S cur) bank*)
 	.
-	Hint Constructors step: core.
+	Hint Constructors Step: core.
 
-	(*Inductive step_trace program: forall cur next, (list @step program cur next) -> Prop :=
-		| trace_Exit: forall cur next,
-			@step program cur next
-			-> (cur_instr next program) = Some InstExit
-			-> trace program cur next [@step program cur next]
-		| trace_Step
+	CoInductive Trace
+		(program: list Instruction)
+	: list MachineState -> option MachineState -> Prop :=
+		| Trace_start: forall start,
+			Within program start
+			-> Trace program [] (Some start)
+
+		| Trace_step: forall prev cur next,
+			Step program cur next
+			-> Trace program prev (Some cur)
+			-> Trace program (cur :: prev) (Some next)
+
+		| Trace_exit: forall prev cur,
+			(cur_instr cur program) = Some InstExit
+			-> Trace program prev (Some cur)
+			-> Trace program (cur :: prev) None
+	.
+	(*
+		things to prove using Trace:
+		- if a trace is currently Trace_exit, then the program is stuck
+		- `execute_unsafe_eternal` is approximated by the non-eternal version, and if it returns None the program isn't well-formed and there isn't a possible next step
+		- `execute_eternal` is approximated by the non-eternal version, and if it returns None there doesn't exist a possible next step
+		- a well_founded relation on the program step relation implies there exists a finite number of steps such that `n = (length states), Trace states None`. also execute_program perfectly defines execute_eternal in this situation
+	*)
+
+
+	(*Definition execute_eternal
+		program (well_formed: WellFormed program)
+	: MachineState -> Step_stream program.
+		refine (cofix execute_eternal cur =>
+			let (instr, _) = safe_lookup cur program in
+			if (is_stopping instr) then
+			else
+		)
+	Defined.
+
+	CoFixpoint execute_eternal
+		program (H: WellFormed program): Step_stream program
+	:=
+		do_Start H
 	.*)
 
-	Theorem step_always_Within program cur next:
-		@step program cur next -> Within program cur.
+
+
+	Theorem Step_always_Within program cur next:
+		Step program cur next -> Within program cur.
 	Proof.
 		inversion 1;
 		match goal with
@@ -144,10 +174,10 @@ Section Sized.
 		sequential instr
 		-> forall (program: list Instruction) cur next,
 		(cur_instr cur program) = Some instr
-		-> @step program cur next
+		-> Step program cur next
 		-> counter next = S (counter cur).
 	Proof.
-		intros ????? Hstep; destruct instr; inversion Hstep; auto.
+		intros ????? HStep; destruct instr; inversion HStep; auto.
 	Qed.
 
 	Inductive branching: Instruction -> Prop :=
@@ -171,23 +201,23 @@ Section Sized.
 		stopping instr
 		-> forall program cur next,
 		(cur_instr cur program) = Some instr
-		-> ~(@step program cur next).
+		-> ~(Step program cur next).
 	Proof.
-		intros Hstopping ???? Hstep;
-		inversion Hstopping; inversion Hstep; crush.
+		intros Hstopping ???? HStep;
+		inversion Hstopping; inversion HStep; naive_solver.
 	Qed.
 
 	Theorem not_stopping_not_stuck instr:
 		~(stopping instr)
 		-> forall program cur,
 		(cur_instr cur program) = Some instr
-		-> exists next, @step program cur next.
+		-> exists next, Step program cur next.
 	Proof.
 		destruct instr; try contradiction; eauto.
 	Qed.
 
 	Notation NextStep program instr cur next :=
-		((cur_instr cur (program%list)) = Some instr -> @step (program%list) cur next)
+		((cur_instr cur (program%list)) = Some instr -> Step (program%list) cur next)
 		(only parsing).
 
 	Definition execute_instruction:
@@ -198,11 +228,11 @@ Section Sized.
 			match instr with
 			| InstMov src dest => fun _ => this (state
 				(incr cur)
-				(update cur dest (eval cur src))
+				(update cur dest (eval_operand cur src))
 			)
 			| InstAdd val dest => fun _ => this (state
 				(incr cur)
-				(update cur dest ((eval cur val) + (get cur dest)))
+				(update cur dest ((eval_operand cur val) + (get cur dest)))
 			)
 			| _ => fun _ => impossible
 			end
@@ -214,23 +244,23 @@ Section Sized.
 	:
 		nat -> MachineState -> option MachineState
 	.
-		refine (fix go steps cur :=
+		refine (fix go Steps cur :=
 			match (cur_instr cur program) with
 			| None => None
 			| Some instr =>
 				if (is_stopping instr) then Some cur
-				else match steps with
+				else match Steps with
 				| 0 => None
-				| S steps' =>
+				| S Steps' =>
 					let (next, _) := (@execute_instruction instr cur _) in
-					go steps' next
+					go Steps' next
 				end
 			end
 		); assumption.
 	Defined.
 
 	Notation WellFormed program :=
-		(forall cur next, @step program cur next -> Within program next)
+		(forall cur next, Step program cur next -> Within program next)
 		(only parsing).
 
 	Notation InstWellFormed len_program := (fun index instr =>
@@ -238,12 +268,12 @@ Section Sized.
 		len_program <= (length program)
 		-> lookup (index%nat) program = Some instr
 		-> cur.(counter) = (index%nat)
-		-> @step program cur next
+		-> Step program cur next
 		-> Within program next
 	) (only parsing).
 
-	Theorem step_implies_instr program cur next:
-		@step program cur next -> exists instr, (cur_instr cur program) = Some instr.
+	Theorem Step_implies_instr program cur next:
+		Step program cur next -> exists instr, (cur_instr cur program) = Some instr.
 	Proof. intros []; eauto. Qed.
 
 	Notation IndexPairsWellFormed program :=
@@ -254,8 +284,8 @@ Section Sized.
 		Forall (IndexPairsWellFormed program) (imap pair program)
 		-> WellFormed program.
 	Proof.
-		intros H ?? Hstep; rewrite Forall_lookup in H;
-		specialize (step_implies_instr Hstep) as [instr];
+		intros H ?? HStep; rewrite Forall_lookup in H;
+		specialize (Step_implies_instr HStep) as [instr];
 		specialize (H cur.(counter) (cur.(counter), instr));
 		eapply H; eauto; apply index_pairs_lookup_forward; assumption.
 	Qed.
@@ -269,9 +299,9 @@ Section Sized.
 			(*if (is_sequential instr)*)
 		);
 		destruct index_instr as [index instr]; simpl in *;
-		intros ???? Hsome Hcounter Hstep; subst;
-		try apply (stopping_stuck s Hsome) in Hstep;
-		destruct instr; inversion Hstep; try contradiction; simpl in *; subst; lia.
+		intros ???? Hsome Hcounter HStep; subst;
+		try apply (stopping_stuck s Hsome) in HStep;
+		destruct instr; inversion HStep; try contradiction; simpl in *; subst; lia.
 	Defined.
 
 	Definition execute_program_unknown_termination
@@ -280,14 +310,14 @@ Section Sized.
 	:
 		nat -> forall cur, Within program cur -> option MachineState
 	.
-		refine (fix go steps cur _ :=
+		refine (fix go Steps cur _ :=
 			let (instr, _) := (get_instr cur program) in
 			if (is_stopping instr) then Some cur
-			else match steps with
+			else match Steps with
 			| 0 => None
-			| S steps' =>
+			| S Steps' =>
 				let (next, _) := (@execute_instruction instr cur _) in
-				go steps' next _
+				go Steps' next _
 			end
 		); eauto.
 	Defined.
@@ -295,13 +325,11 @@ Section Sized.
 	Section execute_program.
 		Variable program: list Instruction.
 		Variable well_formed: WellFormed program.
-		Variable progress: MachineState -> MachineState -> Prop.
-		Variable progress_wf: well_founded progress.
-		Variable program_progress:
-			forall cur next, @step program cur next -> progress next cur.
+		Notation step_progression := (fun next cur => Step program cur next) (only parsing).
+		Variable progress: well_founded step_progression.
 
 		Program Fixpoint execute_program
-			cur (H: Within program cur) {wf progress cur}
+			cur (H: Within program cur) {wf step_progression cur}
 		: MachineState :=
 			let (instr, _) := (get_instr cur program) in
 			if (is_stopping instr) then cur
@@ -309,27 +337,27 @@ Section Sized.
 				let (next, _) := (@execute_instruction instr cur _) in
 				execute_program next _
 		.
-		Solve All Obligations with eauto.
+		Solve All Obligations with (simpl; eauto).
 	End execute_program.
 
 End Sized.
 
-Arguments Literal {size} _.
+(*Arguments Literal {size} _.
 Arguments Register {size} _.
 
 Arguments execute_program_unsafe {size} _ _ _.
 
 Arguments InstMov {size} _ _.
 Arguments InstAdd {size} _ _.
-(*Arguments InstBranchEq {size} _ _ _.*)
-(*Arguments InstBranchNeq {size} _ _ _.*)
-Arguments InstExit {size}.
+Arguments InstBranchEq {size} _ _ _.
+Arguments InstBranchNeq {size} _ _ _.
+Arguments InstExit {size}.*)
 
 Notation Within program cur :=
 	(cur.(counter) < (length program)) (only parsing).
 
 Notation WellFormed program :=
-	(forall cur next, @step _ program cur next -> Within program next)
+	(forall cur next, Step program cur next -> Within program next)
 	(only parsing).
 
 Notation InstWellFormed len_program := (fun index instr =>
@@ -337,7 +365,7 @@ Notation InstWellFormed len_program := (fun index instr =>
 	len_program <= (length program)
 	-> lookup (index%nat) program = Some instr
 	-> cur.(counter) = (index%nat)
-	-> @step _ program cur next
+	-> Step program cur next
 	-> Within program next
 ) (only parsing).
 
@@ -349,7 +377,7 @@ Ltac program_well_formed :=
 	match goal with
 	| |- WellFormed ?program =>
 		let program_type := type of program in
-		match program_type with | list (Instruction ?size) =>
+		match program_type with | list (@Instruction ?size) =>
 			apply index_pairs_InstWellFormed_implies_WellFormed;
 			find_obligations__helper
 				(IndexPairsWellFormed program)
@@ -360,7 +388,7 @@ Ltac program_well_formed :=
 
 
 Module redundant_additions.
-	Definition program: list (Instruction 1) := [
+	Definition program: list (@Instruction 1) := [
 		InstMov (Literal 0) (0%fin);
 		InstAdd (Literal 1) (0%fin);
 		InstAdd (Literal 1) (0%fin);
@@ -380,7 +408,7 @@ Module redundant_additions.
 End redundant_additions.
 
 Module redundant_doubling.
-	Definition program: list (Instruction 1) := [
+	Definition program: list (@Instruction 1) := [
 		InstMov (Literal 1) (0%fin);
 		InstAdd (Register 0%fin) (0%fin);
 		InstAdd (Register 0%fin) (0%fin);

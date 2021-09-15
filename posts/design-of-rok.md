@@ -5,6 +5,45 @@ This post describes the design of Rok *as if it were finished*, with the intent 
 "Progress and Roadmap" describes what has already been done and the plan forward.
 
 
+The design of the project is directly informed by its values and ambitions. Rok a metaprogrammable dependently typed language based on the calculus of constructions with an integrated abstract assembly language, with the goal of enabling formalization/verification/compilation of any software for any environment, therefore (*finally*) making formal verification mainstream and normal. The project doesn't have any direct goals to do cutting edge research work or advance the state of the art, but merely to combine existing research into a usable tool.
+
+To achieve that goal the project has these values:
+
+- **Correctness**: this project should be a flexible toolkit capable of verifying and compiling any software for any architecture or environment. It should make it as easy as possible to model the abstractions presented by any hardware or host system with full and complete fidelity.
+- **Clarity**: this project should be accessible to as many people as possible, because it doesn't matter how powerful a tool is if no one can understand it. To guide us in this pursuit we have a few maxims: speak plainly and don't use jargon when simpler words could be just as precise; don't use a term unless you've given some path for the reader to understand it either by using a traceable definition or for prerequisites pointing readers toward them; assume your reader is capable but busy; use fully descriptive words, not vague abbreviations and symbols.
+- **Practicality**: a tool must be usable, both in terms of the demands it makes and its design. This tool is intended to be used by busy people building real things with real stakes.
+- **Performance**: often those programs which absolutely must be fast are also those which absolutely must be correct. Infrastructural software is constantly depended on, and must perform well.
+
+The design decisions of the project were made intentionally to support those values. All the bullets below are given their own section discussing the details.
+
+- **Correctness**
+  - Rok is dependently typed in a strong type theory, giving it the logical power necessary to verify any property a user can prove in the calculus of constructions. Quote [Adam Chlipala "Why Coq?"](http://adam.chlipala.net/cpdt/html/Cpdt.Intro.html)
+  - Rok is self-hosting but bootstrapped from Coq, meaning it is able to verify itself and was originally verified in a well-tested and [even verified tool](TODO coqcoqcorrect).
+- **Clarity**
+  - Rok syntax rules only allow custom notation through the macro system, which ensures it is always scoped beneath a tracable and searchable name, making it much easier for new users to find explanations or definitions of custom notation.
+  - Rok syntax is whitespace sensitive and designed to make program structure and code formatting directly correspond.
+  - Rok syntax intentionally compresses different ways of expressing the same thing into the most general syntax choices, and requires the use of syntax sugars when they are available.
+  - Rok's import mechanisms usefully expose different kinds of definitions differently, allowing users to not ever need problematic implicit imports.
+  - Rok enables readable markdown documentation comments for definitions.
+  - Rok's builtin formatter warns about inconsistent naming and capitalization.
+  - Rok's core educational materials set a convention of approachability, tracability (calling out prerequisites), and clarity.
+- **Practicality**
+  - Rok is arbitrariliy metaprogrammable, allowing all the flexibility and power that entails, including creating "zero-cost languages" that enable fine-grained verification at higher levels of abstraction. It also means the compiler doesn't require any kind of extension or plugin API, the metaprogramming facilities subsume such things especially when combined with a query-based compiler.
+  - Rok compute theory is generic over the environment, allowing programs in any environment to be verified. It includes a core "abstract assembly language" akin to llvm that allows general-purpose programs to be compiled to many architectures.
+  - Rok trackable effects (based on Iron trackable resources) allow programs to be gradually verified, allowing users to understand and accept tradeoffs as they work on a codebase.
+  - Rok trackable effects are generic over the environment, allowing environments to introduce new trackable effects.
+  - Rok is designed with usability in mind, and has an easy to use `cargo`-like cli and package manager.
+  - Rok is a "one-stop-shop" for engineers creating correct and performant software, since it can both verify and compile code.
+  - Rok uses a query-based compiler, so its internals can be more easily exposed to allow more ergonomic and powerful macros.
+- **Performance**
+  - Rok compute theory goes all the way down to the metal, allowing arbitrarily fine-grained guarantees and optimizations.
+  - Rok is itself built in compute Rok, meaning the same performance benefits it promises to users it also gives during type-checking and compilation.
+  - Rok metaprograms are defined in Rok, meaning they perform well and can even be verified.
+  - Rok uses a query-based compiler, so it efficiently avoids recomputing unchanged forms of a program.
+
+
+My hypothesis for what determines language enthusiasm is: `possible_correctness * possible_performance * average_productive_usability`
+
 ## progress and roadmap
 
 
@@ -53,7 +92,7 @@ specifying calculus of constructions in coq (reusing coqcoqcorrect)
 
 defining an abstract assembly language program that implements the proof checking kernel
 
-building parser/renderer that can translate that assembly language program (and maybe it's higher-level forms?) into some usable machine code program, possibly reusing something like llvm but also possibly just going directly into x86?
+building parser/renderer that can translate that assembly language program (and maybe it's higher-level forms?) into some usable machine code program, possibly reusing something like llvm but also possibly just going directly into x86? (at this point we're building an environment that acts like a "castle in the air", since the environment is merely stated axiomatically rather than directly inheriting its semantics from a verified lower-level host system)
 
 we actually have a few different possible avenues here
 - build the first version of the compiler in coq and extract to ocaml, which means we *might* have a functioning compiler sooner to use while building the self-hosting version, and we have a functional model to use while verifying the rok version. however it also means we have to implement the whole compiler twice.
@@ -62,7 +101,7 @@ we actually have a few different possible avenues here
 
 the *finished, self-hosting* compiler will have these layers:
 - the axiomatic specification of the calculus of constructions (trusted theory base), written in ideal/prop rok
-- the proof checker component, written in compute rok but verified using the axiomatic specification
+- the proof checker component, written in compute rok but verified using the axiomatic specification (probably useful to introduce a concept of "perfectly models" vs "models with assumptions" to link datatypes between ideal/prop rok and compute rok. for example something like a fixed width bit-word can only model numbers within certain assumptions, but enums or records or other such things can be a perfect correspondence)
 - the compute theory libraries, written in ideal/prop rok but *modeling* compute rok
 - the compiler component, written in compute rok *defining* the compute datatypes that *represent* rok, and verified using the compute theory libraries
 - the standard library

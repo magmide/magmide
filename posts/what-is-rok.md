@@ -1,6 +1,6 @@
 # What is Rok and why is it important?
 
-Rok is a dependently typed, metaprogrammable proof checker with an integrated abstract assembly language with fractional effect types
+Rok is a dependently typed, metaprogrammable proof checker with an integrated abstract assembly language with trackable effects
 
 This post is intended for anyone in the software engineering space, meant to persuade you we desperately need something like Rok and that the design choices it makes are the right ones to achieve our goals. If you want a deep dive on the technical design of Rok, please read [The Technical Design of Rok](), and if you want to feel what it would be like to learn Rok once it's finished, please read [Introduction to Rok]().
 
@@ -218,7 +218,9 @@ checking assertions from the bottom up and in reverse instruction order, keeping
 
 ## Intended Applications
 
-Obviously a language that allows robust verification of any useful program will be an obvious fit for critical software of all kinds, such as blockchains/smart contracts, cryptography, firmware, operating systems, language runtimes, financial/legal/medical applications, web servers, databases, etc. But there are a few specific uses I'm personally excited to pursue once this language is functional.
+Obviously a language that allows robust verification of any useful program will be an obvious fit for critical software of all kinds, such as blockchains/smart contracts, cryptography, firmware, operating systems, language runtimes, financial/legal/medical applications, web servers, databases, etc. Check out [this blog post](TODO my personal essay describing my long journey and the half finished projects toward Rok)
+
+But there are a few specific uses I'm personally excited to pursue once this language is functional.
 
 high-level but statically lowered asynchronous actor-first borrow-checked language, ideal for application domains and high-level targets like webassembly and operating system environments. inspired by ponylang and its awareness of actor boundaries to allow aliasing in the presence of mutation
 http://jtfmumm.com/blog/2016/03/06/safely-sharing-data-pony-reference-capabilities/
