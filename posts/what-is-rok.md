@@ -24,6 +24,13 @@ Most effects aren't really effects but environmental capabilities, although some
 
 
 
+Traits, shapes, and the next level of type inference
+
+Discriminated unions and procedural macros make dynamically typed languages pointless, and they've existed for eighty years. So what gives?
+
+What's better than a standard? An automatically checkable and enforceable standard
+
+
 https://project-oak.github.io/rust-verification-tools/2021/09/01/retrospective.html
 we have to go all the way. anything less than the capabilities given by a full proof checker proving theories on the literal environment abstractions isn't going to be good enough, will always have bugs and hard edges and cases that can't be done. but those full capabilties can *contain* other more "ad hoc" things like fuzzers, quickcheck libraries, test generators, etc. we must build upon a rok!
 
