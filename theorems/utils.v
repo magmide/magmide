@@ -12,6 +12,44 @@ Notation impossible := (False_rect _ _).
 Notation this item := (exist _ item _).
 Notation use item := (proj1_sig item).
 
+
+
+(*https://coq.inria.fr/library/Coq.Wellfounded.Inverse_Image.html*)
+(*https://coq.inria.fr/library/Coq.Wellfounded.Lexicographic_Product.html*)
+
+(*
+	lexicographic orderings have "higher priority" indices, just like the decrementing thing you wanted to produce
+
+	a program is a list of labeled sections
+	we can go over that list and produce a directed graph of all instructions that go from one labeled section to another:
+	- obviously branching instructions that go to a label count, even ones that go to the same labeled section since that's a recursive branch
+	- any possibly sequential instructions at the *end* of a section go to the *next* section, so they also count
+
+	from this graph, we can produce a list of strongly connected components, and the network of strongly connected components forms a DAG
+	this DAG from the single starting instruction to all possible exit nodes (nodes that include an exit instruction) is well-founded, since we're decreasing the current maximum distance from an exit node. this forms the first and highest priority index in our total lexicographic order
+	the case of non-recursive single-node components is trivial, since these aren't really strongly connected, and always first move sequentially through the section before always progressing along the DAG
+
+	with this, we can prove termination if we're given a progress type/relation/function/proof for each component
+	to narrow the instructions who need to be justified, we can look at each strongly connected component, and topographically order the nodes according to their maximum distance from an exit node (any node that exits the component)
+	when they're ordered like this, we can imagine them as a DAG again by "severing" the "backwards" edges, ones that go toward a topographically lower node
+	then we can supply a lexicographical ordering for this component by just appending *their* decreasing type on the front of the same ordering we would produce for a *real* DAG. their supplied progress type will have the highest priority, since it represents the entire chunk of work the component is trying to do, and the rest of the ordering just handles all the boring book-keeping as we go along through this "severed" DAG.
+	we give to them obligations that the "backwards" or recursive edges (or Steps) do in fact make progress.
+
+		forall (T: Type) (progress: T -> T -> Prop) (convert: MachineState -> T), well_founded progress
+		forall cur next, Step cur next -> Within cur component -> Within next component -> progress (convert next) (convert cur)
+
+	so if we exit the segment, we've made progress
+	within the segment we can just say we're making sequential progress?
+*)
+
+
+
+
+
+
+
+
+
 Section convert_subset.
 	Variable T: Type.
 	Variable P Q: T -> Prop.
