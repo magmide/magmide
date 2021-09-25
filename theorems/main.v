@@ -1,9 +1,11 @@
 Add LoadPath "/home/blaine/lab/cpdtlib" as Cpdt.
 Set Implicit Arguments. Set Asymmetric Patterns.
 Require Import List String Cpdt.CpdtTactics Coq.Program.Wf.
-From stdpp Require Import base fin vector options natmap.
+From stdpp Require Import base fin vector options.
 Import ListNotations.
 Require Import theorems.utils.
+
+Require Import Coq.Wellfounded.Wellfounded.
 
 (*From stdpp Require Import natmap.
 Definition test__natmap_lookup_m: natmap nat := {[ 3 := 2; 0 := 2 ]}.
@@ -117,15 +119,47 @@ Section Sized.
 			-> Trace program [] (Some start)
 
 		| Trace_step: forall prev cur next,
-			Step program cur next
-			-> Trace program prev (Some cur)
+			Trace program prev (Some cur)
+			-> Step program cur next
 			-> Trace program (cur :: prev) (Some next)
 
 		| Trace_exit: forall prev cur,
-			(cur_instr cur program) = Some InstExit
-			-> Trace program prev (Some cur)
+			Trace program prev (Some cur)
+			-> (cur_instr cur program) = Some InstExit
 			-> Trace program (cur :: prev) None
 	.
+
+	Inductive Steps
+	 (program: list Instruction)
+	: MachineState -> list MachineState ->  MachineState -> Prop :=
+		(*| Steps_same: forall cur,
+			Steps program cur [] cur*)
+
+		| Steps_start: forall cur next,
+			Step program cur next
+			-> Steps program cur [] next
+
+		| Steps_Step: forall start steps prev cur,
+			Steps program start steps prev
+			-> Step program prev cur
+			-> Steps program start (prev :: steps) cur
+	.
+
+	(*Theorem Trace_to_Step:
+		forall program start steps cur,
+			Trace program (steps ++ [start]) (Some cur)
+			-> Steps program start steps cur.
+	Proof.
+	Qed.
+
+	Theorem Steps_to_Trace:
+		forall program start steps cur,
+			Steps program start steps cur
+			-> Trace program (steps ++ [start]) (Some cur).
+	Proof.
+	Qed.*)
+
+
 	(*
 		things to prove using Trace:
 		- if a trace is currently Trace_exit, then the program is stuck
@@ -133,6 +167,18 @@ Section Sized.
 		- `execute_eternal` is approximated by the non-eternal version, and if it returns None there doesn't exist a possible next step
 		- a well_founded relation on the program step relation implies there exists a finite number of steps such that `n = (length states), Trace states None`. also execute_program perfectly defines execute_eternal in this situation
 	*)
+
+
+
+	(*
+		I think what I want is this:
+		- first just *local*, as in single instruction, versions of total state assertions (hoare triples) and framed state assertions (separation logic triples)
+		- somehow tie those together with Trace?
+	*)
+
+	(*Notation stateprop := (MachineState -> Prop) (only parsing).*)
+
+	(*hoare triples assert over total state, separation triples assert over the given state and all other states*)
 
 
 	(*Definition execute_eternal
@@ -325,11 +371,13 @@ Section Sized.
 	Section execute_program.
 		Variable program: list Instruction.
 		Variable well_formed: WellFormed program.
-		Notation step_progression := (fun next cur => Step program cur next) (only parsing).
-		Variable progress: well_founded step_progression.
+
+		Variable progression: MachineState -> MachineState -> Prop.
+		Variable progression_wf: well_founded progression.
+		Variable progress: forall cur next, Step program cur next -> progression next cur.
 
 		Program Fixpoint execute_program
-			cur (H: Within program cur) {wf step_progression cur}
+			cur (H: Within program cur) {wf progression cur}
 		: MachineState :=
 			let (instr, _) := (get_instr cur program) in
 			if (is_stopping instr) then cur
@@ -337,8 +385,38 @@ Section Sized.
 				let (next, _) := (@execute_instruction instr cur _) in
 				execute_program next _
 		.
-		Solve All Obligations with (simpl; eauto).
+		Solve All Obligations with eauto.
 	End execute_program.
+
+
+	(*
+		lexicographic orderings have "higher priority" indices
+
+		a program is a list of labeled sections
+		we can go over that list and produce a directed graph of all instructions that go from one labeled section to another:
+		- obviously branching instructions that go to a label count, even ones that go to the same labeled section since that's a recursive branch
+		- any possibly sequential instructions at the *end* of a section go to the *next* section, so they also count
+
+		from this graph, we can produce a list of strongly connected components, and the network of strongly connected components forms a DAG
+		this DAG from the single starting instruction to all possible exit nodes (nodes that include an exit instruction) is well-founded, since we're decreasing the current maximum distance from an exit node. this forms the first and highest priority index in our total lexicographic order
+		the case of non-recursive single-node components is trivial, since these aren't really strongly connected, and always first move sequentially through the section before always progressing along the DAG
+
+		with this, we can prove termination if we're given a progress type/relation/function/proof for each component
+		to narrow the instructions who need to be justified, we can look at each strongly connected component, and topographically order the nodes according to their maximum distance from an exit node (any node that exits the component)
+		when they're ordered like this, we can imagine them as a DAG again by "severing" the "backwards" edges, ones that go toward a topographically lower node
+		then we can supply a lexicographical ordering for this component by just push *their* decreasing type on the front of the same ordering we would produce for a *real* DAG. their supplied progress type will have the highest priority, since it represents the entire chunk of work the component is trying to do, and the rest of the ordering just handles all the boring book-keeping as we go along through this "severed" DAG.
+		we give to them obligations that the "backwards" or recursive edges (or Steps) do in fact make progress.
+		it will probably be necessary for sanity's sake to simply require a proof that the progress indicator gets decreased *sometime* before any backward edge
+
+		or we need an even higher version of Steps, one that encodes program progression across section nodes rather than individual instructions. probably the final version requires us to prove that if a progression relation across section nodes is well-founded, then the underlying step progression is as well
+
+			forall (T: Type) (progress: T -> T -> Prop) (convert: MachineState -> T), well_founded progress
+			forall cur next, Step cur next -> Within cur component -> Within next component -> progress (convert next) (convert cur)
+
+		so if we exit the segment, we've made progress
+		within the segment we can just say we're making sequential progress?
+
+	*)
 
 End Sized.
 
