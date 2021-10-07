@@ -69,7 +69,7 @@ any instruction set can be presented, but it has to have a few things
 from all that we can probably reuse everything else (well-foundedness, well-formedness, stuckness, etc)
 
 
-### phase 0, fully specifying real computation, but abstractly (making a firesteel)
+### phase 0, fully specifying real computation, but abstractly (crafting a firesteel)
 
 termination verification condition generator based on strongly connected components
 

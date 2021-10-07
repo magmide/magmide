@@ -125,13 +125,17 @@ Coq is least suited to those applications for which it is most necessary. High p
 This project is seeking to solve these problems by creating a Tool, and a Community. The Tool is largely a technical work, but one we will try to build as intuitively and elegantly as possible (in contrast to existing academic tools). The Community includes governance and education materials.
 
 - vale
-not a true assembly embedding? not generic to many machines? no metaprogramming? not intended to achieve broad adoption.
+focused on cryptographic code, and it isn't a new proof assistant with the intent to make formal verification go mainstream, but instead a library in an existing proof assistant meant to help crypto researchers
+however this project does in a way hint that the rok project is a good idea! it is also generic over different architectures and uses automatic verification condition generators
 
 - bedrock
 Proprietary! It's essential systems like this aren't only controlled by corporations and governments.
 http://adam.chlipala.net/papers/BedrockICFP13/BedrockICFP13.pdf
 https://plv.csail.mit.edu/bedrock/
 https://bedrocksystems.com/products/
+The original purely research version of bedrock is yet another project that is promising for the rok project, since it shows that verified *macros* are possible and tractable. However it's still stuck in coq and therefore slow and obtuse.
+
+need to look at xcap paper and other references in the bedrock paper
 
 
 

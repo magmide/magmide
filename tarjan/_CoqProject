@@ -1,0 +1,6 @@
+-R . mathcomp.tarjan
+-arg -w -arg -notation-overridden
+
+tarjan_nocolors.v
+extra_nocolors.v
+

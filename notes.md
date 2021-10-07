@@ -4,6 +4,14 @@ In the real assembly language, you can always read, but doing so when you don't 
 
 
 
+Someone needs to do for formal verification what rust has been doing for systems programming
+
+Think about sections that are irrevocably exiting, such as sequential sections capped by an always exiting instruction either branch or jump always out or falling through to next, and you can prove that such sections and concatenations of them always in a well founded way exit the section and relate that to steps relation, and then all you need for sections that are self recursive is a well founded relation and a proof that for all steps that self recurse that only stay within the section that have a triple making progress then the section will always exit in a well founded way
+You can probably generalize this to whole programs if the steps relation is just parameterized by the section not the program
+
+Metaprogramatically embedded dsl
+
+
 
 
 https://www.youtube.com/watch?v=ybrQvs4x0Ps
@@ -113,8 +121,10 @@ https://gitlab.mpi-sws.org/iris/iris/blob/master/docs/proof_mode.md
 
 
 
-I like the idea of having a `by` operator that can be used to justify passing a variable as some type with the accompanying proof script. so for example you could say `return x by crush`, or more complicated things such as `return x by (something; something)`. doing `by _` would defer the proof obligation until after the function definition.
+I like the idea of having a `by` operator that can be used to justify passing a variable as some type with the accompanying proof script. so for example you could say `return x by crush`, or more complicated things such as `return x by (something; something)`. whatever level of automatic crushing should the system do by default? should there be a cheap crusher that's always used even without a `by`, and `by _` means "use a more expensive crusher"? or does no `by` mean to defer to a proof block? it makes sense to me for no `by` to imply simply deferring (trying to pass something as a type we can quickly verify it can't possibly be is just a type error), whereas `by _` means "use the crusher configured at this scope", and something like file/module/section/function/block level crushers can be configured
 a small and easy to use operator for embedding the proof language into the computational language would probably go a long way to making Rok popular and easy to understand.
+
+it would probably be nice to have some shorthand for "extending" the proof value of functions and type aliases. something like `fn_name ;theorem` or something that implies adding the assumptions of the thing and the thing itself into the context of the proof, and adds the new proof for further use.
 
 
 look at koka lang

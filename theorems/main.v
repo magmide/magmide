@@ -5,8 +5,6 @@ From stdpp Require Import base fin vector options.
 Import ListNotations.
 Require Import theorems.utils.
 
-Require Import Coq.Wellfounded.Wellfounded.
-
 (*From stdpp Require Import natmap.
 Definition test__natmap_lookup_m: natmap nat := {[ 3 := 2; 0 := 2 ]}.
 Example test__natmap_lookup: test__natmap_lookup_m !! 3 = Some 2.
@@ -14,6 +12,36 @@ Proof. reflexivity. Qed.
 
 Example test__vec_total_lookup: ([# 4; 2] !!! 0%fin) = 4.
 Proof. reflexivity. Qed.*)
+
+
+Section VectorIndexAssertions.
+	Context {T: Type}.
+	Context {size: nat}.
+	Notation IndexPair := ((fin size) * T) (only parsing).
+
+	Notation IndexAssertion vector index value := ((vector !!! index) = value) (only parsing).
+
+	Definition index_disjoint index := (fun index_pair => (index_pair.1) <> index).
+
+	Inductive UnionAssertion (vector: vec T size): list IndexPair -> Prop :=
+		| union_nil: UnionAssertion nil
+		| union_cons: forall pairs index value,
+			UnionAssertion pairs
+			-> IndexAssertion vector index value
+			-> Forall (index_disjoint index) pairs
+			-> UnionAssertion ((index, value) :: pairs)
+	.
+
+	(*Theorem UnionAssertion_no_duplicate_indices: forall vector index_pairs,
+		UnionAssertion vector index_pairs
+		-> NoDup (map (fun index_pair => index_pair.1) index_pairs).
+	Proof. Qed.*)
+	(*
+		while this is fancy and everything, we almost certainly don't need it, since we really want a higher level opaque theorem stating that if two assertions point to the same location in the same vector then we can derive False
+	*)
+
+End VectorIndexAssertions.
+
 
 Section Sized.
 	Context {size: nat}.
@@ -23,6 +51,52 @@ Section Sized.
 		counter: nat;
 		registers: RegisterBank
 	}.
+
+	Notation Assertion := (MachineState -> Prop) (only parsing).
+	(*
+		state_unit isn't called state_empty or something, because it doesn't assert emptiness, since there's no such thing as an "empty" machine state (all the bits are full of SOMETHING), but it just asserts that we don't know anything about the state at all.
+	*)
+
+	Inductive StateUnit: Assertion := state_unit: forall _, True.
+
+	Notation state_unit := (fun _ => True).
+	Notation "\[]" := (state_unit) (at level 0).
+
+	Definition state_pure (P: Prop): Assertion :=
+		fun _ => P.
+	Notation "\[ P ]" := (state_pure P) (at level 0, format "\[ P ]").
+
+	Definition state_counter (value: nat): Assertion :=
+		fun state => state.(counter) = value.
+	Notation "'at' value" := (state_counter value) (at level 32).
+
+	Definition state_register (register: fin size) (value: nat): Assertion :=
+	  fun state => (state.(registers) !!! register) = value.
+	Notation "'$' register '==' value" := (state_register register value) (at level 32).
+
+
+	Inductive state_star: Assertion :=
+		(* unit can be combined with anything *)
+		| star_unit: forall state (H: Assertion), state_star H
+		(* pure can be combined with anything *)
+		| star_pure ->
+		(* counter can be combined with anything that isn't star_counter *)
+		| star_counter
+		(* register can be combined with anything that isn't star_register for the same register *)
+		| star_register
+	.
+
+	Notation "H1 '\*' H2" := (state_star H1 H2) (at level 41, right associativity).
+
+	(**)
+
+	Definition instruction_total_triple
+		(instr: Instruction)
+		(H: Assertion)
+		(Q: Assertion)
+	: Prop :=
+		forall program cur, H cur -> exists next, Step program cur next /\ Q next
+
 
 	Inductive Operand: Type :=
 		| Literal (n: nat)
