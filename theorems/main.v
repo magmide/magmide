@@ -1,7 +1,7 @@
 Add LoadPath "/home/blaine/lab/cpdtlib" as Cpdt.
 Set Implicit Arguments. Set Asymmetric Patterns.
 Require Import List String Cpdt.CpdtTactics Coq.Program.Wf.
-From stdpp Require Import base fin vector options.
+From stdpp Require Import base fin vector options gmap.
 Import ListNotations.
 Require Import theorems.utils.
 
@@ -13,34 +13,12 @@ Proof. reflexivity. Qed.
 Example test__vec_total_lookup: ([# 4; 2] !!! 0%fin) = 4.
 Proof. reflexivity. Qed.*)
 
+Definition array size T := (gmap (fin size) T).
 
-Section VectorIndexAssertions.
-	Context {T: Type}.
-	Context {size: nat}.
-	Notation IndexPair := ((fin size) * T) (only parsing).
-
-	Notation IndexAssertion vector index value := ((vector !!! index) = value) (only parsing).
-
-	Definition index_disjoint index := (fun index_pair => (index_pair.1) <> index).
-
-	Inductive UnionAssertion (vector: vec T size): list IndexPair -> Prop :=
-		| union_nil: UnionAssertion nil
-		| union_cons: forall pairs index value,
-			UnionAssertion pairs
-			-> IndexAssertion vector index value
-			-> Forall (index_disjoint index) pairs
-			-> UnionAssertion ((index, value) :: pairs)
-	.
-
-	(*Theorem UnionAssertion_no_duplicate_indices: forall vector index_pairs,
-		UnionAssertion vector index_pairs
-		-> NoDup (map (fun index_pair => index_pair.1) index_pairs).
-	Proof. Qed.*)
-	(*
-		while this is fancy and everything, we almost certainly don't need it, since we really want a higher level opaque theorem stating that if two assertions point to the same location in the same vector then we can derive False
-	*)
-
-End VectorIndexAssertions.
+Definition b: (array 3 nat) := {[ 2%fin := 1 ]}.
+Compute (b !!! 0%fin).
+Compute (b !!! 1%fin).
+Compute (b !!! 2%fin).
 
 
 Section Sized.
@@ -71,7 +49,7 @@ Section Sized.
 	Notation "'at' value" := (state_counter value) (at level 32).
 
 	Definition state_register (register: fin size) (value: nat): Assertion :=
-	  fun state => (state.(registers) !!! register) = value.
+		fun state => (state.(registers) !!! register) = value.
 	Notation "'$' register '==' value" := (state_register register value) (at level 32).
 
 
@@ -218,6 +196,12 @@ Section Sized.
 			-> Step program prev cur
 			-> Steps program start (prev :: steps) cur
 	.
+
+	(*
+		some concept I probably need is an idea of a Steps or Trace being "within" some program segment, as in all the machine states in that trace have program counters in the segment, so I can reason about "exiting" the segment,
+		also theorems about concatenation of traces, so I can do things like "the beginning of this trace is all within this segment, but this concatened head state isn't, therefore we've exited the segment"
+*)
+
 
 	(*Theorem Trace_to_Step:
 		forall program start steps cur,
@@ -462,36 +446,6 @@ Section Sized.
 		Solve All Obligations with eauto.
 	End execute_program.
 
-
-	(*
-		lexicographic orderings have "higher priority" indices
-
-		a program is a list of labeled sections
-		we can go over that list and produce a directed graph of all instructions that go from one labeled section to another:
-		- obviously branching instructions that go to a label count, even ones that go to the same labeled section since that's a recursive branch
-		- any possibly sequential instructions at the *end* of a section go to the *next* section, so they also count
-
-		from this graph, we can produce a list of strongly connected components, and the network of strongly connected components forms a DAG
-		this DAG from the single starting instruction to all possible exit nodes (nodes that include an exit instruction) is well-founded, since we're decreasing the current maximum distance from an exit node. this forms the first and highest priority index in our total lexicographic order
-		the case of non-recursive single-node components is trivial, since these aren't really strongly connected, and always first move sequentially through the section before always progressing along the DAG
-
-		with this, we can prove termination if we're given a progress type/relation/function/proof for each component
-		to narrow the instructions who need to be justified, we can look at each strongly connected component, and topographically order the nodes according to their maximum distance from an exit node (any node that exits the component)
-		when they're ordered like this, we can imagine them as a DAG again by "severing" the "backwards" edges, ones that go toward a topographically lower node
-		then we can supply a lexicographical ordering for this component by just push *their* decreasing type on the front of the same ordering we would produce for a *real* DAG. their supplied progress type will have the highest priority, since it represents the entire chunk of work the component is trying to do, and the rest of the ordering just handles all the boring book-keeping as we go along through this "severed" DAG.
-		we give to them obligations that the "backwards" or recursive edges (or Steps) do in fact make progress.
-		it will probably be necessary for sanity's sake to simply require a proof that the progress indicator gets decreased *sometime* before any backward edge
-
-		or we need an even higher version of Steps, one that encodes program progression across section nodes rather than individual instructions. probably the final version requires us to prove that if a progression relation across section nodes is well-founded, then the underlying step progression is as well
-
-			forall (T: Type) (progress: T -> T -> Prop) (convert: MachineState -> T), well_founded progress
-			forall cur next, Step cur next -> Within cur component -> Within next component -> progress (convert next) (convert cur)
-
-		so if we exit the segment, we've made progress
-		within the segment we can just say we're making sequential progress?
-
-	*)
-
 End Sized.
 
 (*Arguments Literal {size} _.
@@ -608,3 +562,4 @@ done:
 *)
 
 (*Inductive Bit: Type := B0 | B1.*)
+

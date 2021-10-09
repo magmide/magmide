@@ -1,3 +1,11 @@
+https://dl.acm.org/doi/abs/10.1145/3453483.3454084
+https://ocamlpro.github.io/verification_for_dummies/
+https://arxiv.org/abs/2110.01098
+
+
+
+
+
 In most of these heap-enabled lambda calculi "allocation" just assumes an infinite heap and requires an owned points-to connective in order to read.
 In the real assembly language, you can always read, but doing so when you don't have any idea what the value you're reading just gets you a machine word of unknown shape, something like uninit or poison. How can I think about this in Rok? Are there ever programs that intentionally read garbage? That's essentially always random input. Probably there's just a non-determinism token-effect you want.
 

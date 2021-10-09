@@ -4,8 +4,9 @@ This post describes the design of Rok *as if it were finished*, with the intent 
 
 "Progress and Roadmap" describes what has already been done and the plan forward.
 
+## Project goals and values
 
-The design of the project is directly informed by its values and ambitions. Rok a metaprogrammable dependently typed language based on the calculus of constructions with an integrated abstract assembly language, with the goal of enabling formalization/verification/compilation of any software for any environment, therefore (*finally*) making formal verification mainstream and normal. The project doesn't have any direct goals to do cutting edge research work or advance the state of the art, but merely to combine existing research into a usable tool.
+The design of the project is directly informed by its values and ambitions. Rok a metaprogrammable dependently typed language based on the calculus of constructions with an integrated abstract assembly language with trackable effects. Its goal is to enable formalization/verification/compilation of any software for any environment, therefore (*finally*) making formal verification mainstream and normal. The project doesn't have any direct goals to do cutting edge research work or advance the state of the art, but merely to combine existing research into a usable tool.
 
 To achieve that goal the project has these values:
 
@@ -43,6 +44,19 @@ The design decisions of the project were made intentionally to support those val
 
 
 My hypothesis for what determines language enthusiasm is: `possible_correctness * possible_performance * average_productive_usability`
+
+# Design
+
+Rok has three type universes:
+
+- `Prop`, representing propositions (equivalent to coq `Prop`).
+- `Ideal`, representing pure logical types arranged in an infinite hierarchy of universes (equivalent to coq `Set`/`Type`).
+- `Type`, representing concrete computable types encodable in bits.
+
+
+
+
+
 
 ## progress and roadmap
 

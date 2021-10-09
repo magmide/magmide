@@ -33,6 +33,35 @@ Section wf_transfer.
 
 End wf_transfer.
 
+
+Section VectorIndexAssertions.
+	Context {T: Type}.
+	Context {size: nat}.
+	Notation IndexPair := (prod (fin size) T) (only parsing).
+
+	Definition index_disjoint (index: fin size) :=
+		fun (index_pair: IndexPair) => ((index_pair.1) <> index).
+
+	Inductive UnionAssertion (vector: vec T size): list IndexPair -> Prop :=
+		| union_nil: UnionAssertion vector []
+		| union_cons: forall pairs index value,
+			UnionAssertion vector pairs
+			-> (vector !!! index) = value
+			-> Forall (index_disjoint index) pairs
+			-> UnionAssertion vector ((index, value) :: pairs)
+	.
+
+	(*Theorem UnionAssertion_no_duplicate_indices: forall vector index_pairs,
+		UnionAssertion vector index_pairs
+		-> NoDup (map (fun index_pair => index_pair.1) index_pairs).
+	Proof. Qed.*)
+	(*
+		while this is fancy and everything, we almost certainly don't need it, since we really want a higher level opaque theorem stating that if two assertions point to the same location in the same vector then we can derive False
+	*)
+
+End VectorIndexAssertions.
+
+
 Section convert_subset.
 	Variable T: Type.
 	Variable P Q: T -> Prop.
