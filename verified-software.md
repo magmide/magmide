@@ -24,7 +24,7 @@ The project is obviously deeply technical, but if you are curious to learn more 
 
 I believe all these goals are absolutely possible, and will just require a lot of hard work.
 
-Software is basically the only thing in our world that could actually be provably correct. A computer program isn't really a physical object, it's just *information*, but it can still encode physical actions to take place in the real world. A computer program is a *logical machine*, so in the same way that it's possible to prove that `2 + 2 = 4`, we can prove that a computer program won't accidentally reveal passwords, or allow unauthorized access, or allow malicious programs to be executed, or *any other logical quality* we wish it to have.
+Software is basically the only thing in our world that could actually be provably correct. A computer program isn't really a physical object, it's just *information*, but it can still encode physical actions to take place in the real world. A computer program is a *logical machine*, so in the same way that it's possible to prove that `2 + 2 = 4`, we can prove that a computer program won't accidentally reveal passwords, or allow unauthorized access, or allow malicious programs to be executed, or *any other provable quality*.
 
 # Potential Objections
 

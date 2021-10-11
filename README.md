@@ -22,6 +22,15 @@ This combination of capabilities opens up possibilities we've only dared to imag
 
 Rok has the absurdly ambitious goal of being a new universal substrate for all software! Since Rok is an *abstract* assembly language, it can theoretically compile correct programs for even the most obscure Von Neumann environments. The long term goal is for Rok to be used for embedded devices, normal application software, web programs, etc.
 
+This introduction will teach you how to use Rok to build truly provably correct software, by going through these topics:
+
+- A quick look at Rok's syntax style, Compute Rok, and roughly what it will look like to write functions that are provably correct.
+- An in depth look at Logical Rok, proof objects, and the Curry-Howard Correspondence.
+- A crash course in proving, proof tactics, and type theoretical logic.
+- A full treatment of using `core` Compute Rok and Logical Rok together, including trackable effects.
+- A guide to metaprogramming in Rok.
+- A deeper look at the lower levels of Compute Rok, such as the `asm` layers, and instantiating lower levels with custom environments or calling conventions.
+
 ## Basics of Compute Rok
 
 First let's get all the stuff that isn't unique about Rok out of the way. Rok has both a "Computational" language and a "Logical" language baked in. The Computational language is what we use to write programs that will actually run on some machine, and the Logical language is used to logically model data and prove things about programs.
@@ -83,24 +92,24 @@ fn main;
 alias byte; u8
 
 // you can declare new nominal types as structs:
-type User;
+data User;
   id: usize
   age: u8
   active: bool
-type Point; x: f64, y: f64
+data Point; x: f64, y: f64
 
 // or unit
-type Token
-type Signal
+data Token
+data Signal
 
 // or tuples
-type Point; f64, f64
-type Pair;
+data Point; f64, f64
+data Pair;
   i32
   i32
 
 // or discriminated unions
-type Event;
+data Event;
   | PageLoad
   | PageUnload
   | KeyPress; char
@@ -122,13 +131,15 @@ fn use_union event: Event;
     print event.1
 
 // and they can be generic
-type Pair T, U; T, U
-type NonEmpty T;
+data Pair T, U; T, U
+data NonEmpty T;
   first: T
   rest: [T]
 ```
 
 But the entire point of Rok is that you can prove your program is correct! How do we do that?
+
+
 
 The most common and simplest way we can make provable assertions about our programs is by enhancing our types with *subset predicates*. If we want to guarantee that a piece of data will always meet some criteria, we can make assertions about it with the `&` operator. Then, any time we assign a value to that type, we have to fulfill a *proof obligation* that the value meets all the assertions of the type. More on proofs in a second.
 
@@ -153,7 +164,7 @@ alias Above min; usize & _ > min
 // and fields can refer to each other
 alias Range; i32, i32 & > .1
 
-type Person;
+data Person;
   age: u8
   // here the value of is_adult
   // has to line up with .age >= 18
@@ -177,7 +188,7 @@ The type system of logical Rok is shaped a lot like computational Rok to make th
 ```
 // in computational Rok types must be representable in bits and have a finite and knowable size,
 // meaning that they can't reference themselves without some kind of pointer indirection
-type NumLinkedList T;
+data NumLinkedList T;
   item: T
   next: *(NumLinkedList T)?
 
@@ -202,42 +213,46 @@ Think about when you define a data type, such as `type Num; u64`. Any time you c
 
 In the same way, when you define a function, you're creating a *proof* that the input types of the function can somehow be transformed into the output type of the function. For example this dumb little function: `|> n: u8; n == 0` has type `u8 -> bool`, so the function *proves* that a `u8` can always be transformed into a `bool`. In this way, the `->` in function types can be understood as *both* a computational transformation *and* the implication operator from logic (if this is true then that is true, `P -> Q`). The only problem with `u8 -> bool` is that it isn't a proof of anything very interesting! It's really easy to transform a `u8` into a `bool` (`|> _; true`, `|> _; false`, `|> n; n == 9`). The simple type of `bool` gives us basically no information.
 
-But if we enhance our language with *dependent types*, we can start doing really interesting stuff. Let's start with a function whose *type* proves that its input is equal to 5. We've already introduced asserted types, so let's define our own type to represent that idea, and a function that uses it
+But if we enhance our language with *dependent types*, we can start doing really interesting stuff. Let's start with a function whose *type* proves that its input is equal to 5. We've already introduced asserted types, so let's define our own type to represent that idea (this isn't the right way to do this, we'll improve it in a second), and a function that uses it.
 
 ```
 type equal_5 number;
   | yes & (number == 5)
   | no & (number != 5)
 
-fn equal_to_5 number: u8 -> equal_5 number;
+fn is_equal_5 number: u8 -> equal_5 number;
   return if number == 5; give yes; give no
 ```
 
-Pretty simple! The abilty to *dependently* reference the input `number` in the output type makes this work, and because the assertions we're making are so simple the compiler is able to prove they're consistent without any extra work from us. We don't even have to define our own `equal_5` type, since `bool` is already generic over these kinds of assertions, along with a few other standard library types like `Optional` and `Fallible` that are commonly used to assert something about data.
+Pretty simple! The ability to *dependently* reference the input `number` in the output type makes this work. And in this case, because the assertions we're making are so simple, the compiler is able to prove they're consistent without any extra work from us.
+
+But we don't even have to define our own `equal_5` type, we can just use `bool`, which is already generic over these kinds of assertions. The same is also true for a few other standard library types like `Optional` and `Fallible` that are commonly used to assert something about data.
 
 ```
 // bool can take a true assertion and a false assertion
-fn equal_to_5 number: u8 -> bool (number == 5) (number != 5);
+fn is_equal_5 number: u8 -> bool (number == 5) (number != 5);
   return number == 5
 
 // we can also use the alias for this concept
-fn equal_to_5 number: u8 -> bool.exact (number == 5);
+fn is_equal_5 number: u8 -> bool.exact (number == 5);
   return number == 5
 ```
 
-But something about the above assertions like `number == 5` and `number != 5` might bother you. If proofs are *just data*, then where do `==` and `!=` come from? Are they primitive in the language? Are they just data as well?
+But something about the above assertions like `number == 5` and `number != 5` might bother you. If proofs are *just data*, then where do `==` and `!=` come from? Are they primitive in the language? Or are they just data as well?
 
-Indeed they are! But specifically, they're data that live in the `Prop` sort. `Prop` is the sort defined to hold logical assertions, and the rules about how its types are defined make it specially suited to that task.
+Indeed they are just data! But specifically, they're data that live in the `Prop` sort. `Prop` is the sort defined to hold logical assertions, and the rules about how its types are defined and can be used makes it specially suited to that task.
 
 Let's define a few of our own `Prop` types to get a feel for how it works.
 
 ```
-// in the computational types, unit or `()` is the "zero size" type, a type that holds no data
+// in the computational types, unit or `()` is the "zero size" type,
+// a type that holds no data
 alias MyUnit = ()
 type NominalUnit
 
 // we can define a prop version as well!
-prop PropUnit
+// idt is short for "inductive", a type theory term that we'll explain later
+idt PropUnit: prop
 // this type is "trivial", since it holds no information and can always be constructed
 // in the standard library this type is called "always", and in Coq it's called "True"
 alias MyAlways = always
@@ -245,11 +260,79 @@ alias MyAlways = always
 // we already saw an example of a computational type that can't be constructed
 type Empty; types.union []
 // and of course we can do the same in the prop sort
-prop PropEmpty; types.union []
+idt PropEmpty: prop; types.union []
 // this type is impossible to construct, which might seem pointless at first, but we'll see how it can be extremely useful later
-// in the standard library its called "never", and in Coq it's called "False"
+// in the standard library it's called "never", and in Coq it's called "False"
 alias MyNever = never
 ```
+
+Okay we have prop types representing either trivial propositions or impossible ones. Now let's define ones to encode the ideas of logical "or", "and", "not", "exists", "forall", and equality.
+
+```
+// logical "and", the proposition that asserts the truth of two child propositions,
+// is just a tuple! a tuple that holds the two child propositions as data elements
+// we have to present a proof of both propositions in order to prove their "conjunction",
+// the academic term for "and"
+idt MyAnd P: prop, Q: prop -> prop; P, Q
+
+// then we use this constructor just like any other
+def true_and_true: MyAnd always always = MyAnd always always
+
+// notice that the constructor for MyAnd is typed like a function: that's because it is!
+
+// we could of course also structure it as a record,
+// but the names aren't really useful (which is why we invented tuples right?)
+idt MyAnd P: prop, Q: prop -> prop;
+  left: P
+  right: Q
+
+// logical "or", the proposition that asserts the truth of either one child proposition or another,
+// is just a union!
+// we only have to present a proof for one of the propositions in order to prove their "disjunction",
+// the academic term for "or"
+idt MyOr P: prop, Q: prop -> prop;
+  | left; P
+  | right; Q
+
+def true_or_true_left: MyOr always always = MyOr.left always
+def true_or_true_right: MyOr always always = MyOr.right always
+
+// logical "not" is a little more interesting. what's the best way to assert some proposition *isn't* true? should we say it's equal to "never"? that doesn't really make sense, since you'll see in a moment that "equality" is just an idea we're going to define ourselves. instead we just want to prove that this proposition behaves the same way as "false", in the way that it's impossible to actually construct a value of it.
+// The most elegant way is to say that if you *were* able to construct a value of this proposition, we would *also* be able to construct a value of "false"! So "not" is just a function that transforms some proposition value into "false".
+// notice that we don't need to create a new type for this, since MyNot is just a function
+alias MyNot P: prop; P -> False
+```
+
+Equality is interesting. Depending on exactly what you're doing, you could define what it means for things to be "equal":
+
+- Two byte-encoded values are equal if their bitwise `xor` is equal to 0.
+- Two values are equal if any function you pass them to will behave exactly the same with either one.
+- A value is only equal with exactly itself.
+
+In Logical rok, since all values are "ideal" and not intended to actually ever exist, the simplest definition is actually that last one: a value is only equal with exactly itself.
+
+```
+idt MyEquality {T: Ideal}: T -> T -> prop;
+  @t -> MyEquality t t
+```
+
+
+
+
+
+
+
+Logical "forall" is the most interesting one, since it's the only one that's actually defined as a primitive in the language. We've actually been using it already! You might be surprised to learn that the function arrow `->` is just the same as "forall"! It's just a looser version of it.
+
+In type theory, if we want to provide a proof that "forall objects in some set, some property holds", we just have to provide a *function* that takes as input one of those objects and returns a proof (which is just a piece of data) that it has that property. And of course it can take more than one input, any of which can be proof objects themselves.
+
+So how do you actually write a "forall" type? Since `forall` is such an important concept, its rok syntax very concisely uses `@`. Here's how you would write the type for the `is_equal_5` function we wrote earlier: `@ number: u8 -> bool.exact number == 5`. I prefer to read this as: "given any `number` which is a `u8`, I'll give you a `bool` which exactly equals whether `number` is equal to 5". For functions that take multiple "forall" variables as inputs (the academic term for accepting a forall variable as input is to "universally quantify" the variable, since a forall assertion proves something universal), you use commas instead of arrows between them: `@ n1, n2 -> bool.exact n1 == n2`.
+
+Very importantly, in order for that function to *really* prove the assertion, it has to be infallible (it can't fail or crash on any input) and provably terminating (it can't infinitely loop on any input). It is allowed to require things about the input (for example a function can be written to only accept even integers rather than all integers), but it has to handle every value it makes an assertion about.
+
+
+
+
 
 ```
 // since we're providing default assertions,
@@ -259,7 +342,7 @@ type bool when_true = always, when_false = always;
   | false & when_false
 
 // you'll notice we don't bother with an assertion for T
-// since the user can just provide a asserted type themselves
+// since the user can just provide an asserted type themselves
 type Optional T, when_none = always;
   | Some; T
   | None & when_none
@@ -278,53 +361,13 @@ The key insight is in understanding *The Curry-Howard Correspondence* and the co
 A good way to understand this is to see *normal* programming in a different light.
 
 
-```
-
-```
-
-
-
-In real programming languages we cheat by allowing the programmer to throw exceptions or crash the program if they run into a situation
-
-
 Basically, any type that lives in the `Prop` sort is *by definition* a type that represents a truth value, a logical claim.
 
 Proofs are *all* defined by constructors for data, it's just data that lives in a special type sort, specifically the type sort `Prop`. First we define some type that defines data representing some logical claim, and then when we want to actually *prove* such a claim, we just have to *construct* a value of that type!
 
 It's important to notice though that this wouldn't be very useful if the type system of our language wasn't *dependent*, meaning that the type of one value can refer to any other separate value in scope. When we put propositions-as-data together with dependent types, we have a proof checker.
 
-This is the key insight. When we make any kind of logical claim, we have to define *out of nowhere* what the definition of that claim is. Then, when we want to provide a
-
-So for example, if we wanted to create
-
-```
-prop MyTrue
-// that's it! all we have to do to
-
-
-
-
-```
-
-
-```
-// we can define new ideal types in much the same way we define new computational types,
-// only using the `idl` keyword instead of `type`
-
-// all types declared with idl are nominal
-idl MyUnit
-
-// we can also reuse the alias keyword for logical types
-alias MyUnit; logical.unit
-
-
-```
-
-
-
-
-
-
+This is the key insight. When we make any kind of logical claim, we have to define *out of nowhere* what the definition of that claim is.
 
 
 
@@ -348,7 +391,7 @@ Rok itself ships with a few different layers of computational language:
 - Thinking about blocks with "function arguments"
 
 - `asm_zero`: a truly representational abstract assembly language, used to define the "common core" of all supported architectures
-- `asm_one`: the next level of abstraction, with type definitions and sugars, and llvm style function along with call/ret instructions. must instantiate with a calling convention
+- `asm_one`: the next level of abstraction, with type definitions and sugars, llvm style functions along with call/ret instructions. must instantiate with a calling convention
 - `core`: a c-like language with normal functions, match/if/for/while/loop/piping structures, functions for malloc/free, but no ownership/lifetime stuff. must instantiate with a calling convention and definitions for malloc/free in the desired environment
 - `system_core`: same c-like language, but with assumptions of "system" calls for thread spawn/join, io, async, etc
 

@@ -13,72 +13,118 @@ Proof. reflexivity. Qed.
 Example test__vec_total_lookup: ([# 4; 2] !!! 0%fin) = 4.
 Proof. reflexivity. Qed.*)
 
-Definition array size T := (gmap (fin size) T).
+(*Inductive Bit: Type := B0 | B1.*)
+(*Notation BitWord word_size := (vec Bit word_size).*)
 
-Definition b: (array 3 nat) := {[ 2%fin := 1 ]}.
-Compute (b !!! 0%fin).
-Compute (b !!! 1%fin).
-Compute (b !!! 2%fin).
+(*Notation RegisterBank word_size register_count := (gmap (fin register_count) (BitWord word_size)).*)
+Notation RegisterBank size := (gmap (fin size) nat).
+
+(*Notation MemoryBank word_size := (gmap (BitWord word_size) (BitWord word_size)).*)
+(*Notation MemoryBank size := (gmap (fin size) nat).*)
+
+(*Definition bank: RegisterBank 3 := {[ 2%fin := 1 ]}.
+Example test_bank: (bank !!! 2%fin) = 1. Proof. reflexivity. Qed.
+Definition empty_bank: RegisterBank 3 := empty.
+Example test_empty: (empty_bank !!! 2%fin) = 0. Proof. reflexivity. Qed.*)
 
 
 Section Sized.
 	Context {size: nat}.
-	Notation RegisterBank := (vec nat size).
-	Notation register := (fin size).
-	Record MachineState := state {
-		counter: nat;
-		registers: RegisterBank
+
+	Record MachineState := machine_state {
+		program_counter: RegisterBank 1;
+		registers: RegisterBank size
 	}.
+	(*Notation pc state := (state.(program_counter) !!! 0).*)
+	Global Instance state_empty: Empty MachineState := machine_state empty empty.
+	Global Instance state_union: Union MachineState := fun s1 s2 => (machine_state
+		 (map_union s1.(program_counter) s2.(program_counter))
+		 (map_union s1.(registers) s2.(registers))
+		).
+	Definition state_disjoint s1 s2 :=
+		map_disjoint s1.(program_counter) s2.(program_counter)
+		/\ map_disjoint s1.(registers) s2.(registers).
+
+	Global Instance state_disjoint_symmetric: Symmetric state_disjoint.
+	Proof.
+		intros ??; unfold state_disjoint;
+		rewrite !map_disjoint_spec; naive_solver.
+	Qed.
+
+	Theorem state_separate_counter_registers_disjoint: forall registers program_counter,
+		state_disjoint (machine_state empty registers) (machine_state program_counter empty).
+	Proof. intros; hnf; simpl; auto with map_disjoint. Qed.
+
+	Theorem state_empty_disjoint: forall state, state_disjoint empty state.
+	Proof. intros; hnf; simpl; auto with map_disjoint. Qed.
+
 
 	Notation Assertion := (MachineState -> Prop) (only parsing).
-	(*
-		state_unit isn't called state_empty or something, because it doesn't assert emptiness, since there's no such thing as an "empty" machine state (all the bits are full of SOMETHING), but it just asserts that we don't know anything about the state at all.
-	*)
 
-	Inductive StateUnit: Assertion := state_unit: forall _, True.
+	Definition state_unknown: Assertion := fun state => state = empty.
+	Notation "\[]" := (state_unknown) (at level 0).
 
-	Notation state_unit := (fun _ => True).
-	Notation "\[]" := (state_unit) (at level 0).
-
-	Definition state_pure (P: Prop): Assertion :=
-		fun _ => P.
+	Definition state_pure (P: Prop): Assertion := fun state => state = empty /\ P.
 	Notation "\[ P ]" := (state_pure P) (at level 0, format "\[ P ]").
 
-	Definition state_counter (value: nat): Assertion :=
-		fun state => state.(counter) = value.
-	Notation "'at' value" := (state_counter value) (at level 32).
+	Definition state_register (register: fin size) (value: nat): Assertion := fun state =>
+		state = machine_state empty (singletonM register value).
+	Notation "'$' register '==' value" := (state_register register%fin value) (at level 32).
 
-	Definition state_register (register: fin size) (value: nat): Assertion :=
-		fun state => (state.(registers) !!! register) = value.
-	Notation "'$' register '==' value" := (state_register register value) (at level 32).
+	Definition state_counter (value: nat): Assertion := fun state =>
+		state = machine_state (singletonM 0%fin value) empty.
+	Notation "'pc_at' value" := (state_counter value) (at level 32).
 
-
-	Inductive state_star: Assertion :=
-		(* unit can be combined with anything *)
-		| star_unit: forall state (H: Assertion), state_star H
-		(* pure can be combined with anything *)
-		| star_pure ->
-		(* counter can be combined with anything that isn't star_counter *)
-		| star_counter
-		(* register can be combined with anything that isn't star_register for the same register *)
-		| star_register
-	.
-
+	Definition state_star (H1 H2: Assertion): Assertion :=
+		fun state => exists s1 s2,
+			H1 s1 /\ H2 s2
+			/\ state_disjoint s1 s2
+			/\ state = state_union s1 s2.
 	Notation "H1 '\*' H2" := (state_star H1 H2) (at level 41, right associativity).
 
-	(**)
+	Definition state_exists (A: Type) (P: A -> Assertion): Assertion :=
+		fun state => exists a, P a state.
+	Notation "'\exists' a1 .. an , H" :=
+		(state_exists (fun a1 => .. (state_exists (fun an => H)) ..))
+		(
+			at level 39, a1 binder, H at level 50, right associativity,
+			format "'[' '\exists' '/ ' a1 .. an , '/ ' H ']'"
+		).
 
-	Definition instruction_total_triple
-		(instr: Instruction)
-		(H: Assertion)
-		(Q: Assertion)
-	: Prop :=
-		forall program cur, H cur -> exists next, Step program cur next /\ Q next
+	Lemma state_unknown_intro: \[] (machine_state empty empty).
+	Proof. hnf; trivial. Qed.
+
+
+	Definition state_implies (H1 H2: Assertion): Prop :=
+		forall state, H1 state -> H2 state.
+	Notation "H1 *=> H2" := (state_implies H1 H2) (at level 55).
+	Notation "H1 <=> H2" := (state_implies H1 H2 /\ state_implies H2 H1) (at level 60).
+
+	Lemma state_implies_reflexive: forall H, H *=> H.
+	Proof. intros; hnf; trivial. Qed.
+
+	Theorem state_star_associative: forall H1 H2 H3,
+		(H1 \* H2) \* H3 <=> H1 \* (H2 \* H3).
+	Proof.
+split.
+-
+intros.
+
+
+split; hnf; intros state.
+-
+
+
+
+	Qed.
+
+
+
 
 
 	Inductive Operand: Type :=
 		| Literal (n: nat)
-		| Register (r: register)
+		| Register (r: fin size)
 	.
 
 	Definition eval_operand
@@ -560,6 +606,3 @@ done:
 	{{ $r1 = 10 }}
 	Exit
 *)
-
-(*Inductive Bit: Type := B0 | B1.*)
-
