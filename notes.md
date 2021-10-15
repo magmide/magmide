@@ -9,6 +9,12 @@ https://arxiv.org/abs/2110.01098
 In most of these heap-enabled lambda calculi "allocation" just assumes an infinite heap and requires an owned points-to connective in order to read.
 In the real assembly language, you can always read, but doing so when you don't have any idea what the value you're reading just gets you a machine word of unknown shape, something like uninit or poison. How can I think about this in Rok? Are there ever programs that intentionally read garbage? That's essentially always random input. Probably there's just a non-determinism token-effect you want.
 
+My hunch about why my approach is going to prove more robust then continuation-passing-style is because it doesn't seem cps can really directly understand programs as mere data, or would need special primitives to handle it, whereas in my approach it's given, which makes sense since again we're merely directly modeling what the machine actually does.
+
+yeah, lambda rust is amazing, but it's very tightly coupled to the way rust is implemented for host operating system programs. I don't think it's flexible enough to handle arbitrary machine/instruction definitions. it also can't handle irreducible control flow graphs, which absolutely could be created either with `goto` programs or by compiler optimizations that we want to be able to formally justify.
+
+with incremental verification it probably makes sense to allow possible data races (they don't result in a stuck state) but token flag them
+the interesting thing is that certain kinds of token problems, such as memory unsafety, data races, overflow, non-termination, actually invalidate the truth of triples! a program doesn't have enough certainty to guarantee *anything* if it isn't basically safe.
 
 
 
