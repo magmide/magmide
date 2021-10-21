@@ -35,7 +35,7 @@ Module AbstractMachine.
 		(union s1.(registers) s2.(registers))
 	).
 	Theorem state_equality c1 c2 r1 r2:
-		c1 = c2 -> r1 = r2 -> (machine_state c1 r1) = (machine_state c2 r2).
+		c1 = c2 /\ r1 = r2 <-> (machine_state c1 r1) = (machine_state c2 r2).
 	Proof. naive_solver. Qed.
 
 	Definition state_disjoint s1 s2 :=

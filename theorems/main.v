@@ -16,10 +16,16 @@ Proof. reflexivity. Qed.*)
 Section Sized.
 	Context {size: nat}.
 
+	Notation register := (fin size).
+	Record MachineState := machine_state {
+		counter: nat;
+		registers: (vec nat size);
+		program_memory: list Instruction
+	}.
 
 	Inductive Operand: Type :=
 		| Literal (n: nat)
-		| Register (r: fin size)
+		| Register (r: register)
 	.
 
 	Definition eval_operand
@@ -45,14 +51,14 @@ Section Sized.
 	.
 	Hint Constructors Instruction: core.
 
-	Notation Within program cur :=
-		(cur.(counter) < (length program)) (only parsing).
+	Notation Within cur :=
+		(cur.(counter) < (length cur.(program_memory))) (only parsing).
 
-	Notation cur_instr cur program :=
-		(lookup cur.(counter) program) (only parsing).
+	Notation cur_instr cur :=
+		(lookup cur.(counter) cur.(program_memory)) (only parsing).
 
-	Notation get_instr cur program :=
-		(@safe_lookup _ cur.(counter) program _) (only parsing).
+	Notation get_instr cur :=
+		(@safe_lookup _ cur.(counter) cur.(program_memory) _) (only parsing).
 
 	Notation get cur reg :=
 		(cur.(registers) !!! reg) (only parsing).
@@ -63,85 +69,265 @@ Section Sized.
 	Notation incr cur :=
 		(S cur.(counter)) (only parsing).
 
-	Inductive Step
-		(program: list Instruction)
-	: MachineState -> MachineState -> Prop :=
+	Inductive Step: MachineState -> MachineState -> Prop :=
 		| Step_Mov: forall cur src dest,
-			(cur_instr cur program) = Some (InstMov src dest)
-			-> Step program cur (state
+			(cur_instr cur) = Some (InstMov src dest)
+			-> Step program cur (machine_state
 				(incr cur)
 				(update cur dest (eval_operand cur src))
 			)
 
 		| Step_Add: forall cur val dest,
-			(cur_instr cur program) = Some (InstAdd val dest)
-			-> Step program cur (state
+			(cur_instr cur) = Some (InstAdd val dest)
+			-> Step program cur (machine_state
 				(incr cur)
 				(update cur dest ((eval_operand cur val) + (get cur dest)))
 			)
 
 		(*| Step_Jump: forall cur to,
 			(cur_instr cur program) = Some (InstJump to)
-			-> Step program next bank*)
+			-> Step program cur (machine_state to cur.(registers))*)
 
-		(*| Step_BranchEq_Eq: forall cur a b to,
+		(*| Step_BranchEq: forall cur a b to,
 			(cur_instr cur program) = Some (InstBranchEq a b to)
-			-> a = b
-			-> Step program next bank
-		| Step_BranchEq_Neq: forall cur a b to,
-			(cur_instr cur program) = Some (InstBranchEq a b to)
-			-> a <> b
-			-> Step program (S cur) bank*)
+			-> IF (a = b)
+				then Step program cur (machine_state to cur.(registers))
+				else Step program cur (machine_state (incr cur) cur.(registers))*)
 
-		(*| Step_BranchNeq_Neq: forall cur a b to,
-			(cur_instr cur program) = Some (InstBranchNeq Ne b to)
-			-> a <> b
-			-> Step program next bank
-		| Step_BranchNeq_Eq: forall cur a b to,
-			(cur_instr cur program) = Some (InstBranchNeq Ne b to)
-			-> a = b
-			-> Step program (S cur) bank*)
+		(*| Step_BranchNeq: forall cur a b to,
+			(cur_instr cur program) = Some (InstBranchNeq a b to)
+			-> IF (a = b)
+				then Step program cur (machine_state (incr cur) cur.(registers))
+				else Step program cur (machine_state to cur.(registers))*)
 	.
 	Hint Constructors Step: core.
 
-	CoInductive Trace
-		(program: list Instruction)
-	: list MachineState -> option MachineState -> Prop :=
-		| Trace_start: forall start,
-			Within program start
-			-> Trace program [] (Some start)
+	Theorem Step_always_Within program cur next:
+		Step program cur next -> Within program cur.
+	Proof. inversion 1; eauto using lookup_lt_Some. Qed.
 
-		| Trace_step: forall prev cur next,
-			Trace program prev (Some cur)
-			-> Step program cur next
-			-> Trace program (cur :: prev) (Some next)
 
-		| Trace_exit: forall prev cur,
-			Trace program prev (Some cur)
-			-> (cur_instr cur program) = Some InstExit
-			-> Trace program (cur :: prev) None
+	Inductive stopping: Instruction -> Prop :=
+		| stopping_Exit: stopping InstExit
 	.
+	Hint Constructors stopping: core.
+	Definition is_stopping: forall instr, {stopping instr} + {~(stopping instr)}.
+		refine (fun instr =>
+			match instr with | InstExit => Yes | _ => No end
+		); try constructor; inversion 1.
+	Defined.
+
+	Theorem stopping_stuck instr:
+		stopping instr
+		-> forall program cur next,
+		(cur_instr cur program) = Some instr
+		-> ~(Step program cur next).
+	Proof.
+		intros Hstopping ???? HStep;
+		inversion Hstopping; inversion HStep; naive_solver.
+	Qed.
+
+	Theorem not_stopping_not_stuck instr:
+		~(stopping instr)
+		-> forall program cur,
+		(cur_instr cur program) = Some instr
+		-> exists next, Step program cur next.
+	Proof.
+		destruct instr; try contradiction; eauto.
+	Qed.
+
+	Inductive branching: Instruction -> Prop :=
+		(*| branch_BranchEq: forall a b to, branching (InstBranchEq a b to)*)
+		(*| branch_BranchNeq: forall a b to, branching (InstBranchNeq a b to)*)
+		(*| branch_Jump: forall to, branching (InstJump to)*)
+	.
+	Hint Constructors branching: core.
+	Definition is_branching: forall instr, {branching instr} + {~(branching instr)}.
+		refine (fun instr =>
+			match instr with
+				(*| InstBranchEq _ _ _ => Yes*)
+				(*| InstBranchNeq _ _ _ => Yes*)
+				(*| InstJump _ => Yes*)
+				| _ => No
+			end
+		); inversion 1.
+	Defined.
+
+	Inductive sequential: Instruction -> Prop :=
+		| sequential_Mov: forall src dest, sequential (InstMov src dest)
+		| sequential_Add: forall val dest, sequential (InstAdd val dest)
+	.
+	Hint Constructors sequential: core.
+	(*Definition is_sequential*)
+
+	Theorem sequential_always_next instr:
+		sequential instr
+		-> forall (program: list Instruction) cur next,
+		(cur_instr cur program) = Some instr
+		-> Step program cur next
+		-> counter next = S (counter cur).
+	Proof.
+		intros ????? HStep; destruct instr; inversion HStep; auto.
+	Qed.
+
+	Notation segment_sequential segment := (Forall sequential segment).
+
+
+	Notation NextStep program instr cur next :=
+		((cur_instr cur (program%list)) = Some instr -> Step (program%list) cur next)
+		(only parsing).
+
+	Definition execute_instruction:
+		forall instr (cur: MachineState), ~stopping instr
+		-> {next: MachineState | forall program, NextStep program instr cur next}
+	.
+		refine (fun instr cur =>
+			match instr with
+			| InstMov src dest => fun _ => this (machine_state
+				(incr cur)
+				(update cur dest (eval_operand cur src))
+			)
+			| InstAdd val dest => fun _ => this (machine_state
+				(incr cur)
+				(update cur dest ((eval_operand cur val) + (get cur dest)))
+			)
+			| _ => fun _ => impossible
+			end
+		); destruct instr; try contradiction; auto.
+	Defined.
 
 	Inductive Steps
 	 (program: list Instruction)
-	: MachineState -> list MachineState ->  MachineState -> Prop :=
-		(*| Steps_same: forall cur,
-			Steps program cur [] cur*)
-
-		| Steps_start: forall cur next,
-			Step program cur next
-			-> Steps program cur [] next
+	: list MachineState -> MachineState -> Prop :=
+		| Steps_start: forall start,
+			Steps program cur []
 
 		| Steps_Step: forall start steps prev cur,
 			Steps program start steps prev
 			-> Step program prev cur
-			-> Steps program start (prev :: steps) cur
+			-> Steps program start (steps ++ [prev]) cur
 	.
+
+	Theorem Steps_start_inversion program cur next:
+		Steps program cur [] next -> Step program cur next.
+	Proof.
+		inversion 1; subst; trivial;
+		apply app_eq_nil in H0 as [_ Hfalse]; discriminate Hfalse.
+	Qed.
+
+	Theorem Steps_connect_tail_last program first steps tail last:
+		Steps program first (steps ++ [tail]) last -> Step program tail last.
+	Proof.
+		inversion 1; subst.
+		- apply app_cons_not_nil in H0; contradiction.
+		- apply app_inj_tail in H0 as []; subst; assumption.
+	Qed.
+
+	Theorem Steps_connect_first_head program first head steps last:
+		Steps program first ([head] ++ steps) last -> Step program first head.
+	Proof.
+inversion 1; subst.
+
+
+subst.
+
+
+intros H; induction H.
+-
+admit.
+-
+assumption.
+
+
+generalize dependent steps.
+induction steps.
+-
+inversion 1.
+subst.
+apply app_singleton in H0 as [[]|[]]; subst.
++ subst_injection H2; inversion H1; subst; auto; apply Steps_start_inversion; assumption.
++ discriminate H2.
+
+-
+intros.
+
+
+	Qed.
+
+
+
+	(*Theorem Steps_append program first steps1 meet steps2 last:
+		Steps program first steps1 meet
+		-> Steps program meet steps2 last
+		-> Steps program first (steps1 ++ [meet] ++ steps2) last.
+	Proof.
+		intros.
+	Qed.*)
+
+	Theorem list_split_around_meet {T} items:
+		forall n (Hlength: n < length items),
+		exists meet, meet = safe_lookup steps Hlength
+		/\ items = (take n items) ++ [use meet] ++ (drop (S n) items).
+
+	Theorem Steps_split program first steps last:
+		Steps program first steps last
+		-> forall n (Hlength: n < length steps),
+		exists meet,
+			meet = safe_lookup steps Hlength
+			/\ Steps program first (take n steps) (use meet)
+			/\ Steps program (use meet) (drop (S n) steps) last.
+	Proof.
+		intros.
+	Qed.
+
+
+	Definition execute_eternal
+		(program: list Instruction)
+		(well_formed: WellFormed program)
+		(start: MachineState)
+	: forall previous cur, Within program cur -> .
+		refine (cofix execute_eternal previous cur _ _ :=
+			let (instr, _) := (get_instr cur program) in
+			if (is_stopping instr) then (previous ++ cur)
+			else
+				let (next, _) := (@execute_instruction instr cur _) in
+				execute_eternal next _
+		)
+	Defined.
+
+	Theorem Steps_deterministic: forall program start between1 last1 between2 last2,
+		Steps program start between1 last1
+		-> Steps program start between2 last2
+		-> length between1 = length between2
+		-> last1 = last2 /\ between1 = between2.
+	Proof.
+	Qed.
+
+
+	Definition stateprop := MachineState -> Prop.
+
+	(* first the partial correctness version *)
+	Definition triple (block: list Instruction) (H Q: stateprop) :=
+		forall prefix postfix first last between,
+			H first
+			-> Steps (prefix ++ block ++ postfix) first between last
+			-> Q last.
+
+	Definition triple (block: list Instruction) (H Q: stateprop) :=
+		forall prefix postfix first, H first -> Within program first
+			-> exists between last,
+				Steps (prefix ++ block ++ postfix) first between last
+				/\ Q last.
+
+	Definition exiting_triple (block: list Instruction).
+
+
+
 
 	(*
 		some concept I probably need is an idea of a Steps or Trace being "within" some program segment, as in all the machine states in that trace have program counters in the segment, so I can reason about "exiting" the segment,
 		also theorems about concatenation of traces, so I can do things like "the beginning of this trace is all within this segment, but this concatened head state isn't, therefore we've exited the segment"
-*)
+	*)
 
 
 	(*Theorem Trace_to_Step:
@@ -196,93 +382,6 @@ Section Sized.
 		do_Start H
 	.*)
 
-
-
-	Theorem Step_always_Within program cur next:
-		Step program cur next -> Within program cur.
-	Proof.
-		inversion 1;
-		match goal with
-		| H: _ !! counter _ = Some _ |- _ =>
-			apply lookup_lt_Some in H; assumption
-		end.
-	Qed.
-
-	Inductive sequential: Instruction -> Prop :=
-		| sequential_Mov: forall src dest, sequential (InstMov src dest)
-		| sequential_Add: forall val dest, sequential (InstAdd val dest)
-	.
-	Hint Constructors sequential: core.
-	(*Definition is_sequential*)
-
-	Theorem sequential_always_next instr:
-		sequential instr
-		-> forall (program: list Instruction) cur next,
-		(cur_instr cur program) = Some instr
-		-> Step program cur next
-		-> counter next = S (counter cur).
-	Proof.
-		intros ????? HStep; destruct instr; inversion HStep; auto.
-	Qed.
-
-	Inductive branching: Instruction -> Prop :=
-		(*| branch_BranchEq: forall a b to, branching (InstBranchEq a b to)*)
-		(*| branch_BranchNeq: forall a b to, branching (InstBranchNeq a b to)*)
-		(*| branch_Jump: forall to, branching (InstJump to)*)
-	.
-	Hint Constructors branching: core.
-
-	Inductive stopping: Instruction -> Prop :=
-		| stopping_Exit: stopping InstExit
-	.
-	Hint Constructors stopping: core.
-	Definition is_stopping: forall instr, {stopping instr} + {~(stopping instr)}.
-		refine (fun instr =>
-			match instr with | InstExit => Yes | _ => No end
-		); try constructor; inversion 1.
-	Defined.
-
-	Theorem stopping_stuck instr:
-		stopping instr
-		-> forall program cur next,
-		(cur_instr cur program) = Some instr
-		-> ~(Step program cur next).
-	Proof.
-		intros Hstopping ???? HStep;
-		inversion Hstopping; inversion HStep; naive_solver.
-	Qed.
-
-	Theorem not_stopping_not_stuck instr:
-		~(stopping instr)
-		-> forall program cur,
-		(cur_instr cur program) = Some instr
-		-> exists next, Step program cur next.
-	Proof.
-		destruct instr; try contradiction; eauto.
-	Qed.
-
-	Notation NextStep program instr cur next :=
-		((cur_instr cur (program%list)) = Some instr -> Step (program%list) cur next)
-		(only parsing).
-
-	Definition execute_instruction:
-		forall instr (cur: MachineState), ~stopping instr
-		-> {next: MachineState | forall program, NextStep program instr cur next}
-	.
-		refine (fun instr cur =>
-			match instr with
-			| InstMov src dest => fun _ => this (state
-				(incr cur)
-				(update cur dest (eval_operand cur src))
-			)
-			| InstAdd val dest => fun _ => this (state
-				(incr cur)
-				(update cur dest ((eval_operand cur val) + (get cur dest)))
-			)
-			| _ => fun _ => impossible
-			end
-		); destruct instr; try contradiction; auto.
-	Defined.
 
 	Definition execute_program_unsafe
 		(program: list Instruction)
@@ -355,14 +454,14 @@ Section Sized.
 	:
 		nat -> forall cur, Within program cur -> option MachineState
 	.
-		refine (fix go Steps cur _ :=
+		refine (fix go steps cur _ :=
 			let (instr, _) := (get_instr cur program) in
 			if (is_stopping instr) then Some cur
-			else match Steps with
+			else match steps with
 			| 0 => None
-			| S Steps' =>
+			| S steps' =>
 				let (next, _) := (@execute_instruction instr cur _) in
-				go Steps' next _
+				go steps' next _
 			end
 		); eauto.
 	Defined.
@@ -500,4 +599,25 @@ loop:
 done:
 	{{ $r1 = 10 }}
 	Exit
+*)
+
+
+(*
+(*CoInductive Trace
+	(program: list Instruction)
+: list MachineState -> option MachineState -> Prop :=
+	| Trace_start: forall start,
+		Within program start
+		-> Trace program [] (Some start)
+
+	| Trace_step: forall prev cur next,
+		Trace program prev (Some cur)
+		-> Step program cur next
+		-> Trace program (cur :: prev) (Some next)
+
+	| Trace_exit: forall prev cur,
+		Trace program prev (Some cur)
+		-> (cur_instr cur program) = Some InstExit
+		-> Trace program (cur :: prev) None
+.*)
 *)
