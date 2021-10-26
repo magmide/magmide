@@ -10,6 +10,13 @@ Require Import theorems.utils.
 (*Inductive Bit: Type := B0 | B1.*)
 (*Notation BitWord word_size := (vec Bit word_size).*)
 
+(*https://coq.inria.fr/library/Coq.Bool.Bvector.html*)
+(*https://github.com/coq-community/bits*)
+(*https://github.com/mit-plv/bbv*)
+(*https://github.com/jasmin-lang/coqword*)
+(*https://coq.inria.fr/library/Coq.PArith.BinPosDef.html*)
+
+
 (*Notation MemoryBank word_size := (gmap (BitWord word_size) (BitWord word_size)).*)
 (*Notation MemoryBank size := (gmap (fin size) nat).*)
 
