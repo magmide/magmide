@@ -21,6 +21,15 @@ Example test_empty: (empty_bank !!! 2%fin) = 0. Proof. reflexivity. Qed.*)
 (*Notation RegisterBank word_size register_count := (gmap (fin register_count) (BitWord word_size)).*)
 Notation RegisterBank size := (gmap (fin size) nat).
 
+
+(*From stdpp Require Import natmap.
+Definition test__natmap_lookup_m: natmap nat := {[ 3 := 2; 0 := 2 ]}.
+Example test__natmap_lookup: test__natmap_lookup_m !! 3 = Some 2.
+Proof. reflexivity. Qed.
+
+Example test__vec_total_lookup: ([# 4; 2] !!! 0%fin) = 4.
+Proof. reflexivity. Qed.*)
+
 Module AbstractMachine.
 	Parameter size: nat.
 

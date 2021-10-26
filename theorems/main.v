@@ -1,17 +1,9 @@
 Add LoadPath "/home/blaine/lab/cpdtlib" as Cpdt.
 Set Implicit Arguments. Set Asymmetric Patterns.
 Require Import List String Cpdt.CpdtTactics Coq.Program.Wf.
-From stdpp Require Import base fin vector options gmap.
+From stdpp Require Import base fin vector options.
 Import ListNotations.
 Require Import theorems.utils.
-
-(*From stdpp Require Import natmap.
-Definition test__natmap_lookup_m: natmap nat := {[ 3 := 2; 0 := 2 ]}.
-Example test__natmap_lookup: test__natmap_lookup_m !! 3 = Some 2.
-Proof. reflexivity. Qed.
-
-Example test__vec_total_lookup: ([# 4; 2] !!! 0%fin) = 4.
-Proof. reflexivity. Qed.*)
 
 Section Sized.
 	Context {size: nat}.
@@ -621,3 +613,46 @@ done:
 		-> Trace program (cur :: prev) None
 .*)
 *)
+
+
+
+
+Definition program_fizzbuzz := [
+	(* we accept the input n in register 1 *)
+	(* we then increment register 2 *)
+	"begin"
+		(InstMov 0 "$2")
+
+	"main"
+		(InstAdd 1 "$2")
+
+		(* prepare for test_3 by moving our increment into register 3 *)
+		(InstMov "$2" "$3")
+	"test_3"
+		(* TODO if the number is already less than 3, what's the semantics here? *)
+		(InstSub 3 "$3")
+		(* if the current remainder is greater than or equal to 3, we have to keep iterating *)
+		(InstBranchLt 3 "$3" "test_3")
+		(* otherwise we continue *)
+		(* if the remainder isn't 0, then we skip printing "Fizz" *)
+		(InstBranchNeq "$2" "$3" "after_fizz")
+		(InstPrint "fizz")
+
+	"after_fizz"
+		(* prepare for test_5 by moving our increment into register 3 *)
+		(InstMov "$2" "$3")
+	"test_5"
+		(InstSub 5 "$3")
+		(* if the current remainder is greater than or equal to 5, we have to keep iterating *)
+		(InstBranchLt 5 "$3" "test_5")
+		(* if the remainder isn't 0, then we skip printing "Buzz" *)
+		(InstBranchNeq "$2" "$3" "after_buzz")
+		(InstPrint "buzz")
+
+	"after_buzz"
+		(* if our increment is less than the input, rerun the loop *)
+		(InstBranchLt "$2" "$1" "main")
+		(* otherwise fall through to exit *)
+		(* should we actually literally exit? *)
+		(InstExit)
+].
