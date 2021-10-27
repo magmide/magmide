@@ -135,3 +135,58 @@ package management
 syntax highlighting/language server
 
 ### phase 4, build the whole ecosystem! (lighting up the world)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## How does Rok work?
+
+The logical language where proofs are conducted is in concert with the concrete language where computation is done. The computational language defines the instructions that perform type(proof)-checking and manipulate proof terms. But then proof terms justify the computational types of the concrete language, and are used to define the instructions that are then assembled into real programs.
+
+The Rok compiler is a program, whose source is written in the Rok abstract assembly language (but of course any part of it can be *actually* written in some embedded language and then unfolded metaprogramatically to the abstract assembly language)
+This program includes definitions for the basic ast of Rok. This ast is almost entirely the (path-based) module system, and all the logical stuff (coq equivalents). The abstract assembly language is then entirely defined within this logical language, and metaprogrammatically converted
+
+So you could possibly say that the "object" language is the logical proof one, and the "meta" language is the concrete computational one. However the "object" language has an unusual link back to the "meta" language, since the meta language is defined and proven in terms of the object language.
+
+```
+                    represents and
+                      manipulates
+    +------------------------------------------+
+    |                     |                    |
+    |                     |                    |
+    v                     |                    |
+Logic Rok                 +-------------> Compute Rok
+    |                                          ^
+    |                                          |
+    |                                          |
+    +------------------------------------------+
+                   logically defines
+                      and verifies
+```
+
+
+The only things the compiler needs to function are:
+
+- the `use` keyword
+- ability to parse `use` keywords and the basic metaprogrammatic capture syntax *and nothing else*. all the other stuff can just be captured with the capture primitives and then processed with libraries. however it's silly to have that extra level of indirection for the "base" languages. the logical language and "preferred" computational language can both be "primitive" from the perspective of the parser, even if they aren't truly primitive from a logical perspective.
+- libraries to perform more fine-grained parsing of the logical language and do type-checking etc.
+- a backend to assemble/render instructions
+- definitions of types/instructions enough to do all of those above things
+
+
+The final language will have the logical subset and a rust-like high-level computational subset that aligns nicely with the logical language but is imperative and stateful.

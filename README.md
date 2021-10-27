@@ -1,501 +1,142 @@
 # **WARNING! :warning: :construction: Rok is purely a research project at this point, and isn't ready to be used! :construction: :warning:**
 
-The following file is an introduction/tutorial intended for normal software engineers rather than experts in formal verification. **It is written as if the project were complete and production ready!** This is just to help me understand the project objectives and hammer out the interface. Feedback and contributions are welcome!
+Although the material below is written as if the project were complete and production ready, it isn't. All of this is just an exercise to understand the project objectives and hammer out the design.
 
-If you want to be convinced Rok would solve an important problem and has the right design to tractably do so, please read [What is Rok and Why is it Important?]()
-
-If you want a technical description of the intended internal design of the Rok compiler/language intended for formal verification researchers, please read [The Technical Design of Rok]().
+Feedback and contributions are welcome!
 
 # Rok
 
 > Correct, Fast, Productive: pick three.
 
-Rok is a metaprogrammable dependently-typed language with an integrated abstract assembly language with trackable effects. This means it's the first and only language that brings together these capabilities:
+Rok is the first language built from the ground up to allow software engineers to productively write extremely high performance software for any computational environment, logically prove the software correct, and run/compile that code all within the same tool.
 
-- Fully Verifiable: Rok has an embedded dependently-typed proof checker much like [Coq]() or [Lean](). This means any logical property provable within the [Calculus of Constructions]() can be stated and proven in Rok, including the correctness of programs.
-- Bare Metal Performance: Rok's internal library includes types and theorems formalizing [Von Neumann computation]() and assembly language execution, allowing it to be used to write and verify programs at the lowest level of software abstraction. This means even the most daring and high performance programs can be written, proven correct, and compiled in the same tool.
-- Infinitely Flexible: Rok has extremely powerful and yet simple metaprogramming, allowing manipulation of proofs, functions, and data at compile time. Write verified proof tactics, plugins, and even embedded higher-level programming languages within Rok.
+The goal of the project is to spread the so-far purely academic knowledge of software verification and formal logic to a broad audience. It should be normal for engineers to create programs that are truly correct, safe, secure, robust, and performant.
 
-This combination of capabilities opens up possibilities we've only dared to imagine. Our limits in designing software have mostly been defined by the immense difficulty of safely and correctly composing code together, but using Rok any code can be arbitrarily composed. The basic assumptions of software architecture can be entirely reexamined and we can finally let our imaginations lead the way.
+This file is a "by example" style reference for the features and interface of Rok. It doesn't try to explain any of the underlying concepts, just document decisions, so you might want to read one of these other resources:
 
-## Who is Rok for?
+- If you want to be convinced the goal of this project is both possible and necessary, please read [What is Rok and Why is it Important?]()
+- If you want to learn about software verification and formal logic using Rok, please read [Intro to Verification and Logic with Rok]().
+- If you want to contribute and need the nitty-gritty technical details and current roadmap, please read [The Technical Design of Rok]().
 
-Rok has the absurdly ambitious goal of being a new universal substrate for all software! Since Rok is an *abstract* assembly language, it can theoretically compile correct programs for even the most obscure Von Neumann environments. The long term goal is for Rok to be used for embedded devices, normal application software, web programs, etc.
+## Install and Use
 
-This introduction will teach you how to use Rok to build truly provably correct software, by going through these topics:
+Rok has been heavily inspired by Rust and its commitment to ergonomic tooling and straightforward documentation.
 
-- A quick look at Rok's syntax style, Compute Rok, and roughly what it will look like to write functions that are provably correct.
-- An in depth look at Logical Rok, proof objects, and the Curry-Howard Correspondence.
-- A crash course in proving, proof tactics, and type theoretical logic.
-- A full treatment of using `core` Compute Rok and Logical Rok together, including trackable effects.
-- A guide to metaprogramming in Rok.
-- A deeper look at the lower levels of Compute Rok, such as the `asm` layers, and instantiating lower levels with custom environments or calling conventions.
+```bash
+# install rok and its tools
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rokup.dev | sh
 
-## Basics of Compute Rok
+# create a new project
+rok new hello-world
+cd hello-world
 
-First let's get all the stuff that isn't unique about Rok out of the way. Rok has both a "Computational" language and a "Logical" language baked in. The Computational language is what we use to write programs that will actually run on some machine, and the Logical language is used to logically model data and prove things about programs.
-
-The Computational language is technically defined as a raw assembly language, but since programming in assembly is extremely tedious, the default way to write computational code is with `core`, a language a lot like Rust.
-
-```rok
-// single line comments use double-slash
-//
-  comments can be indented
-  so you can write them
-  across as many lines
-  as you like!
-
-  `core` is whitespace sensitive,
-  so you indentation is used to structure the program
-  instead of curly braces
-
-// the main function is the entry point to your program
-fn main;
-  // immutable variables are declared with let:
-  let a = 1
-  // a = 2 <-- compiler error!
-  // variables can be redeclared:
-  let a = 2
-
-  // types are inferred, but you can provide them:
-  let b: u8 = 255
-
-  // mutable variables are declared with mut:
-  mut c = 2
-  c = 1
-  // and they can be redeclared:
-  mut c = 3
-  let c = 2
-
-  // booleans
-  let b: bool = true
-
-  // standard signed and unsigned integers
-  let unsigned_8_bits: u8 = 0
-  let unsigned_8_bits: u8 = 0
-
-  // floating point numbers
-  let float_32_bits: f32 = 0.0
-  let float_64_bits: f64 = 0.0
-
-  // arrays
-  // slices
-  // tuples
-
-  // core is literally just a "portable assembly language",
-  // so it doesn't have growable lists or strings by default!
-  // think of core in the same way as `no_std` in rust
-  // we hope rust itself will someday be reimplemented and formally verified using rok!
-
-// the type system is very similar to rust
-// you can declare type aliases:
-alias byte; u8
-
-// you can declare new nominal types as structs:
-data User;
-  id: usize
-  age: u8
-  active: bool
-data Point; x: f64, y: f64
-
-// or unit
-data Token
-data Signal
-
-// or tuples
-data Point; f64, f64
-data Pair;
-  i32
-  i32
-
-// or discriminated unions
-data Event;
-  | PageLoad
-  | PageUnload
-  | KeyPress; char
-  | Paste; [char]
-  | Click; x: i64, y: i64
-// on which you can use the match command
-fn use_union event: Event;
-  match event;
-    PageLoad;
-    PageUnload;
-    Click x, y;
-    _; ()
-
-  // the is operator is like "if let" in rust
-  if event is KeyPress character;
-    print character
-  // and you can use it without destructuring?
-  if event is Paste;
-    print event.1
-
-// and they can be generic
-data Pair T, U; T, U
-data NonEmpty T;
-  first: T
-  rest: [T]
+rok check <entry>
+rok run
+rok build
 ```
 
-But the entire point of Rok is that you can prove your program is correct! How do we do that?
+## Syntax
 
-
-
-The most common and simplest way we can make provable assertions about our programs is by enhancing our types with *subset predicates*. If we want to guarantee that a piece of data will always meet some criteria, we can make assertions about it with the `&` operator. Then, any time we assign a value to that type, we have to fulfill a *proof obligation* that the value meets all the assertions of the type. More on proofs in a second.
-
-```
-// this type will just be represented as a normal usize
-// but we can't assign 0 to it
-alias NonZero; usize & > 0
-
-// we can add as many assertions as we like
-// even using generic values in them
-alias Between min max; usize & >= min & <= max
-
-// the & operator essentially takes a single argument function,
-// so we can use the lambda operator
-alias Above min; usize & |> v; v > min
-
-// or we can use the "hole" _ to indicate the value in question
-alias Above min; usize & _ > min
-
-// this works for tuples and structs too
-// the "dot" . is implied to act on the value,
-// and fields can refer to each other
-alias Range; i32, i32 & > .1
-
-data Person;
-  age: u8
-  // here the value of is_adult
-  // has to line up with .age >= 18
-  is_adult: bool & == .age >= 18
-  // this pattern of requiring a bool
-  // to exactly line up with some assertion
-  // is common enough to get an alias
-  is_adult: bool.exact (.age >= 18)
-```
-
-So how do we actually prove that our program actually follows these data assertions? Can the compiler figure it out by itself? In many simple situations it actually can! But it's literally impossible for it to do so in absolutely all situations (if it could, the compiler would be capable of solving any logical proof in the universe!).
-
-To really understand how this all works, we have to get into the Logical side of Rok, and talk about `Ideal`, `Prop`, and The Calculus of Constructions.
-
-## Logical Rok
-
-First let's start with the `Ideal` type family. `Ideal` types are defined to represent *abstract*, *logical* data. They aren't intended to be represented on real computers, and their only purpose is to help us define logical concepts and relate them to our real computable data. Alongside the `Ideal` type family is a whole separate programming language, one that's *pure* and *functional*. Why pure and functional? Simply, pure and functional languages relate directly to mathematical type theory (mathematical type theory is nothing but a pure and functional language!). It's much easier to define abstract concepts and prove things about them in pure and functional settings than the messy imperative way real computers work. Otherwise we'd have to deal with distracting details about memory layout, bit representation, allocation, etc. The "programs" we write in this pure functional language aren't actually intended to be run! They just define abstract algorithms that model real computation, so we only care about them for their type-checking behavior and not their real behavior.
-
-The type system of logical Rok is shaped a lot like computational Rok to make things convenient. But the big difference between types in logical Rok and computational rok is how they handle type recursion.
+Rok is whitespace/indentation sensitive.
+Anywhere a `;` can be used an opening indent can be used *additionally*.
+Anywhere a `,` can be used a newline can be used *instead*.
+The `:` operator is always used in some way to indicate type-like assertions.
+Precedence is decided using nesting with parentheses or indentation and never operator power.
+"Wrapping" delimiters are avoided.
+"Pipeability" is strongly valued.
+Operators are rarely used to represent actions that could be defined within the language, and instead prioritize adding new capabilities.
 
 ```
-// in computational Rok types must be representable in bits and have a finite and knowable size,
-// meaning that they can't reference themselves without some kind of pointer indirection
-data NumLinkedList T;
-  item: T
-  next: *(NumLinkedList T)?
-
-// but in logical rok there's no such restriction, since these types are abstract and imaginary
-idl List T;
-  item: T
-  next: List T
-```
+// defining computational types
+data Unit
+data Tuple;
 
 
-Logical Rok only really needs three things to prove basically all of mathematics and therefore model computation and prove programs correct:
+data Macro (S=undefined);
+  | Block; BlockMacroFn
+  | Function; FunctionMacroFn
+  | Decorator; DecoratorMacroFn
+  | Import; ImportMacroFn(S)
 
-- Inductive types, which live in one of two different type "sorts":
-  - `Ideal`, the sort for "data" (even if it's abstract imaginary data).
-  - `Prop`, the sort for "propositions", basically assertions about data.
-- Function types.
+
+alias SourceChannel S; Dict<S> -> void
+
+fn non_existent_err macroName: str; str, str;
+  return "Macro non-existent", "The macro "${macroName}" doesn't exist.
+
+fn incorrect_type_err
+  macroName: str
+  macroType: str
+  expectedType: str
+;
+  str
+  str
+;
+  return "Macro type mismatch", "The macro "${macroName}" is a ${macroType} type, but here it's being used as a ${expectedType} type."
+
+data CompileContext S;
+  macros: Dict(Macro(S))
+  fileContext: FileContext
+  sourceChannel: SourceChannel+ S
+  handleScript: { path: str, source: str } -> void
+  readFile: str -> str | undefined
+  joinPath: ..str -> str
+  subsume: @T -> SpanResult<T> -> Result<T, void>
+  Err: (ts.TextRange, str, str) -> Result<any, void>
+  macroCtx: MacroContext
+
+data MacroContext;
+  Ok: @T -> (T, SpanWarning[]?) -> SpanResult<T>
+  TsNodeErr: (ts.TextRange, str, ..str) -> SpanResult<any>
+  Err: (fileName: str, title: str, ..str) -> SpanResult<any>
+  tsNodeWarn: (node: ts.TextRange, str, ..str[]) -> void
+  warn: (str, str, ..str[]) -> void
+  subsume: <T>(result: SpanResult<T>) -> Result<T, void>
 
 
-So how can we prove things in a programming language? How does that make any sense? You'll be surprised to hear that you already write proofs all the time!
+data u8: bitarray(8)
 
-Think about when you define a data type, such as `type Num; u64`. Any time you construct a value of `Num` by calling the `Num` constructor with a `u64` value (`Num 8`), you're *proving* that some `Num` exists. You haven't proven something very *interesting*, but you've proven something nonetheless. It's even possible to define types that *can't possibly* be constructed, such as an empty union: `type Empty; types.union []`. When you try to actually create a value of `Empty`, you can't possibly do so, meaning that this type is impossible or "False".
+type IndexList {A: idl}: nat > idl;
+  | Nil: IndexList 0
+  | Cons: @n > A > IndexList n > IndexList (Next n)
 
-In the same way, when you define a function, you're creating a *proof* that the input types of the function can somehow be transformed into the output type of the function. For example this dumb little function: `|> n: u8; n == 0` has type `u8 -> bool`, so the function *proves* that a `u8` can always be transformed into a `bool`. In this way, the `->` in function types can be understood as *both* a computational transformation *and* the implication operator from logic (if this is true then that is true, `P -> Q`). The only problem with `u8 -> bool` is that it isn't a proof of anything very interesting! It's really easy to transform a `u8` into a `bool` (`|> _; true`, `|> _; false`, `|> n; n == 9`). The simple type of `bool` gives us basically no information.
+  rec append(n1, ls1: IndexList n1, n2, ls2: IndexList n2): IndexList (n1 ;add n2);
+    match ls1;
+      Nil; ls2
+      Cons _ x ls1'; Cons x append(ls1' ls2)
 
-But if we enhance our language with *dependent types*, we can start doing really interesting stuff. Let's start with a function whose *type* proves that its input is equal to 5. We've already introduced asserted types, so let's define our own type to represent that idea (this isn't the right way to do this, we'll improve it in a second), and a function that uses it.
+type even: nat > prop;
+  | zero: even(0)
+  | add_two: @n > even(n) > even(n;next;next)
 
-```
-type equal_5 number;
-  | yes & (number == 5)
-  | no & (number != 5)
+  use even.*
+  thm four_is: even(4); prf;
+    call add_two; call add_two; call zero
 
-fn is_equal_5 number: u8 -> equal_5 number;
-  return if number == 5; give yes; give no
-```
+  thm four_is__next: even(4); prf;
+    call (add_two 2 (add_two 0 zero))
 
-Pretty simple! The ability to *dependently* reference the input `number` in the output type makes this work. And in this case, because the assertions we're making are so simple, the compiler is able to prove they're consistent without any extra work from us.
+  thm plus_four: @n, even n > even (4 ;add n); prf;
+    => n; simpl; => Hn;
+    call add_two; call add_two; call Hn
 
-But we don't even have to define our own `equal_5` type, we can just use `bool`, which is already generic over these kinds of assertions. The same is also true for a few other standard library types like `Optional` and `Fallible` that are commonly used to assert something about data.
+  thm inversion:
+    @n: nat > even n > (n = 0) ;or (exists m; n = S (S m) ;and even m)
+  ; prf;
+    => n [| n' E']
+      left; _
+      >>
+        right; exists n'; split;
+        _; apply E'
 
-```
-// bool can take a true assertion and a false assertion
-fn is_equal_5 number: u8 -> bool (number == 5) (number != 5);
-  return number == 5
-
-// we can also use the alias for this concept
-fn is_equal_5 number: u8 -> bool.exact (number == 5);
-  return number == 5
-```
-
-But something about the above assertions like `number == 5` and `number != 5` might bother you. If proofs are *just data*, then where do `==` and `!=` come from? Are they primitive in the language? Or are they just data as well?
-
-Indeed they are just data! But specifically, they're data that live in the `Prop` sort. `Prop` is the sort defined to hold logical assertions, and the rules about how its types are defined and can be used makes it specially suited to that task.
-
-Let's define a few of our own `Prop` types to get a feel for how it works.
-
-```
-// in the computational types, unit or `()` is the "zero size" type,
-// a type that holds no data
-alias MyUnit = ()
-type NominalUnit
-
-// we can define a prop version as well!
-// idt is short for "inductive", a type theory term that we'll explain later
-idt PropUnit: prop
-// this type is "trivial", since it holds no information and can always be constructed
-// in the standard library this type is called "always", and in Coq it's called "True"
-alias MyAlways = always
-
-// we already saw an example of a computational type that can't be constructed
-type Empty; types.union []
-// and of course we can do the same in the prop sort
-idt PropEmpty: prop; types.union []
-// this type is impossible to construct, which might seem pointless at first, but we'll see how it can be extremely useful later
-// in the standard library it's called "never", and in Coq it's called "False"
-alias MyNever = never
-```
-
-Okay we have prop types representing either trivial propositions or impossible ones. Now let's define ones to encode the ideas of logical "or", "and", "not", "exists", "forall", and equality.
-
-```
-// logical "and", the proposition that asserts the truth of two child propositions,
-// is just a tuple! a tuple that holds the two child propositions as data elements
-// we have to present a proof of both propositions in order to prove their "conjunction",
-// the academic term for "and"
-idt MyAnd P: prop, Q: prop -> prop; P, Q
-
-// then we use this constructor just like any other
-def true_and_true: MyAnd always always = MyAnd always always
-
-// notice that the constructor for MyAnd is typed like a function: that's because it is!
-
-// we could of course also structure it as a record,
-// but the names aren't really useful (which is why we invented tuples right?)
-idt MyAnd P: prop, Q: prop -> prop;
-  left: P
-  right: Q
-
-// logical "or", the proposition that asserts the truth of either one child proposition or another,
-// is just a union!
-// we only have to present a proof for one of the propositions in order to prove their "disjunction",
-// the academic term for "or"
-idt MyOr P: prop, Q: prop -> prop;
-  | left; P
-  | right; Q
-
-def true_or_true_left: MyOr always always = MyOr.left always
-def true_or_true_right: MyOr always always = MyOr.right always
-
-// logical "not" is a little more interesting. what's the best way to assert some proposition *isn't* true? should we say it's equal to "never"? that doesn't really make sense, since you'll see in a moment that "equality" is just an idea we're going to define ourselves. instead we just want to prove that this proposition behaves the same way as "false", in the way that it's impossible to actually construct a value of it.
-// The most elegant way is to say that if you *were* able to construct a value of this proposition, we would *also* be able to construct a value of "false"! So "not" is just a function that transforms some proposition value into "false".
-// notice that we don't need to create a new type for this, since MyNot is just a function
-alias MyNot P: prop; P -> False
-```
-
-Equality is interesting. Depending on exactly what you're doing, you could define what it means for things to be "equal":
-
-- Two byte-encoded values are equal if their bitwise `xor` is equal to 0.
-- Two values are equal if any function you pass them to will behave exactly the same with either one.
-- A value is only equal with exactly itself.
-
-In Logical rok, since all values are "ideal" and not intended to actually ever exist, the simplest definition is actually that last one: a value is only equal with exactly itself.
-
-```
-idt MyEquality {T: Ideal}: T -> T -> prop;
-  @t -> MyEquality t t
 ```
 
 
 
+## Metaprogramming
 
+## Interactive Tactic Mode
 
-
-
-Logical "forall" is the most interesting one, since it's the only one that's actually defined as a primitive in the language. We've actually been using it already! You might be surprised to learn that the function arrow `->` is just the same as "forall"! It's just a looser version of it.
-
-In type theory, if we want to provide a proof that "forall objects in some set, some property holds", we just have to provide a *function* that takes as input one of those objects and returns a proof (which is just a piece of data) that it has that property. And of course it can take more than one input, any of which can be proof objects themselves.
-
-So how do you actually write a "forall" type? Since `forall` is such an important concept, its rok syntax very concisely uses `@`. Here's how you would write the type for the `is_equal_5` function we wrote earlier: `@ number: u8 -> bool.exact number == 5`. I prefer to read this as: "given any `number` which is a `u8`, I'll give you a `bool` which exactly equals whether `number` is equal to 5". For functions that take multiple "forall" variables as inputs (the academic term for accepting a forall variable as input is to "universally quantify" the variable, since a forall assertion proves something universal), you use commas instead of arrows between them: `@ n1, n2 -> bool.exact n1 == n2`.
-
-Very importantly, in order for that function to *really* prove the assertion, it has to be infallible (it can't fail or crash on any input) and provably terminating (it can't infinitely loop on any input). It is allowed to require things about the input (for example a function can be written to only accept even integers rather than all integers), but it has to handle every value it makes an assertion about.
-
-
-
-
-
-```
-// since we're providing default assertions,
-// the normal form of bool only asserts the useless `always`
-type bool when_true = always, when_false = always;
-  | true & when_true
-  | false & when_false
-
-// you'll notice we don't bother with an assertion for T
-// since the user can just provide an asserted type themselves
-type Optional T, when_none = always;
-  | Some; T
-  | None & when_none
-
-// same thing here
-type Fallible T, E;
-  | Ok; T
-  | Err; E
-```
-
-
-
-
-The key insight is in understanding *The Curry-Howard Correspondence* and the concept of *Proofs as Data*. These are a little mind-bending at first, but let's go through it.
-
-A good way to understand this is to see *normal* programming in a different light.
-
-
-Basically, any type that lives in the `Prop` sort is *by definition* a type that represents a truth value, a logical claim.
-
-Proofs are *all* defined by constructors for data, it's just data that lives in a special type sort, specifically the type sort `Prop`. First we define some type that defines data representing some logical claim, and then when we want to actually *prove* such a claim, we just have to *construct* a value of that type!
-
-It's important to notice though that this wouldn't be very useful if the type system of our language wasn't *dependent*, meaning that the type of one value can refer to any other separate value in scope. When we put propositions-as-data together with dependent types, we have a proof checker.
-
-This is the key insight. When we make any kind of logical claim, we have to define *out of nowhere* what the definition of that claim is.
-
-
-
-
-
-
-
-
-
-
-
-
-## Abstract assembly language
-
-Here's an example of a Rok program in the "core" assembly language that is general enough to compile to basically any architecture.
-
-Rok itself ships with a few different layers of computational language:
-
-- Thinking about computation in general.
-- Thinking about a specific collection of generalizable instructions in an unknown machine. This means you're reasoning about specific calling conventions.
-- Thinking about blocks with "function arguments"
-
-- `asm_zero`: a truly representational abstract assembly language, used to define the "common core" of all supported architectures
-- `asm_one`: the next level of abstraction, with type definitions and sugars, llvm style functions along with call/ret instructions. must instantiate with a calling convention
-- `core`: a c-like language with normal functions, match/if/for/while/loop/piping structures, functions for malloc/free, but no ownership/lifetime stuff. must instantiate with a calling convention and definitions for malloc/free in the desired environment
-- `system_core`: same c-like language, but with assumptions of "system" calls for thread spawn/join, io, async, etc
-
-
-There can be a `call` instruction that takes a label or address and together with a `ret` instruction abstracts away the details of a calling convention. We assume it does whatever is necessary under the calling convention to set the return address and push arguments to wherever they go.
-
-
-https://cs61.seas.harvard.edu/site/2018/Asm1/
-all labels and global static data are accessed relative to the current instruction pointer (or at least they should be to produce a safe position independent executable). so when assembling to machine code, the distance between an instruction accessing something and that thing is computed
-
-https://cs61.seas.harvard.edu/site/2018/Asm2/
-A `push X` instruction pushes the variable X onto the stack, which changes the stack pointer (either up or down depending on the stack convention, and it will mostly do this the same amount since X must fit into a word??) and moves `X` into that location
-
-so `push` (`pop` is opposite)
-
-```
-add 8, %rsp // could be sub if stack grows downwards
-mov X, (%rsp)
-```
-
-
-
-```
-define i32 @add1(i32 %a, i32 %b) {
-entry:
-  %tmp1 = add i32 %a, %b
-  ret i32 %tmp1
-}
-
-define i32 @add2(i32 %a, i32 %b) {
-entry:
-  %tmp1 = icmp eq i32 %a, 0
-  br i1 %tmp1, label %done, label %recurse
-
-recurse:
-  %tmp2 = sub i32 %a, 1
-  %tmp3 = add i32 %b, 1
-  %tmp4 = call i32 @add2(i32 %tmp2, i32 %tmp3)
-  ret i32 %tmp4
-
-done:
-  ret i32 %b
-}
-```
-
-
-- The logical inductives/theorems/functions that define von neumann computation and instruction assembly, as well as concurrent separation logic. This layer is the most abstract and could be instantiated with any specific von neumann machine, even an abstract one.
-- `core.asm`. A collection of instruction types that should be generalizable to any machine. At
-- `core`.
-
-
-
-
-```
-use core
-
-core.program@
-  main:
-
-
-
-```
-
-
-perhaps given all arguments then conclusion is a better syntax for implications, for readability
-
-
-
-## How does Rok work?
-
-The logical language where proofs are conducted is in concert with the concrete language where computation is done. The computational language defines the instructions that perform type(proof)-checking and manipulate proof terms. But then proof terms justify the computational types of the concrete language, and are used to define the instructions that are then assembled into real programs.
-
-The Rok compiler is a program, whose source is written in the Rok abstract assembly language (but of course any part of it can be *actually* written in some embedded language and then unfolded metaprogramatically to the abstract assembly language)
-This program includes definitions for the basic ast of Rok. This ast is almost entirely the (path-based) module system, and all the logical stuff (coq equivalents). The abstract assembly language is then entirely defined within this logical language, and metaprogrammatically converted
-
-So you could possibly say that the "object" language is the logical proof one, and the "meta" language is the concrete computational one. However the "object" language has an unusual link back to the "meta" language, since the meta language is defined and proven in terms of the object language.
-
-```
-                    represents and
-                      manipulates
-    +------------------------------------------+
-    |                     |                    |
-    |                     |                    |
-    v                     |                    |
-Logic Rok                 +-------------> Compute Rok
-    |                                          ^
-    |                                          |
-    |                                          |
-    +------------------------------------------+
-                   logically defines
-                      and verifies
-```
-
-
-The only things the compiler needs to function are:
-
-- the `use` keyword
-- ability to parse `use` keywords and the basic metaprogrammatic capture syntax *and nothing else*. all the other stuff can just be captured with the capture primitives and then processed with libraries. however it's silly to have that extra level of indirection for the "base" languages. the logical language and "preferred" computational language can both be "primitive" from the perspective of the parser, even if they aren't truly primitive from a logical perspective.
-- libraries to perform more fine-grained parsing of the logical language and do type-checking etc.
-- a backend to assemble/render instructions
-- definitions of types/instructions enough to do all of those above things
-
-
-The final language will have the logical subset and a rust-like high-level computational subset that aligns nicely with the logical language but is imperative and stateful.
 
 
 ## Module system
@@ -631,6 +272,10 @@ don't need an orphan rule, just need explicit impl import and usage. the default
 ## The embedded `core` language
 
 
+## Testing
+
+talk about quickcheck and working up to a proof
+
 ## Metaprogramming
 
 Known strings given to a function
@@ -678,32 +323,3 @@ A `use` clause can refer to any kind of file, and using a metaprogramming functi
 ```
 use query from sql'./path/to/file'
 ```
-
-
-
-## Getting started
-
-Rok has been heavily inspired by Rust and its commitment to ergonomic tooling and straightforward documentation.
-
-```bash
-# install rok and its tools
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rokup.dev | sh
-
-# create a new project
-rok new hello-world
-cd hello-world
-
-rok check [entry]
-rok run [entry]
-
-# targets in rok are really just definitions of other "machines", including their environmental assumptions
-rok target add
-```
-
-## A basic program
-
-
-
-## Writing proofs
-
-
