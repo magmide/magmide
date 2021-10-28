@@ -20,7 +20,7 @@ This file is a "by example" style reference for the features and interface of Ro
 
 ## Install and Use
 
-Rok has been heavily inspired by Rust and its commitment to ergonomic tooling and straightforward documentation.
+Rok is heavily inspired by Rust and its commitment to ergonomic tooling and straightforward documentation.
 
 ```bash
 # install rok and its tools
@@ -77,8 +77,8 @@ fn incorrect_type_err
 data CompileContext S;
   macros: Dict(Macro(S))
   fileContext: FileContext
-  sourceChannel: SourceChannel+ S
-  handleScript: { path: str, source: str } -> void
+  sourceChannel: SourceChannel(S)
+  handleScript: { path: str source: str } -> void
   readFile: str -> str | undefined
   joinPath: ..str -> str
   subsume: @T -> SpanResult<T> -> Result<T, void>
@@ -86,48 +86,89 @@ data CompileContext S;
   macroCtx: MacroContext
 
 data MacroContext;
-  Ok: @T -> (T, SpanWarning[]?) -> SpanResult<T>
+  Ok: @T, (T, SpanWarning[]?) -> SpanResult<T>
   TsNodeErr: (ts.TextRange, str, ..str) -> SpanResult<any>
   Err: (fileName: str, title: str, ..str) -> SpanResult<any>
   tsNodeWarn: (node: ts.TextRange, str, ..str[]) -> void
   warn: (str, str, ..str[]) -> void
-  subsume: <T>(result: SpanResult<T>) -> Result<T, void>
+  subsume: @T, SpanResult T -> Result T, void
 
 
-data u8: bitarray(8)
+data u8; bitarray(8)
 
-type IndexList {A: idl}: nat > idl;
-  | Nil: IndexList 0
-  | Cons: @n > A > IndexList n > IndexList (Next n)
+ideal Day;
+  | monday | tuesday | wednesday | thursday
+  | friday | saturday | sunday
 
-  rec append(n1, ls1: IndexList n1, n2, ls2: IndexList n2): IndexList (n1 ;add n2);
+  use Day.*
+
+  rec next_weekday day: Day; match day;
+    monday; tuesday, tuesday; wednesday, wednesday; thursday, thursday; friday
+    friday; monday, saturday; monday, sunday; monday
+
+ideal Bool;
+  | true
+  | false
+
+  use Bool.*
+
+  rec negate b: Bool :: bool;
+    match b;
+      true; false
+      false; true
+
+  rec and b1: bool, b2: bool :: bool;
+    match b1;
+      true; b2
+      false; false
+
+  rec or b1: bool, b2: bool :: bool;
+    match b1;
+      true; true
+      false; b2
+
+  impl core.testable;
+    rec test b: Bool :: bool;
+      match b; true; testable.true, false; testable.false
+
+  rec negate_using_test b: Bool :: bool;
+    test b;
+      false
+      true
+
+
+ideal IndexList<A: ideal> :: nat;
+  | Nil :: IndexList(0)
+  | Cons :: @n A IndexList(n) -> IndexList(n;next)
+
+  rec append n1, ls1: IndexList(n1), n2, ls2: IndexList(n2) :: IndexList(n1 ;add n2);
     match ls1;
       Nil; ls2
-      Cons _ x ls1'; Cons x append(ls1' ls2)
+      Cons(_, x, ls1'); Cons(x, append(ls1', ls2))
 
-type even: nat > prop;
+prop even :: nat;
   | zero: even(0)
-  | add_two: @n > even(n) > even(n;next;next)
+  | add_two: @n, even(n) -> even(n;next;next)
 
   use even.*
   thm four_is: even(4); prf;
-    call add_two; call add_two; call zero
+    + add_two; + add_two; + zero
 
   thm four_is__next: even(4); prf;
-    call (add_two 2 (add_two 0 zero))
+    + (add_two 2 (add_two 0 zero))
 
-  thm plus_four: @n, even n > even (4 ;add n); prf;
-    => n; simpl; => Hn;
-    call add_two; call add_two; call Hn
+  thm plus_four: @n, even n -> even (4 ;add n); prf;
+    => n; >>; => Hn;
+    + add_two; + add_two; + Hn
 
   thm inversion:
-    @n: nat > even n > (n = 0) ;or (exists m; n = S (S m) ;and even m)
+    @n: nat, even n -> (n = 0) ;or (exists m; n = m;next;next ;and even m)
   ; prf;
     => n [| n' E']
       left; _
-      >>
-        right; exists n'; split;
-        _; apply E'
+      --
+        right; exists n'; split
+        _; + E'
 
 ```
 
