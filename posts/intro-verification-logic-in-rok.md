@@ -1,11 +1,252 @@
-This introduction will teach you how to use Rok to build truly provably correct software, by going through these topics:
+Hello!
 
-- A quick look at Rok's syntax style, Compute Rok, and roughly what it will look like to write functions that are provably correct.
-- An in depth look at Logical Rok, proof objects, and the Curry-Howard Correspondence.
-- A crash course in proving, proof tactics, and type theoretical logic.
-- A full treatment of using `core` Compute Rok and Logical Rok together, including trackable effects.
-- A guide to metaprogramming in Rok.
-- A deeper look at the lower levels of Compute Rok, such as the `asm` layers, and instantiating lower levels with custom environments or calling conventions.
+If you're reading this, you must be curious about how it could be possible to write truly *provably correct* programs, ones that you can have the same confidence in as proven theories of mathematics or logic. You likely want to learn how to write verified software yourself, and don't have time to wade through unnecessarily clunky academic jargon or stitch together knowledge scattered in dozens of obscure journal papers.
+
+You're in the right place! Rok has been designed from the ground up to be usable and respect your time, to enable you to gain this incredibly powerful and revolutionary skill.
+
+I hope you're excited! I powerfully believe verified software will bring in the next era of computing, one in which we don't have to settle for broken, insecure, or unpredictable software.
+
+Here's the road ahead:
+
+First we'll take a glimpse at some Rok programs, both toys and more useful ones, just to get an idea of what's possible and how the language feels. We'll take a surface level tour of Compute Rok, the procedural portion of the language we'll use to actually write programs.
+
+Then we'll dive into Logic Rok, the pure and functional part that is used to make and prove logical claims:
+
+- We'll talk about why it's necessary to use a pure and functional language at all (I promise I'm not a clojure fanboy or something).
+- How to code in Logic Rok, what it feels like to write pure functional algorithms and how it's different than normal programming.
+- A short overview of formal logic, and some comparisons to normal programming.
+- Type Theory, The Calculus of Constructions, and the Curry-Howard Correspondence, the big important ideas that make it possible for a programming language to represent proofs.
+- How to actually make and prove logical claims (it's getting good!), along with some helpful rules of thumb.
+
+Now with a working knowledge of how to use Logic Rok, we can use it to verify our real Compute Rok programs!
+
+- Separation Logic, the logical method that helps us reason about ownership, sharing, mutation, and destruction of finite computational resources.
+- Writing proofs about Compute Rok functions and data structures.
+- Logical modeling, or proving some kind of alignment between a pure functional structure and a real computational one.
+- Testing as a gradual path to proofs, using randomized conjecture-based testing.
+- Trackable effects, the system that allows you to prove your program is free from unexpected side-effects such as memory unsafety, infinite loops, panics, and just about anything else.
+
+And then finally all the deeper features that make Rok truly powerful:
+
+- Metaprogramming in Rok, the capabilities that allow you to write your own compile-time logic.
+- Some basic programming language and type-system theory.
+- A short overview of basic computer architecture, including assembly language concepts.
+- The lower assembly language layers of Compute Rok, and how to "drop down" into them.
+- The abstract machine system, and how Rok can be used to write and prove programs for any computational environment.
+- A deeper look at Iris and Resource Algebras, the complex higher-order Separation Logic that makes Trackable Effects and lots of other things possible.
+
+Throughout all of these sections, we'll do our best to not only help you understand all these concepts, but introduce you to the way academics talk about them. We'll do so in a no-nonsense way, but we think it's a good idea to make sure you can jump into the original research if you want and not have to relearn all the "formal" names for concepts you already understand.
+
+Let's get to it!
+
+## Example Programs and a Tour of Compute Rok
+
+TODO
+
+## Logic Rok, How to Prove Things in a Programming Language
+
+### Why pure and functional?
+
+There are quite a few pure and functional languages, such as [haskell]() and [clojure]() and [lisp]() and [racket]() and [elm](). What makes them different? Functional languages enforce two properties, with varying degress of strictness:
+
+- All data is immutable. There is no ability to "mutate" data structures, only create new structures based on them. Although most functional languages have some [cheating escape hatches]() for when it's *really* necessary to mutate something.
+- All functions are pure, meaning that if you pass the exact same inputs into them, you always receive the exact same inputs. This means you can't perform "impure" actions such as mutate a variable that wasn't passed into the function (remember, you can't mutate *anything*!), or create side effects such as reaching out to the surrounding system by doing things like file or network operations. Since programs that couldn't interface with the surrounding system *at all* would be completely worthless, functional languages have special runtime functions that allow you to interact with the system by passing pure functions to them. But they all return some kind of "side effect monad", a concept we don't need to talk about here!
+
+Now, those two properties have some nice consequences. They mean that you can't accidentally change or destroy data some other part of the program was depending on, or get surprised about the complex ways different parts of your program interact with each other, or not realize some function was actually doing expensive network operations at a time you didn't expect.
+
+But the especially important consequence of purity and immutability is that a program is *simple*, at least from a logical perspective. Every function always outputs predictable results based only on inputs, no complex and difficult to reason about webs of global mutable state are possible, the language operates as if it were simply math or logic, where everything has a precise definition that can be formally reasoned about.
+
+Just just one big obvious problem: **all that purity and immutability is a lie!**
+
+When a computer is running, the *only thing* it's doing is mutating data. Your computer's memory and processor registers are all just mutable variables that are constantly being updated. Purity and immutability are useful abstractions, but they only go abstraction deep. Without mutation and impurity, computation can be nothing more than merely theoretical.
+
+**However,** this isn't actually a problem if we *are* just talking about something purely theoretical! We'll see in the coming sections how proof assistants like Rok don't need to actually *run* programs to prove things, they just need to *type check* them, meaning it *doesn't matter* if the programs can't actually be run.
+
+This means that a pure and functional language is the perfect fit for a proof assistant. All that matters for a proof is that we're able to express theoretical ideas in the most clear and easy to reason about way, and we don't have to care about performance or data representation or any of the details of real computation. Soon we'll even see that type theory, the logical framework powerful enough to form the foundations of all of mathematics and computer science, is itself basically just a pure functional language!
+
+In a later section we'll discover that it *is* actually possible to prove things about mutating code, even that mutating code can be shown to perfectly correspond with purely theoretical code. But to do so we'll first have to build up to it with purely theoretical code.
+
+This is one of the most important contributions of Rok, that it integrates purely logical and realistically computable code and allows them to usefully interact.
+
+### Coding in Logic Rok
+
+TODO
+
+### A Crash Course in Logic
+
+If you ever took a discrete mathematics or formal logic class in school, you likely already know everything in this section. It isn't very complicated, but let's review quickly to make sure we're on the same page.
+
+A **proposition** is basically a claim that can be true or false (academics often use the symbols `⊤` and `⊥` for true and false). Some examples are:
+
+- `I am right-handed`
+- `It is nighttime`
+- `I have three cookies`
+
+We can assign these claims to a variable, to make it shorter to refer to them (`:=` means "is defined as"):
+
+- `P := I am right-handed`
+- `Q := It is nighttime`
+- `R := I have three cookies`
+
+Then we can combine these variables together into bigger propositions using [logical connectives](https://en.wikipedia.org/wiki/Logical_connective):
+
+- The `not` rule reverses or "negates" (the academic term) the truth value of a proposition. It's usually written with the symbol `¬`, but we'll use `~`. So if `A := ~P` then `A` is true when `P` isn't true.
+- The `and` rule requires two variables to both be true for the whole "conjunction" (the academic term) to be true. It's usually written with the `∧` symbol (think of it as being "strict" or "closed", since `and` is more "demanding" and points downward), but we'll use `&`. So if `A := P & Q` then `A` is true only when both `P` and `Q` are both true.
+- The `or` rule requires only one of two variables to be true for the whole "disjunction" (the academic term) to be true. It's usually written with the `∨` symbol (think of it as a "loose" or "open" link, since `or` is less "demanding" and points upward), but we'll use `|`. So if `A := P | Q` then `A` is true when either `P` or `Q` are true.
+
+All these connectives can have a "truth table" written for them, which tells us if the overall expression is true based on the truth of the sub expressions.
+
+TODO truth tables for not, and, or
+
+The `implication` rule is has an especially important place in the type theory we'll get into in later chapters. It's usually written with the `→` symbol or just `->`, and it's easy to think why it's shaped like an arrow: the truth value of the left variable "points to" the truth value of the right variable. So for example, if `A := P -> Q`, then `A` is true if whenever `P` is true `Q` is also true. It's also not an accident that `->` represents both implication and the type of functions (`str -> bool`), but we'll get to that later.
+
+TODO truth table
+
+Very importantly, notice how an implication is only false in one situation, when the left variable is true and the right is false. This means that if the left variable is *false* then the implication is always true, or if the right variable is *true* then the implication is always true. Basically you can think of implications like an assumption and some conclusion that should always follow from that conclusion: if the assumption isn't true, then it doesn't matter what the conclusion is!
+
+The `iff` or "if and only if" rule is easier to grasp. Written with `↔` or `<->` it basically requires the two truth values to be in sync with each other. If `A := P <-> Q` then if `P` is true or false then `Q` has to be the same thing.
+
+TODO truth table
+
+And of course, we can combine these connectives in arbitrarily nested structures!
+
+TODO truth table showing some compound structures
+
+Notice how the connectives can be restated in terms of each other? Like how `P <-> Q` is equivalent to `(P -> Q) & (Q -> P)`? Or `Q` is equivalent to `(P -> Q) & P`? There are lots of these equivalences, which all form basic *tautologies* (formulas that are always true) that can be used when proving things.
+
+TODO list of boolean rules
+
+This basic form of propositional logic is obviously somewhere at the heart of computing, from binary bits to boolean values. We're all familiar with operators like `!` and `&&` and `||` in common programming languages like C and java and javascript, and they just represent these rules as computations on boolean values.
+
+But simple truth values and connectives aren't really enough to prove anything interesting. We don't just want to compute basic formulas from true or false values, we want to be able to prove facts *about* things, from numbers all the way to complex programs. With the simple rules we've been talking about, we can only stick arbitrary human sentences onto variables and then tell the computer if they're true or not. We need something more powerful!
+
+First we need **predicates**, which are just functions that accept inputs and return propositions about them. So if we can write a predicate in this general shape: `predicate_name(input1, input2, ...) := some proposition about inputs`, then these are all predicates:
+
+- `And(proposition1, proposition2) := proposition1 & proposition2`
+- `Equal(data1, data2) := data1 == data2` (`data1` is equal to `data2`)
+- `Even(number) := number is even` (I'm cheating here, since this is still just some arbitrary sentence. Let's ignore it for now 😊)
+
+We're also going to need these two ideas:
+
+- The "for all" rule (or *universal quantification*), saying that "for all values" some predicate is true when you input the values. Academics use the `∀` symbol for "for all", but I'll just write `forall`:
+  - `forall number, Even(number) -> Even(number + 2)` (forall values `number`, if `number` is even then that implies `number` plus two is also even)
+  - `forall data1 data2 data3, data1 == data2 & data2 == data3 -> data1 == data3` (forall values `data1`, `data2`, and `data3`, if `data1` is equal to `data2` and `data2` is equal to `data3`, then that implies `data1` is equal to `data3`)
+
+- The "exists" rule, (or *existential quantification*), saying that "there exists" a value where some predicate is true when you input the values. Academics use the `∃` symbol for "there exists", but I'll just write `exists`:
+  - `exists number, Even(number)` (there exists a `number` such that `number` is even)
+  - `exists data1 data2, data1 == data2` (there exists a `data1` and `data2` such that they are equal to each other)
+
+TODO need an explanation of why quantification is a reasonable term to use
+
+The `forall` rule seems especially powerful! It would be extremely useful to prove that something is true about a potentially infinite "universe" of values. But how do we actually prove something like that in a programming language? We obviously can't just run every value through some function and test it to see if returns true, especially since the whole point of using a purely theoretical programming language was that we don't actually have to run programs in order to prove things.
+
+The trick is to represent our propositions and predicates as *types* instead of data! Let's see how it works.
+
+### Type Theory, the Calculus of Constructions, and the Curry-Howard Correspondence
+
+A reasonable place to start is by figuring out how to represent the basic ideas of true and false in Logic Rok.
+
+We might try just defining them as a discriminated union, our old friend `boolean`:
+
+TODO
+
+But if we walk much further down this path, we won't get anywhere. We'll end up having to actually compute and compare booleans, since `true` and `false` are only different *values*, not different *types*.
+
+This is a good place to reveal something really important but fairly surprising: if you're a programmer, *then you already prove things whenever you program!* How is that true?
+
+Think about some random datatype such as `u64`. Any time you construct a value of `u64`, you're *proving* that some `u64` exists, or that the `u64` type is *inhabited* (the academic term). The very act of providing a value of `u64` that actually typechecks as a `u64` in a very real way proves that it was possible to do so. Every concrete `u64` value provides *evidence* of `u64`, evidence that proves the "proposition" `u64`. Specifically we're talking about the `exists` rule, but just that every type defines its own family of values to prove exist. It's a very different way of looking at what a datatype means, but it's nonetheless true! The only problem with a proof of `u64` is that it isn't a very "interesting" or "useful" piece of evidence: but it's a piece of evidence nonetheless.
+
+In the same way, when you define a function, you're creating a *proof* that the input types of the function can somehow be transformed into the output type of the function. For example this function:
+
+```
+fn n_equals_zero n: u8;
+  return n == 0
+```
+
+has type `u8 -> bool`, so the function *proves* that if we're given a `u8` we can always produce a `bool`. In this way, the `->` represents *both* the real computation that will happen *and* the implication operator `P -> Q`! The reason implication and functions are equivalent is exactly because datatypes and propositions are equivalent. Think of this example:
+
+- the implication `P -> Q` has been proven
+- `P` has been proven
+- therefore `Q` can also be proven
+
+TODO truth table
+
+To convert this into the language of types and programs, we just have to change "implication" to "function", "proven" to "constructed", and `P` and `Q` to some types:
+
+- the function `u8 -> bool` has been constructed
+- `u8` has been constructed
+- therefore `bool` can also be constructed
+
+Pretty cool huh!
+
+This simple idea is called the [Curry-Howard Correspondence](https://en.wikipedia.org/wiki/Curry%E2%80%93Howard_correspondence), named after the researchers who discovered it. This is the main idea that allows programs to literally represent proofs.
+
+The only problem with `u8 -> bool` is that it isn't a proof of anything very interesting! The type of this function doesn't actually enforce that the `bool` is even *related* to the `u8` we were given. All these functions also have the type `u8 -> bool` and yet do completely different things!
+
+```
+fn always_true _: u8;
+  return true
+
+fn always_false _: u8;
+  return false
+
+fn n_equals_nine n: u8;
+  return n == 9
+```
+
+The simple type of `bool` only gives us information about one value, and can't encode *relationships between* values.
+
+But if we enhance our language with *dependent types*, we can start doing really interesting stuff. Let's start with a function whose *type* proves if its input is equal to 5. We've already introduced asserted types, so let's define our own type to represent that idea (this isn't the right way to do this, we'll improve it in a second). Let's also write a function that uses it.
+
+
+
+
+
+
+It's even possible to define types that *can't possibly* be constructed, such as an empty union: `type Empty; |`. When you try to actually create a value of `Empty`, you can't possibly do so, meaning that this type is impossible or "False".
+
+
+But what about this definition of `True`?
+
+TODO
+
+
+
+
+
+
+
+
+
+
+
+
+Representing propositions as datatypes and theorems as functions means that we don't have to *run* the code to "compute" the truth value of variables. We only have to *type check* the code to make sure the types are all consistent with each other. If the type of function asserts that it can change input propositions into some output proposition, and the body of the function successfully typechecks by demonstrating steps that do in fact break a piece of propositional data apart and transform it to create a piece of propositional data with a different type, then the very existence of that function proves that the input propositions all *imply* the output proposition.
+
+### Proofs using Tactics
+
+## Verified Compute Rok
+
+### Separation Logic
+
+### Separation Logic in Use
+
+### Logical Modeling
+
+### Testing and Conjecture Checking
+
+### Trackable Effects
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -188,33 +429,7 @@ Logical Rok only really needs three things to prove basically all of mathematics
 
 So how can we prove things in a programming language? How does that make any sense? You'll be surprised to hear that you already write proofs all the time!
 
-Think about when you define a data type, such as `type Num; u64`. Any time you construct a value of `Num` by calling the `Num` constructor with a `u64` value (`Num 8`), you're *proving* that some `Num` exists. You haven't proven something very *interesting*, but you've proven something nonetheless. It's even possible to define types that *can't possibly* be constructed, such as an empty union: `type Empty; |`. When you try to actually create a value of `Empty`, you can't possibly do so, meaning that this type is impossible or "False".
 
-In the same way, when you define a function, you're creating a *proof* that the input types of the function can somehow be transformed into the output type of the function. For example this dumb little function:
-
-```
-fn n_equals_zero n: u8;
-  return n == 0
-```
-
-has type `u8 -> bool`, so the function *proves* that if we're given a `u8` we can always produce a `bool`. In this way, the `->` in function types can be understood as *both* a computational transformation *and* the implication operator from logic (if this is true then that is true, `P -> Q`).
-
-The only problem with `u8 -> bool` is that it isn't a proof of anything very interesting! The type of this function doesn't actually enforce that the `bool` is even *related* to the `u8` we were given. All these functions also have the type `u8 -> bool` and yet do completely different things!
-
-```
-fn always_true _: u8;
-  return true
-
-fn always_false _: u8;
-  return false
-
-fn n_equals_nine n: u8;
-  return n == 9
-```
-
-The simple type of `bool` only gives us information about one value, and can't encode *relationships between* values.
-
-But if we enhance our language with *dependent types*, we can start doing really interesting stuff. Let's start with a function whose *type* proves if its input is equal to 5. We've already introduced asserted types, so let's define our own type to represent that idea (this isn't the right way to do this, we'll improve it in a second). Let's also write a function that uses it.
 
 ```
 data equal_5 number;
@@ -358,6 +573,22 @@ type Fallible T, E;
   | Ok; T
   | Err; E
 ```
+
+
+Understanding indexed types
+In a language with normal generics, if there are multiple functions or constructors in the type that all use a generic variable then when those functions or constructors are actually used all the instances of those generic variables to have to be equal. You can get that exact same behavior in rok, but you can *also* get more "dependent" versions of generic variables which are allowed to be different.
+This is useful in many situations, but it's best to start with two examples.
+
+normal polymorphic lists, to understand the normal situation, and how it would be annoying or inconsistent to allow different values of the generic variable. forcing them on the left side basically allows us to elide any mention of them and still keep the requirement of them aligning
+
+length indexed lists
+attestations of zero or one-ness
+even numbers
+
+
+in the case of the `even` predicate, the different constructors all provide evidence of the same proposition `even`, but they do so for different numbers.
+
+
 
 
 

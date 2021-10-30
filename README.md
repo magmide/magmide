@@ -37,6 +37,44 @@ rok build
 
 ## Syntax
 
+Here's what we can do
+
+calling is just placing things next to each other with no commas. an *explicit* comma-separated list is always a tuple, which is why function arguments are always specified that way
+piping style calling uses `>functionname`. it seems that because of precedence and indentation rules which expressions are function names is always inferable?
+this works inline too, so `data>functionname` or `data >infix something`
+`>> arg arg2; expr` defines an anonymous function and immediately calls it in piping style. `>>;` is then the equivalent of your old `do` idea
+`--` is the "bumper" for an indented expression
+the sections of keywords are delimited by semicolons
+nested function calls are just indented since function calling is
+`/` is the *keyword continuation operator*, so all keywords, even possibly multi-line ones, can be defined metaprogramatically within the language
+
+```
+if yo; --
+  function_name arg arg
+  >whatevs
+  >another thing
+  >> something; yo different something
+  >> hm; abb >hm diff
+/elif yoyo; whatevs
+/else; dude
+
+if yo; yoyo /else; dude
+
+let thingy = if some >whatevs hmm; dude /else; yo
+```
+
+piping custom keywords can be done with a leading `;`? and standalone statement style ones are something else like `$`?
+custom keywords are called with a leading `;`? so something like `;route_get yoyo something; whatevs /err; dude`
+
+calling macros/known functions is indicated with something like a `~` or just the backtick thing? which means it can be done
+
+include the "backpassing" idea? or simplify it by somehow creating an "implicit callback defining pipe operator?" such as `>>>`?
+
+
+
+
+
+
 Rok is whitespace/indentation sensitive.
 Anywhere a `;` can be used an opening indent can be used *additionally*.
 Anywhere a `,` can be used a newline can be used *instead*.
