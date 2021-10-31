@@ -166,16 +166,16 @@ fn n_equals_zero n: u8;
 has type `u8 -> bool`, so the function *proves* that if we're given a `u8` we can always produce a `bool`. In this way, the `->` represents *both* the real computation that will happen *and* the implication operator `P -> Q`! The reason implication and functions are equivalent is exactly because datatypes and propositions are equivalent. Think of this example:
 
 - the implication `P -> Q` has been proven
-- `P` has been proven
-- therefore `Q` can also be proven
+- so if `P` can be proven
+- then `Q` can also be proven
 
 TODO truth table
 
 To convert this into the language of types and programs, we just have to change "implication" to "function", "proven" to "constructed", and `P` and `Q` to some types:
 
 - the function `u8 -> bool` has been constructed
-- `u8` has been constructed
-- therefore `bool` can also be constructed
+- so if `u8` can be constructed
+- then `bool` can also be constructed
 
 Pretty cool huh!
 
