@@ -154,7 +154,9 @@ But if we walk much further down this path, we won't get anywhere. We'll end up 
 
 This is a good place to reveal something really important but fairly surprising: if you're a programmer, *then you already prove things whenever you program!* How is that true?
 
-Think about some random datatype such as `u64`. Any time you construct a value of `u64`, you're *proving* that some `u64` exists, or that the `u64` type is *inhabited* (the academic term). The very act of providing a value of `u64` that actually typechecks as a `u64` in a very real way proves that it was possible to do so. Every concrete `u64` value provides *evidence* of `u64`, evidence that proves the "proposition" `u64`. Specifically we're talking about the `exists` rule, but just that every type defines its own family of values to prove exist. It's a very different way of looking at what a datatype means, but it's nonetheless true! The only problem with a proof of `u64` is that it isn't a very "interesting" or "useful" piece of evidence: but it's a piece of evidence nonetheless.
+Think about some random datatype such as `u64`. Any time you construct a value of `u64`, you're *proving* that some `u64` exists, or that the `u64` type is *inhabited* (the academic term). The very act of providing a value of `u64` that actually typechecks as a `u64` in a very real way proves that it was possible to do so. Every concrete `u64` value provides *evidence* of `u64`, evidence that proves the "proposition" `u64`. It's a very different way of looking at what a datatype means, but it's true! The only problem with a proof of `u64` is that it isn't a very "interesting" or "useful" piece of evidence: but it's a piece of evidence nonetheless.
+
+<!-- Specifically we're talking about the `exists` rule, and every type defines its own family of values to prove exist. -->
 
 In the same way, when you define a function, you're creating a *proof* that the input types of the function can somehow be transformed into the output type of the function. For example this function:
 
@@ -163,7 +165,7 @@ fn n_equals_zero n: u8;
   return n == 0
 ```
 
-has type `u8 -> bool`, so the function *proves* that if we're given a `u8` we can always produce a `bool`. In this way, the `->` represents *both* the real computation that will happen *and* the implication operator `P -> Q`! The reason implication and functions are equivalent is exactly because datatypes and propositions are equivalent. Think of this example:
+has type `u8 -> bool`, so the function *proves* that if we're given a `u8` we can always produce a `bool`. In this way the `->` represents *both* the real computation that will happen *and* the implication operator `P -> Q`! The reason implication and functions are equivalent is exactly because datatypes and propositions are equivalent. Think of this example:
 
 - the implication `P -> Q` has been proven
 - so if `P` can be proven
@@ -181,7 +183,7 @@ Pretty cool huh!
 
 This simple idea is called the [Curry-Howard Correspondence](https://en.wikipedia.org/wiki/Curry%E2%80%93Howard_correspondence), named after the researchers who discovered it. This is the main idea that allows programs to literally represent proofs.
 
-The only problem with `u8 -> bool` is that it isn't a proof of anything very interesting! The type of this function doesn't actually enforce that the `bool` is even *related* to the `u8` we were given. All these functions also have the type `u8 -> bool` and yet do completely different things!
+The only problem with `u8 -> bool` is that, yet again, it isn't a proof of anything very interesting! The type of this function doesn't actually enforce that the `bool` is even *related* to the `u8` we were given. All these other functions also have the type `u8 -> bool` and yet do completely different things!
 
 ```
 fn always_true _: u8;
@@ -361,7 +363,7 @@ But the entire point of Rok is that you can prove your program is correct! How d
 
 
 
-The most common and simplest way we can make provable assertions about our programs is by enhancing our types with *subset predicates*. If we want to guarantee that a piece of data will always meet some criteria, we can make assertions about it with the `&` operator. Then, any time we assign a value to that type, we have to fulfill a *proof obligation* that the value meets all the assertions of the type. More on proofs in a second.
+The most common and simplest way we can make provable assertions about our programs is by making our types *asserted types*. If we want to guarantee that a piece of data will always meet some criteria, we can make assertions about it with the `&` operator. Then, any time we assign a value to that type, we have to fulfill a *proof obligation* that the value meets all the assertions of the type. More on proofs in a second.
 
 ```
 // this type will just be represented as a normal usize
@@ -426,8 +428,6 @@ Logical Rok only really needs three things to prove basically all of mathematics
   - `Prop`, the sort for "propositions", basically assertions about data.
 - Function types.
 
-
-So how can we prove things in a programming language? How does that make any sense? You'll be surprised to hear that you already write proofs all the time!
 
 
 
