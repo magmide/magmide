@@ -226,6 +226,14 @@ The crucial trick is to represent our propositions and predicates as *types* ins
 
 ### Type Theory, the Calculus of Constructions, and the Curry-Howard Correspondence
 
+<!--
+
+in a real computational language, whenever we define a datatype we're really just defining a different way for bits to be laid out in memory. A `struct` isn't a basic primitive concept, it's just a shorthand for putting a few datatypes one after another in a fixed size chunk of memory. Something similar is true for unions, tuples, lists, etc.
+
+But in a purely logical *type-theoretical* language, when we define a new type we really *are* defining something out of thin air. A new inductive type creates out of nowhere a set of rules for how logical concepts can be combined with each other, rules we've completely *constructed* in some shape that fits our needs. This is why the specific form of type-theory Rok uses is called The Calculus of Constructions, because constructing new types and values of those types is one of the primitive assumptions of the system. It's one of the axioms.
+
+-->
+
 A reasonable place to start is by figuring out how to represent the basic ideas of true and false in Logic Rok.
 
 We might try just defining them as a discriminated union, our old friend `boolean`:
@@ -236,7 +244,6 @@ But if we walk much further down this path, we won't get anywhere. We'll end up 
 
 This is a good place to reveal something really important but fairly surprising: if you're a programmer, *then you already prove things whenever you program!* How is that true?
 
-<!-- Specifically we're talking about the `exists` rule, and every type defines its own family of values to prove exist. -->
 Think about some random datatype such as `u64`. Any time you construct a value of `u64`, you're *proving* that some `u64` exists, or that the `u64` type is *inhabited* (the academic term). The mere act of providing a value of `u64` that actually typechecks as a `u64` very directly proves that it's possible to do so. Put another way, we can say that every concrete `u64` value provides *evidence* of `u64`, evidence that proves the "proposition" `u64`. It's a very different way of looking at what a datatype means, but it's true! The only problem with a proof of `u64` is that it isn't a very "interesting" or "useful" piece of evidence: but it's a piece of evidence nonetheless.
 
 <!-- Specifically we're talking about the `exists` rule, but just that every type defines its own family of values to prove exist. -->

@@ -4,4 +4,4 @@ The Iris Separation Logic is amazing, and I believe it's going to be the secret 
 
 - There isn't a language engineers can actually *use* to play around with and gain an understanding of Iris, so it remains locked in papers.
 - The papers describing Iris gloss over math concepts like partial commutative monoids and extension orders and reflexivity. A full explanation of Iris would go over these things first or enough during.
-- The papers use difficult to parse and arbitrary symbology rather than helpful "handle" names, so it's difficult to orient oneself while reading it.
+- The papers use difficult to parse and arbitrary symbology rather than helpful "graspable" names, so it's difficult to orient oneself while reading it.

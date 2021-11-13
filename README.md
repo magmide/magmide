@@ -1,404 +1,125 @@
-# **WARNING! :warning: :construction: Rok is purely a research project at this point, and isn't ready to be used! :construction: :warning:**
+# **WARNING! :construction: :construction: Rok is purely a research project at this point.**
 
-Although the material below is written as if the project were complete and production ready, it isn't. All of this is just an exercise to understand the project objectives and hammer out the design.
+This repo is still very early and rough, it's mostly just notes, speculative writing, and exploratory theorem proving. All the files in this repo other than this readme are "mad scribblings" territory, so dive in at your own risk! In this file however I give a broad overview and answer a few possible questions. Enjoy!
 
-Feedback and contributions are welcome!
+---
 
-# Rok
+The goal of this project is to: **create a programming language and surrounding education/tooling ecosystem capable of making formal verification and provably correct software mainstream and normal among working software engineers**.
 
-> Correct, Fast, Productive: pick three.
+That's a big goal, and such a language will need a strong design with the right capabilities. In my opinion in order to achieve that goal a language must be all of these things:
 
-Rok is the first language built from the ground up to allow software engineers to productively write extremely high performance software for any computational environment, logically prove the software correct, and run/compile that code all within the same tool.
+## Fully verifiable
 
-The goal of the project is to spread the so-far purely academic knowledge of software verification and formal logic to a broad audience. It should be normal for engineers to create programs that are truly correct, safe, secure, robust, and performant.
+In order to really deliver the kind of truly transformative correctness guarantees that will inspire working engineers to learn and use a difficult new language, it doesn't make sense to stop short and only give them an "easy mode" verification tool. It should be possible to formalize and attempt to prove any proposition humanity is capable of representing logically, not only those that a fully automated tool like an [SMT solver](https://liquid.kosmikus.org/01-intro.html) can figure out. A language with full logical expressiveness can still use convenient automation alongside manual proofs.
 
-This file is a "by example" style reference for the features and interface of Rok. It doesn't try to explain any of the underlying concepts, just document decisions, so you might want to read one of these other resources:
+To achieve this goal, the language is fully **dependently typed** and uses the [Calculus of Constructions](https://en.wikipedia.org/wiki/Calculus_of_constructions) much like [Coq](https://en.wikipedia.org/wiki/Coq).
 
-- If you want to be convinced the goal of this project is both possible and necessary, please read [What is Rok and Why is it Important?]()
-- If you want to learn about software verification and formal logic using Rok, please read [Intro to Verification and Logic with Rok]().
-- If you want to contribute and need the nitty-gritty technical details and current roadmap, please read [The Technical Design of Rok]().
+## Capable of bare metal performance
 
-## Install and Use
+Software needs to perform well! Not all software has the same requirements, but often performance is intrinsically tied to correct execution. Very often the software that most importantly needs to be correct also most importantly needs to perform well. If the language is capable of truly bare metal performance, it can still choose to create easy abstractions that sacrifice performance where that makes sense.
 
-Rok is heavily inspired by Rust and its commitment to ergonomic tooling and straightforward documentation.
+To achieve this goal, the language includes in its core libraries a formalization of the basic principles of von neumann computation, allowing users to specify the axiomatic assumptions of any software execution environment, from concrete instruction set architectures, to any **abstract assembly language** such as LLVM capable of compiling to many targets, and even up to operating system userlands or bytecode environments such as webassembly. Making it possible to specify software at this level of fidelity ensures it is truly aligned with reality and isn't making unrealistic assumptions.
 
-```bash
-# install rok and its tools
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rokup.dev | sh
+Verifying raw assembly code is much more difficult than verifying a mathematically pure language, but recent advancements such as the [Iris higher-order concurrent separation logic](https://iris-project.org/) have finally made this goal truly achievable.
 
-# create a new project
-rok new hello-world
-cd hello-world
+## Gradually verifiable
 
-rok check <entry>
-rok run
-rok build
-```
+Just because it's *possible* to fully verify all code, doesn't mean it should be *required*. It simply isn't practical to try to completely rewrite a legacy system in order to verify it. Successful languages with goals of increased rigor such as Rust and Typescript strategically use concessions in the language such as `unsafe` and `any` to allow more rigorous code to coexist with legacy code as it's incrementally replaced. The only problem is that these concessions introduce genuine soundness holes into the language, and it's often difficult or impossible to really understand how exposed your program is to these safety holes.
 
-## Syntax
+We can get both practical incremental adoption and complete understanding of the current safety of our program by leveraging work done by the [Iron obligation management logic](https://iris-project.org/pdfs/2019-popl-iron-final.pdf) built using Iris. We can use a concept of **trackable effects**, where a piece of some "token" has to be given up in order to perform a dangerous operation without justifying its safety with a proof. This "infects" the violating code block with an effect type that will bubble up through any parent blocks. Project teams can choose how strict they want the effects of their program to be, some choosing to fail compilation if a program isn't memory safe or could panic, and others tolerating some possible effects or writing proofs to assert that these effects only happen in certain well-defined circumstances. New kinds of trackable effects can even be defined and used, allowing different projects to introduce new kinds of safety and correctness tracking, such as ensuring asynchronous code doesn't block the executor, or a web app doesn't render raw untrusted input, or a server doesn't leak secrets.
 
-Here's what we can do
+Importantly, even if some piece of software chooses to ignore some negative effects, other projects will be automatically informed of those negative effects if they try to use that software. We can have a genuinely secure trustless software ecosystem!
 
-calling is just placing things next to each other with no commas. an *explicit* comma-separated list is always a tuple, which is why function arguments are always specified that way
-piping style calling uses `>functionname`. it seems that because of precedence and indentation rules which expressions are function names is always inferable?
-this works inline too, so `data>functionname` or `data >infix something`
-`>> arg arg2; expr` defines an anonymous function and immediately calls it in piping style. `>>;` is then the equivalent of your old `do` idea
-`--` is the "bumper" for an indented expression
-the sections of keywords are delimited by semicolons
-nested function calls are just indented since function calling is
-`/` is the *keyword continuation operator*, so all keywords, even possibly multi-line ones, can be defined metaprogramatically within the language
+## Deeply metaprogrammable
 
-```
-if yo; --
-  function_name arg arg
-  >whatevs
-  >another thing
-  >> something; yo different something
-  >> hm; abb >hm diff
-/elif yoyo; whatevs
-/else; dude
+We can't write all software in assembly language! Including first-class support for powerful metaprogramming, alongside a [query-based compiler](https://ollef.github.io/blog/posts/query-based-compilers.html), will allow users of this language to build abstractions that "combine upward" into higher levels, while still allowing the possibility for those higher levels to "drop down" back into the lower levels. Being a proof assistant, these escape hatches don't have to be "unsafe", as higher level code can provide proofs to the lower level to justify its actions.
 
-if yo; yoyo /else; dude
+The metaprogramming can of course also be used directly in the dependently typed language, allowing compile-time manipulation of proofs, functions, and data. Verified proof tactics, macros, and higher-level embedded programming languages are all possible.
 
-let thingy = if some >whatevs hmm; dude /else; yo
-```
+Importantly, this language is self-hosting, so metaprogramming functions benefit from the same bare metal performance and full verifiability.
 
-piping custom keywords can be done with a leading `;`? and standalone statement style ones are something else like `$`?
-custom keywords are called with a leading `;`? so something like `;route_get yoyo something; whatevs /err; dude`
+## Taught effectively
 
-calling macros/known functions is indicated with something like a `~` or just the backtick thing? which means it can be done
+Working engineers are resource constrained and don't have years of free time to wade through arcane and disconnected academic papers, or use haphazard or clunky tooling. Academics aren't incentivized to properly explain and expose their amazing work, and a massive amount of [research debt](https://distill.pub/2017/research-debt/) has accrued in many fields, including formal verification.
 
-include the "backpassing" idea? or simplify it by somehow creating an "implicit callback defining pipe operator?" such as `>>>`?
+To achieve this goal, this project will enshrine the following values in regard to teaching materials:
 
+- Speak to a person who wants to get something done and not a review committee evaulating academic merit.
+- Put concrete examples front and center.
+- Point the audience toward truly necessary prerequisites rather than assuming shared knowledge.
+- Prefer graspable human words to represent ideas, and only use arbitary symbolic notations when it's both truly useful and properly explained.
+- Prioritize the hard work of finding clear and distilled explanations.
 
+# FAQ
 
+## Is it technically possible to build a language like this?
 
+Yes! None of the technical details of this idea are untested or novel. Dependently typed proof languages, higher-order separation logic, query-based compilers, introspective metaprogramming, and abstract assembly languages are all ideas that have been proven in other contexts. Rok would merely attempt to combine them into one unified and usable package.
 
+## Will working engineers actually use it?
 
-Rok is whitespace/indentation sensitive.
-Anywhere a `;` can be used an opening indent can be used *additionally*.
-Anywhere a `,` can be used a newline can be used *instead*.
-The `:` operator is always used in some way to indicate type-like assertions.
-Precedence is decided using nesting with parentheses or indentation and never operator power.
-"Wrapping" delimiters are avoided.
-"Pipeability" is strongly valued.
-Operators are rarely used to represent actions that could be defined within the language, and instead prioritize adding new capabilities.
+Maybe! We can't force people or guarantee it will be successful, but we can learn a lot from how Rust has been able to successfully teach quite complex type-theoretical ideas to an huge and excited audience. I think Rust has succeeded by:
 
-```
-// defining computational types
-data Unit
-data Tuple;
+- *Making big promises* in terms of how performant/robust/safe the final code will be.
+- *Delivering* on those promises by making something awesome. I hope that since the entire project will have verification in mind from the start it will be easier to ship something excellent and robust with less churn than usual.
+- *Respecting people's time* by making the teaching materials clear and distilled and the tooling simple and ergonomic.
 
+All of those things are easier said than done! Fully achieving those goals will require work from a huge community of contributors.
 
-data Macro (S=undefined);
-  | Block; BlockMacroFn
-  | Function; FunctionMacroFn
-  | Decorator; DecoratorMacroFn
-  | Import; ImportMacroFn(S)
+## Is this language trying to replace Rust?
 
+No! My perfect outcome of this project would be for it to sit *underneath* Rust, acting as a new verified toolchain that Rust could "drop into". The concepts and api of Rust are awesome and widely loved, so Rok would just try to give it a more solid foundation. Wouldn't it be cool to be able to *prove* that your use of `unsafe` wasn't actually unsafe??
 
-alias SourceChannel S; Dict<S> -> void
+## Why not just write this stuff in Coq?
 
-fn non_existent_err macroName: str; str, str;
-  return "Macro non-existent", "The macro "${macroName}" doesn't exist.
-
-fn incorrect_type_err
-  macroName: str
-  macroType: str
-  expectedType: str
-;
-  str
-  str
-;
-  return "Macro type mismatch", "The macro "${macroName}" is a ${macroType} type, but here it's being used as a ${expectedType} type."
-
-data CompileContext S;
-  macros: Dict(Macro(S))
-  fileContext: FileContext
-  sourceChannel: SourceChannel(S)
-  handleScript: { path: str source: str } -> void
-  readFile: str -> str | undefined
-  joinPath: ..str -> str
-  subsume: @T -> SpanResult<T> -> Result<T, void>
-  Err: (ts.TextRange, str, str) -> Result<any, void>
-  macroCtx: MacroContext
+Simply? Because Coq has made a lot of bad design decisions.
 
-data MacroContext;
-  Ok: @T, (T, SpanWarning[]?) -> SpanResult<T>
-  TsNodeErr: (ts.TextRange, str, ..str) -> SpanResult<any>
-  Err: (fileName: str, title: str, ..str) -> SpanResult<any>
-  tsNodeWarn: (node: ts.TextRange, str, ..str[]) -> void
-  warn: (str, str, ..str[]) -> void
-  subsume: @T, SpanResult T -> Result T, void
+Metaprogramming is [technically possible in Coq](https://github.com/MetaCoq/metacoq), but it was grafted on many years into the project, and it feels like it. The language is extremely cluttered and obviously "designed by accretion". All the documentation and introductory books were clearly written by academics who have no interest in helping people with deadlines build something concrete. The Notation system just begs for unclear and profoundly confusing custom syntax, and is itself extremely overengineered. It's a pure functional language with a garbage collector, so it will never perform as well as a self-hosted bare metal compiler. And let's be honest, the name "Coq" is just terrible.
 
+I don't intend to throw away all the awesome work done by the Coq project though, which is why the first bootstrapping compiler and initial theory will be written in Coq, and I intend to (someday) create some kind of backport to allow old Coq code to be read and used by Rok. But I'm unwilling to be bound to Coq's design.
 
-data u8; bitarray(8)
+This question is a lot like asking the Rust project creators "why not just write a specialized C compiler"? Because instead of making something *awesome* we'd have to drag around a bunch of bad decisions. Sometimes it's worth it to start again.
 
-ideal Day;
-  | monday | tuesday | wednesday | thursday
-  | friday | saturday | sunday
+## Do you really think all engineers are going to write proofs for all their code?
 
-  use Day.*
+No! And honestly, doing so would probably be a huge waste of time. Not all software has the same constraints, and it would be dumb to try to verify a recipe app with the same level of rigor as a crypography function.
 
-  rec next_weekday day: Day; match day;
-    monday; tuesday, tuesday; wednesday, wednesday; thursday, thursday; friday
-    friday; monday, saturday; monday, sunday; monday
+But even a recipe app would benefit from the *foundations* it sits on being much more verified. I imagine something like a "verification pyramid" with excruciatingly verified software at the bottom, going up through less verified code all the way to throwaway scripts that aren't even tested. At the bottom even the tiniest details such as the possibility of integer overflow must be explicitly accounted for, and at the top we just do a basic and highly inferred type-check. Every layer can rely on the safety of abstractions underneath to not worry about certain kinds of error conditions and only verify what they feel they need to.
 
-ideal Bool;
-  | true
-  | false
+Basically, the less important a piece of software is and the easier it is to change, the less verified it needs to be.
 
-  use Bool.*
+## Won't writing verified software be way more expensive? Do you actually think this is worth it?
 
-  rec negate b: Bool :: bool;
-    match b;
-      true; false
-      false; true
+**Emphatically yes it is worth it.** Broken software has likely caused humanity trillions of dollars in damage, social harm, waste, and lost opportunity in the digital age. Even if it were much more expensive to write verified software, it would still be worth it. Rust has already taught us that it's almost always worth it to [have the hangover first](https://www.youtube.com/watch?v=ylOpCXI2EMM&t=565s&ab_channel=Rust) rather than wastefully churn on a problem after you thought you could move on.
 
-  rec and b1: bool, b2: bool :: bool;
-    match b1;
-      true; b2
-      false; false
+And of course, a big goal of the project is to make verification less expensive! Tooling, better education, better algorithms and abstractions can all decrease verification burden. If the project ever reaches maturity these kinds of improvements will likely be most of the continued effort for a long time.
 
-  rec or b1: bool, b2: bool :: bool;
-    match b1;
-      true; true
-      false; b2
+Besides, many projects already write [absolutely gobs of unit tests](https://softwareengineering.stackexchange.com/questions/156883/what-is-a-normal-functional-lines-of-code-to-test-lines-of-code-ratio), and a proof is literally *infinitely* better than a unit test. At this point I'm actually hopeful that proofs will *decrease* the cost of writing software, we'll see.
 
-  impl core.testable;
-    rec test b: Bool :: bool;
-      match b; true; testable.true, false; testable.false
+## Do you think this language will make all software perfectly secure?
 
-  rec negate_using_test b: Bool :: bool;
-    test b;
-      false
-      true
+No! Although it's certainly [very exciting to see how truly secure verified software can be](https://www.quantamagazine.org/formal-verification-creates-hacker-proof-code-20160920/), there will always be a long tail of hacking risk. Not all code will be written in securable languages, not all engineers will have the diligence or the oversight to write secure code, people can make bad assumptions, and brilliant hackers might invent entirely new *types* of attack vectors that aren't considered by our safety specifications. However *any* verified software is better than *none*, and right now it's basically impossible for a security-conscious team to even attempt to prove their code secure. Hopefully the "verification pyramid" referred to earlier will enable almost all software to quickly reuse secure foundations provided by someone else.
 
+And of course, social engineering and hardware tampering are never going away, no matter how perfect our software is.
 
-ideal IndexList<A: ideal> :: nat;
-  | Nil :: IndexList(0)
-  | Cons :: @n A IndexList(n) -> IndexList(n;next)
+## How far are you? What remains to be done?
 
-  rec append n1, ls1: IndexList(n1), n2, ls2: IndexList(n2) :: IndexList(n1 ;add n2);
-    match ls1;
-      Nil; ls2
-      Cons(_, x, ls1'); Cons(x, append(ls1', ls2))
+Very early, and basically everything remains to be done! I've been playing with models of very simple assembly languages to get my arms around formalization of truly imperative execution. Especially interesting has been what it looks like to prove some specific assembly language program will always terminate, and to ergonomically discover paths in the control flow graph which require extra proof justification. I have some raw notes and thoughts about this in [`posts/toward-termination-vcgen.md`](./posts/toward-termination-vcgen.md). Basically I've been playing with the design for the foundational computational theory.
 
-prop even :: nat;
-  | zero: even(0)
-  | add_two: @n, even(n) -> even(n;next;next)
+In [`posts/design-of-rok.md`](./posts/design-of-rok.md) I have some rough thoughts about what the project's major milestones would be. The obvious first milestone is to create a bootstrapping compiler capable of compiling the first self-hosted version. That will likely happen in Coq in some way, but I haven't deeply thought it through. There are several ways to go about it, and I don't think I am far enough to clearly see the best path.
 
-  use even.*
-  thm four_is: even(4); prf;
-    + add_two; + add_two; + zero
+## This is an exciting idea! How can I help?
 
-  thm four_is__next: even(4); prf;
-    + (add_two 2 (add_two 0 zero))
+Just reach out! Since things are so early there are many questions to be answered, and I welcome any useful help. Feedback and encouragement are also welcome.
 
-  thm plus_four: @n, even n -> even (4 ;add n); prf;
-    => n; >>; => Hn;
-    + add_two; + add_two; + Hn
+If you would like to get up to speed with formal verification and Coq enough to contribute at this stage, you ought to read [Software Foundations](https://softwarefoundations.cis.upenn.edu/), [Certified Programming with Dependent Types](http://adam.chlipala.net/cpdt/html/Cpdt.Intro.html), [this introduction to separation logic](http://www0.cs.ucl.ac.uk/staff/p.ohearn/papers/Marktoberdorf11LectureNotes.pdf), and sections 1, 2, and 3 of the [Iris from the ground up](https://people.mpi-sws.org/~dreyer/papers/iris-ground-up/paper.pdf) paper. You might also find my unfinished [introduction to verification and logic in Rok](./posts/intro-verification-logic-in-rok.md) useful, even if it's still very rough.
 
-  thm inversion:
-    @n: nat, even n -> (n = 0) ;or (exists m; n = m;next;next ;and even m)
-  ; prf;
-    => n [| n' E']
-      left; _
-      --
-        right; exists n'; split
-        _; + E'
+Here's a broad map of all the mad scribblings in this repo:
 
-```
+- `theorems` contains exploratory Coq code, much of which is unfinished. This is where I've been playing with designs for the foundational computational theory.
+- `posts` has a lot of speculative writing, mostly to help me nail down the goals and design of the project.
+- `notes` has relevant papers and notes I might have chosen to write purely for my own learning.
+- `notes.md` is a holding place for raw ideas, usually ripped right from my brain with very little editing.
+- `README.future.md` is speculative writing about a "by example" introduction to the language. I've been toying with different syntax ideas there, and have unsurprisingly found those decisions to be the most difficult and annoying :cry:
 
-
-
-## Metaprogramming
-
-## Interactive Tactic Mode
-
-
-
-## Module system
-
-```
-// use a module whose location has been specified in the manifest
-// the manifest is essentially sugar for a handful of macros
-use lang{logic, compute}
-
-// the libraries 'lang', 'core', and 'std' are spoken for. perhaps though we can allow people to specify external packages with these names, we'll just give a warning that they're shadowing builtin modules
-
-// use a local module
-// files/directories/internal modules are all accessed with .
-// `__mod.rk` can act as an "module entry" for a directory, you can't shadow child files or directories
-// the `mod` keyword can create modules inside a file, you can't shadow sibling files or directories
-// `_file.rk` means that module is private, but since this is a verified language this is just a hint to not show the module in tooling, any true invariants should be fully specified with `&`
-use .local.nested{thing, further{nested.more, stuff}}
-
-// can do indented instead
-use .local.nested
-  thing
-  further{nested.more, stuff}
-  whatever
-    stuff.thingy
-
-// goes up to the project root
-use ~local.whatever
-
-// the module system allows full qualification of libraries, even to git repositories
-// the format 'name/something' defaults to namespaced libraries on the main package manager
-// a full git url obviously refers to that repo
-use person/lib.whatever
-
-// the above could be equivalent to:
-let person_lib = lang.pull_lib$(git: "https://github.com/person/lib")
-use person_lib.whatever
-```
-
-
-```
-use lang.{ logic, compute }
-
-// all inductive definitions use the `ind` keyword
-// the different kinds of types are included by default and automatically desugared to be the more "pure" versions of themselves
-
-// a union-like inductive
-ind Day
-  | monday | tuesday | wednesday | thursday
-  | friday | saturday | sunday
-
-// a record-like inductive
-ind Date
-  year: logic.Nat
-  month: logic.Nat & between(1, 12)
-  day: logic.Nat
-
-// a tuple-like inductive
-ind IpAddress; logic.Byte, logic.Byte, logic.Byte, logic.Byte
-
-// the same as above but with a helper macro
-ind IpAddress; logic.tuple_repeat(logic.Byte, 4)
-
-// a unit-like inductive
-ind Unit
-
-rec next_weekday day
-  // bring all the constructors of Day into scope
-  use Day.*
-  match day
-    monday; tuesday, tuesday; wednesday, wednesday; thursday, thursday; friday
-    friday; monday, saturday; monday, sunday; monday
-
-
-let next_weekday_computable = compute.logic_computable(next_weekday)
-let DayComputable = compute.type(next_weekday_computable).args[0].type
-
-dbg next_weekday_computable(DayComputable.monday)
-// outputs "Day.tuesday"
-
-
-// what if we were define the above types and function in the computable language?
-// it's as simple as changing "ind" to "type", "rec" to "fn", and ensuring all types are computable
-// all of these "creation" keywords are ultimately just some kind of sugar for a "let"
-
-type Day
-  | monday | tuesday | wednesday | thursday
-  | friday | saturday | sunday
-
-type Date
-  year: u16
-  month: u8 & between(1, 12)
-  day: u8
-
-type Name; first: str, last: str
-
-type Pair U, T; U, T
-
-type IpAddress; u8, u8, u8, u8
-
-type IpAddress; compute.tuple_repeat(u8, 4)
-
-type Unit
-
-fn next_weekday day
-  use Day.*
-  // a match implicitly takes discriminee, arms, proof of completeness
-  match day
-    monday; tuesday, tuesday; wednesday, wednesday; thursday, thursday; friday
-    friday; monday, saturday; monday, sunday; monday
-
-// now no need to convert it first
-dbg next_weekday(Day.monday)
-// outputs "Day.tuesday"
-```
-
-In general, `;` is an inline delimiter between tuples, and `,` is an inline delimiter between tuple elements. Since basically every positional item in a programming language is a tuple (or the tuple equivalent record), the alteration of these two can delimit everything. Note these are only *inline* delimiters, indents are the equivalent of `;` and newlines are the equivalent of `,`.
-Why `;`? Because `:` is for type specification.
-
-`==` is for equality, and maps to the two different kinds of equality if it's used in a logical or computational context.
-
-
-### trait system in rokrs
-don't need an orphan rule, just need explicit impl import and usage. the default impl is the bare one defined alongside the type, and either you always have to manually include/specify a different impl or its a semver violation to add a bare impl alongside a type that previously didn't have one
-
-
-
-### example: converting a "logical" inductive type into an actual computable type
-
-### example: adding an option to a computable discriminated union
-
-### example: proving termination of a
-
-## The embedded `core` language
-
-
-## Testing
-
-talk about quickcheck and working up to a proof
-
-## Metaprogramming
-
-Known strings given to a function
-Keyword macros
-
-
-
-
-
-Instead of defining an extremely complicated set of macro definition rules, metaprogramming in Rok chooses to give three very simple "syntactic entrypoints", and then just expose as much of the compiler query api as possible.
-
-There are three ways to "capture" program text and have it processed at compile time:
-
-### Inline
-
-Any inline segment of program text can be captured in single quotes and processed with a function, similar to [javascript tagged templates](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates).
-
-```
-let query = sql$'select * from t'
-```
-
-Here the `sql` function would receive the raw text `select * from t` and information about what location in the program this occurs in, and could then parse and transform it.
-
-### Block
-
-An indented block of program text can be captured with the `|'` operator:
-
-```
-let program = py|'
-  for i in range(10):
-    n = i ** 2
-    print(n)
-```
-
-Here the `py` function would
-
-
-This basic
-
-
-### Import
-
-A `use` clause can refer to any kind of file, and using a metaprogramming function process the text of that file.
-
-```
-use query from sql'./path/to/file'
-```
+Thank you! Hope to see you around!

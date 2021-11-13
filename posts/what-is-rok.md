@@ -175,7 +175,7 @@ need to look at xcap paper and other references in the bedrock paper
 
 
 
-Existing research around formal methods and program verification, such as in the deepspec project, I believe focuses extremely foolishly on old software workflows and tools. C and LLVM, despite being extremely powerful tools that profoundly advanced computing in their time, are still necessarily "legacy" tools, and so only very clunkily fit into formal verification. Even Rust, as modern as it is, wasn't ever designed with formal verification in mind from the beginning, and inherited many possibly unhelpful assumptions, such as the operating system syscall model, LLVM itself, and the C++ memory model.
+Existing research around formal methods and program verification, such as in the deepspec project, I believe focuses extremely foolishly on old software workflows and tools. C and LLVM, despite being extremely powerful tools that profoundly advanced computing, are still necessarily "legacy" tools, and so only very clunkily fit into formal verification. Even Rust, as modern as it is, wasn't ever designed with formal verification in mind from the beginning, and inherited many possibly unhelpful assumptions, such as the operating system syscall model, LLVM itself, and the C++ memory model.
 
 The ability to fully verify any program down to the metal completely unlocks the kinds of systems and abstractions we can build! The very act of building such a powerful tool removes all non-negotiable barriers in our way.
 
