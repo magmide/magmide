@@ -7,7 +7,7 @@ https://arxiv.org/abs/2110.01098
 
 
 In most of these heap-enabled lambda calculi "allocation" just assumes an infinite heap and requires an owned points-to connective in order to read.
-In the real assembly language, you can always read, but doing so when you don't have any idea what the value you're reading just gets you a machine word of unknown shape, something like uninit or poison. How can I think about this in Rok? Are there ever programs that intentionally read garbage? That's essentially always random input. Probably there's just a non-determinism token-effect you want.
+In the real assembly language, you can always read, but doing so when you don't have any idea what the value you're reading just gets you a machine word of unknown shape, something like uninit or poison. How can I think about this in Magma? Are there ever programs that intentionally read garbage? That's essentially always random input. Probably there's just a non-determinism token-effect you want.
 
 My hunch about why my approach is going to prove more robust then continuation-passing-style is because it doesn't seem cps can really directly understand programs as mere data, or would need special primitives to handle it, whereas in my approach it's given, which makes sense since again we're merely directly modeling what the machine actually does.
 
@@ -136,14 +136,14 @@ https://gitlab.mpi-sws.org/iris/iris/blob/master/docs/proof_mode.md
 
 
 I like the idea of having a `by` operator that can be used to justify passing a variable as some type with the accompanying proof script. so for example you could say `return x by crush`, or more complicated things such as `return x by (something; something)`. whatever level of automatic crushing should the system do by default? should there be a cheap crusher that's always used even without a `by`, and `by _` means "use a more expensive crusher"? or does no `by` mean to defer to a proof block? it makes sense to me for no `by` to imply simply deferring (trying to pass something as a type we can quickly verify it can't possibly be is just a type error), whereas `by _` means "use the crusher configured at this scope", and something like file/module/section/function/block level crushers can be configured
-a small and easy to use operator for embedding the proof language into the computational language would probably go a long way to making Rok popular and easy to understand.
+a small and easy to use operator for embedding the proof language into the computational language would probably go a long way to making Magma popular and easy to understand.
 
 it would probably be nice to have some shorthand for "extending" the proof value of functions and type aliases. something like `fn_name ;theorem` or something that implies adding the assumptions of the thing and the thing itself into the context of the proof, and adds the new proof for further use.
 
 
 look at koka lang
-what rok can add is *unannotated* effects. polymorphic effects in a language like koka seem (at first glance) to require annotation, whereas in rok they are simply implied by the `&` combination of assertions that is inherent to what a type is.
-a problem with effectual control flow is that we almost never actually *care* about control flow differences. effects in koka seem to me to be too obsessed with "purity" in the pedantic functional programming sense, rather than in the *logical correctness* sense. I don't terribly care if a subfunction causes yield effects or catches internal exceptions, I care about its performance and if it is correct or not. rok is concerned with *correctness* effects, as in whether a function "poisons" the program with possible divergence or crashes or other issues. if a sub function does *potentially* dangerous things but internally proves them and it doesn't impact performance in a way I need to be aware of, then I don't care. well, it looks like they *largely* understand that.
+what magma can add is *unannotated* effects. polymorphic effects in a language like koka seem (at first glance) to require annotation, whereas in magma they are simply implied by the `&` combination of assertions that is inherent to what a type is.
+a problem with effectual control flow is that we almost never actually *care* about control flow differences. effects in koka seem to me to be too obsessed with "purity" in the pedantic functional programming sense, rather than in the *logical correctness* sense. I don't terribly care if a subfunction causes yield effects or catches internal exceptions, I care about its performance and if it is correct or not. magma is concerned with *correctness* effects, as in whether a function "poisons" the program with possible divergence or crashes or other issues. if a sub function does *potentially* dangerous things but internally proves them and it doesn't impact performance in a way I need to be aware of, then I don't care. well, it looks like they *largely* understand that.
 what I don't love though is how obsessed they are with effect handlers, to the extent they have `fun` and `val` variants **that are equivalent to just passing down a closure or value!** I guess it allows the effect giving functions to be used in more contexts than would be possible if they just required a function or value
 value capabilities seem cool, but in a world where we can verify everything, a global variable is in fact totally acceptable. hmmm
 here's my main takeaway from koka: I actually think it's pretty cool, but I think it's important to distinguish *control flow* effects from *correctness* effects. they have completely different purposes. in fact I'm hesitant to call what koka has effects at all, they're more like "contextual handlers" or something. maybe it's better just to call what *I'm* adding something else.
@@ -156,13 +156,13 @@ The thing that bothers me about the red blue complaint is that it is just ignori
 They're of course free to do whatever they like, they can just block futures sequentially, or use the underlying blocking primitives, or use a language with transparent async, but they'll pick up the performance downsides in each case. But as they say you can choose to pick up one end of the stick but not the other
 I'm feeling more and more that other abstractions handle some of these specific cases better, at least from the perspective of how easy they are to reason about
 For example the fun and val versions of koka effects can be thought of as implicit arguments that can be separately passed in a different tuple of arguments. This is the same as giving a handler, but with stricter requirements about resumption which means we don't have to think about saving the stack. If some implicit arguments default to a global "effectful" function, then a call of that function with that default will itself have that effect
-Rok could do algebraic effects but monomorphize all the specific instances, making them zero cost. All of this can be justified using branching instructions
+Magma could do algebraic effects but monomorphize all the specific instances, making them zero cost. All of this can be justified using branching instructions
 Functions could use a global "unsure" function equivalent to panic but that takes a symbol and a message and the default implicit value of this function is merely an instantiation of panic that ignores the symbol. Calling functions can provide something to replace the implicit panic and have it statically monomorphized
 
 
 
 
-The term "gradual verification" is useful to sell people on what's unique about this project. Rok is tractable for the same reasons something like typescript or mypy is tractable.
+The term "gradual verification" is useful to sell people on what's unique about this project. Magma is tractable for the same reasons something like typescript or mypy is tractable.
 
 
 

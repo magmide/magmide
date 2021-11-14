@@ -1,4 +1,4 @@
-# **WARNING! :construction: :construction: Rok is purely a research project at this point.**
+# **WARNING! :construction: :construction: Magma is purely a research project at this point.**
 
 This repo is still very early and rough, it's mostly just notes, speculative writing, and exploratory theorem proving. All the files in this repo other than this readme are "mad scribblings" territory, so dive in at your own risk! In this file however I give a broad overview and answer a few possible questions. Enjoy!
 
@@ -6,7 +6,13 @@ This repo is still very early and rough, it's mostly just notes, speculative wri
 
 The goal of this project is to: **create a programming language and surrounding education/tooling ecosystem capable of making formal verification and provably correct software mainstream and normal among working software engineers**.
 
-That's a big goal, and such a language will need a strong design with the right capabilities. In my opinion in order to achieve that goal a language must be all of these things:
+Software is an increasingly critical component of our society, underpinning almost everything we do. It's also extremely vulnerable and unreliable. Software vulnerabilities and errors have likely caused humanity trillions of dollars in damage, social harm, waste, and lost growth opportunity in the digital age. What would it look like if it was both possible and tractable for working software engineers to build and deploy software that was *provably correct*?
+
+I strongly believe a world with such a capability would not only see a significant improvement in *magnitude* of social good produced by software, but a significant improvement in *kind* of social good. In the same way that Rust gave engineers much more capability to safely compose arbitrary pieces of software therefore enabling them to confidently build much more ambitious systems, a language that gives them the ability to automatically check arbitrary conditions will make safe composition and ambitious design arbitrarily easier to do correctly.
+
+What kinds of ambitious software projects have been conceived but not pursued because getting them working would simply be too difficult? With machine checkable proofs in many more hands could we finally build *truly secure* operating systems, trustless networks, decentralized ledgers, or even electronic voting systems? How many people could be making previously unimagined contributions to computer science, mathematics, and even other logical fields such as economics and philosophy if only they had approachable tools to do so? Read [my blog post discussing my journey to this project and what I intend to build with it once its mature](https://blainehansen.me/post/my-path-to-magma/) if you're interested in a more personal view of these questions.
+
+This is a huge goal, and a language capable of achieving it will need a strong design with the right capabilities. In my opinion in order to achieve this goal a language must be all of these things:
 
 ## Fully verifiable
 
@@ -38,6 +44,12 @@ The metaprogramming can of course also be used directly in the dependently typed
 
 Importantly, this language is self-hosting, so metaprogramming functions benefit from the same bare metal performance and full verifiability.
 
+## Practical and ergonomic
+
+My experience using languages like Coq has been extremely painful, and the interface is "more knife than handle". I've been astounded how willing academics seem to be to use extremely clunky workflows and syntaxes just to avoid having to build better tools.
+
+To achieve this goal, this project will learn heavily from `cargo` and other excellent projects. It should be possible to verify, interactively prove, query, compile, and run any magma code with a single tool.
+
 ## Taught effectively
 
 Working engineers are resource constrained and don't have years of free time to wade through arcane and disconnected academic papers, or use haphazard or clunky tooling. Academics aren't incentivized to properly explain and expose their amazing work, and a massive amount of [research debt](https://distill.pub/2017/research-debt/) has accrued in many fields, including formal verification.
@@ -47,14 +59,14 @@ To achieve this goal, this project will enshrine the following values in regard 
 - Speak to a person who wants to get something done and not a review committee evaulating academic merit.
 - Put concrete examples front and center.
 - Point the audience toward truly necessary prerequisites rather than assuming shared knowledge.
-- Prefer graspable human words to represent ideas, and only use arbitary symbolic notations when it's both truly useful and properly explained.
+- Prefer graspable human words to represent ideas, never use opaque and unsearchable non-ascii symbols, and only use symbolic notations when it's both truly useful and properly explained.
 - Prioritize the hard work of finding clear and distilled explanations.
 
 # FAQ
 
 ## Is it technically possible to build a language like this?
 
-Yes! None of the technical details of this idea are untested or novel. Dependently typed proof languages, higher-order separation logic, query-based compilers, introspective metaprogramming, and abstract assembly languages are all ideas that have been proven in other contexts. Rok would merely attempt to combine them into one unified and usable package.
+Yes! None of the technical details of this idea are untested or novel. Dependently typed proof languages, higher-order separation logic, query-based compilers, introspective metaprogramming, and abstract assembly languages are all ideas that have been proven in other contexts. Magma would merely attempt to combine them into one unified and usable package.
 
 ## Will working engineers actually use it?
 
@@ -68,7 +80,7 @@ All of those things are easier said than done! Fully achieving those goals will 
 
 ## Is this language trying to replace Rust?
 
-No! My perfect outcome of this project would be for it to sit *underneath* Rust, acting as a new verified toolchain that Rust could "drop into". The concepts and api of Rust are awesome and widely loved, so Rok would just try to give it a more solid foundation. Wouldn't it be cool to be able to *prove* that your use of `unsafe` wasn't actually unsafe??
+No! My perfect outcome of this project would be for it to sit *underneath* Rust, acting as a new verified toolchain that Rust could "drop into". The concepts and api of Rust are awesome and widely loved, so Magma would just try to give it a more solid foundation. Wouldn't it be cool to be able to *prove* that your use of `unsafe` wasn't actually unsafe??
 
 ## Why not just write this stuff in Coq?
 
@@ -76,7 +88,7 @@ Simply? Because Coq has made a lot of bad design decisions.
 
 Metaprogramming is [technically possible in Coq](https://github.com/MetaCoq/metacoq), but it was grafted on many years into the project, and it feels like it. The language is extremely cluttered and obviously "designed by accretion". All the documentation and introductory books were clearly written by academics who have no interest in helping people with deadlines build something concrete. The Notation system just begs for unclear and profoundly confusing custom syntax, and is itself extremely overengineered. It's a pure functional language with a garbage collector, so it will never perform as well as a self-hosted bare metal compiler. And let's be honest, the name "Coq" is just terrible.
 
-I don't intend to throw away all the awesome work done by the Coq project though, which is why the first bootstrapping compiler and initial theory will be written in Coq, and I intend to (someday) create some kind of backport to allow old Coq code to be read and used by Rok. But I'm unwilling to be bound to Coq's design.
+I don't intend to throw away all the awesome work done by the Coq project though, which is why the first bootstrapping compiler and initial theory will be written in Coq, and I intend to (someday) create some kind of backport to allow old Coq code to be read and used by Magma. But I'm unwilling to be bound to Coq's design.
 
 This question is a lot like asking the Rust project creators "why not just write a specialized C compiler"? Because instead of making something *awesome* we'd have to drag around a bunch of bad decisions. Sometimes it's worth it to start again.
 
@@ -90,11 +102,11 @@ Basically, the less important a piece of software is and the easier it is to cha
 
 ## Won't writing verified software be way more expensive? Do you actually think this is worth it?
 
-**Emphatically yes it is worth it.** Broken software has likely caused humanity trillions of dollars in damage, social harm, waste, and lost opportunity in the digital age. Even if it were much more expensive to write verified software, it would still be worth it. Rust has already taught us that it's almost always worth it to [have the hangover first](https://www.youtube.com/watch?v=ylOpCXI2EMM&t=565s&ab_channel=Rust) rather than wastefully churn on a problem after you thought you could move on.
+**Emphatically yes it is worth it.** As alluded to earlier, bmagmaen software is a massive drain on our society. Even if it were much more expensive to write verified software, it would still be worth it. Rust has already taught us that it's almost always worth it to [have the hangover first](https://www.youtube.com/watch?v=ylOpCXI2EMM&t=565s&ab_channel=Rust) rather than wastefully churn on a problem after you thought you could move on.
 
 And of course, a big goal of the project is to make verification less expensive! Tooling, better education, better algorithms and abstractions can all decrease verification burden. If the project ever reaches maturity these kinds of improvements will likely be most of the continued effort for a long time.
 
-Besides, many projects already write [absolutely gobs of unit tests](https://softwareengineering.stackexchange.com/questions/156883/what-is-a-normal-functional-lines-of-code-to-test-lines-of-code-ratio), and a proof is literally *infinitely* better than a unit test. At this point I'm actually hopeful that proofs will *decrease* the cost of writing software, we'll see.
+Besides, many projects already write [absolutely gobs of unit tests](https://softwareengineering.stackexchange.com/questions/156883/what-is-a-normal-functional-lines-of-code-to-test-lines-of-code-ratio), and a proof is literally *infinitely* better than a unit test. At this point I'm actually hopeful that proofs will *decrease* the cost of writing software. We'll see.
 
 ## Do you think this language will make all software perfectly secure?
 
@@ -106,20 +118,20 @@ And of course, social engineering and hardware tampering are never going away, n
 
 Very early, and basically everything remains to be done! I've been playing with models of very simple assembly languages to get my arms around formalization of truly imperative execution. Especially interesting has been what it looks like to prove some specific assembly language program will always terminate, and to ergonomically discover paths in the control flow graph which require extra proof justification. I have some raw notes and thoughts about this in [`posts/toward-termination-vcgen.md`](./posts/toward-termination-vcgen.md). Basically I've been playing with the design for the foundational computational theory.
 
-In [`posts/design-of-rok.md`](./posts/design-of-rok.md) I have some rough thoughts about what the project's major milestones would be. The obvious first milestone is to create a bootstrapping compiler capable of compiling the first self-hosted version. That will likely happen in Coq in some way, but I haven't deeply thought it through. There are several ways to go about it, and I don't think I am far enough to clearly see the best path.
+In [`posts/design-of-magma.md`](./posts/design-of-magma.md) I have some rough thoughts about what the project's major milestones would be. The obvious first milestone is to create a bootstrapping compiler capable of compiling the first self-hosted version. That will likely happen in Coq in some way, but I haven't deeply thought it through. There are several ways to go about it, and I don't think I am far enough to clearly see the best path.
 
 ## This is an exciting idea! How can I help?
 
 Just reach out! Since things are so early there are many questions to be answered, and I welcome any useful help. Feedback and encouragement are also welcome.
 
-If you would like to get up to speed with formal verification and Coq enough to contribute at this stage, you ought to read [Software Foundations](https://softwarefoundations.cis.upenn.edu/), [Certified Programming with Dependent Types](http://adam.chlipala.net/cpdt/html/Cpdt.Intro.html), [this introduction to separation logic](http://www0.cs.ucl.ac.uk/staff/p.ohearn/papers/Marktoberdorf11LectureNotes.pdf), and sections 1, 2, and 3 of the [Iris from the ground up](https://people.mpi-sws.org/~dreyer/papers/iris-ground-up/paper.pdf) paper. You might also find my unfinished [introduction to verification and logic in Rok](./posts/intro-verification-logic-in-rok.md) useful, even if it's still very rough.
+If you would like to get up to speed with formal verification and Coq enough to contribute at this stage, you ought to read [Software Foundations](https://softwarefoundations.cis.upenn.edu/), [Certified Programming with Dependent Types](http://adam.chlipala.net/cpdt/html/Cpdt.Intro.html), [this introduction to separation logic](http://www0.cs.ucl.ac.uk/staff/p.ohearn/papers/Marktoberdorf11LectureNotes.pdf), and sections 1, 2, and 3 of the [Iris from the ground up](https://people.mpi-sws.org/~dreyer/papers/iris-ground-up/paper.pdf) paper. You might also find my unfinished [introduction to verification and logic in Magma](./posts/intro-verification-logic-in-magma.md) useful, even if it's still very rough.
 
 Here's a broad map of all the mad scribblings in this repo:
 
 - `theorems` contains exploratory Coq code, much of which is unfinished. This is where I've been playing with designs for the foundational computational theory.
 - `posts` has a lot of speculative writing, mostly to help me nail down the goals and design of the project.
-- `notes` has relevant papers and notes I might have chosen to write purely for my own learning.
-- `notes.md` is a holding place for raw ideas, usually ripped right from my brain with very little editing.
+- `notes` has papers on relevant topics and notes I've made purely for my own learning.
+- `notes.md` is a scratchpad for raw ideas, usually ripped right from my brain with very little editing.
 - `README.future.md` is speculative writing about a "by example" introduction to the language. I've been toying with different syntax ideas there, and have unsurprisingly found those decisions to be the most difficult and annoying :cry:
 
 Thank you! Hope to see you around!

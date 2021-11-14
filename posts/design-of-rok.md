@@ -1,12 +1,12 @@
-# The technical design of Rok.
+# The technical design of Magma.
 
-This post describes the design of Rok *as if it were finished*, with the intent of clearly defining the path forward and soliciting feedback. It doesn't try to persuade you this is the right design, merely describe the design in detail. It's intended for people who already understand formal verification, especially in the Coq proof assistant. If you'd like to be able to understand and contribute to this project at its current stage, you ought to read [software foundations](), [certified programming with dependent types](), [introduction to separation logic](), and the [iris from the ground up]() paper. You probably also ought to understand basic computer hardware/architecture design and assembly languages.
+This post describes the design of Magma *as if it were finished*, with the intent of clearly defining the path forward and soliciting feedback. It doesn't try to persuade you this is the right design, merely describe the design in detail. It's intended for people who already understand formal verification, especially in the Coq proof assistant. If you'd like to be able to understand and contribute to this project at its current stage, you ought to read [software foundations](), [certified programming with dependent types](), [introduction to separation logic](), and the [iris from the ground up]() paper. You probably also ought to understand basic computer hardware/architecture design and assembly languages.
 
 "Progress and Roadmap" describes what has already been done and the plan forward.
 
 ## Project goals and values
 
-The design of the project is directly informed by its values and ambitions. Rok a metaprogrammable dependently typed language based on the calculus of constructions with an integrated abstract assembly language with trackable effects. Its goal is to enable formalization/verification/compilation of any software for any environment, therefore (*finally*) making formal verification mainstream and normal. The project doesn't have any direct goals to do cutting edge research work or advance the state of the art, but merely to combine existing research into a usable tool.
+The design of the project is directly informed by its values and ambitions. Magma a metaprogrammable dependently typed language based on the calculus of constructions with an integrated abstract assembly language with trackable effects. Its goal is to enable formalization/verification/compilation of any software for any environment, therefore (*finally*) making formal verification mainstream and normal. The project doesn't have any direct goals to do cutting edge research work or advance the state of the art, but merely to combine existing research into a usable tool.
 
 To achieve that goal the project has these values:
 
@@ -18,36 +18,36 @@ To achieve that goal the project has these values:
 The design decisions of the project were made intentionally to support those values. All the bullets below are given their own section discussing the details.
 
 - **Correctness**
-  - Rok is dependently typed in a strong type theory, giving it the logical power necessary to verify any property a user can prove in the calculus of constructions. Quote [Adam Chlipala "Why Coq?"](http://adam.chlipala.net/cpdt/html/Cpdt.Intro.html)
-  - Rok is self-hosting but bootstrapped from Coq, meaning it is able to verify itself and was originally verified in a well-tested and [even verified tool](TODO coqcoqcorrect).
+  - Magma is dependently typed in a strong type theory, giving it the logical power necessary to verify any property a user can prove in the calculus of constructions. Quote [Adam Chlipala "Why Coq?"](http://adam.chlipala.net/cpdt/html/Cpdt.Intro.html)
+  - Magma is self-hosting but bootstrapped from Coq, meaning it is able to verify itself and was originally verified in a well-tested and [even verified tool](TODO coqcoqcorrect).
 - **Clarity**
-  - Rok syntax rules only allow custom notation through the macro system, which ensures it is always scoped beneath a tracable and searchable name, making it much easier for new users to find explanations or definitions of custom notation.
-  - Rok syntax is whitespace sensitive and designed to make program structure and code formatting directly correspond.
-  - Rok syntax intentionally compresses different ways of expressing the same thing into the most general syntax choices, and requires the use of syntax sugars when they are available.
-  - Rok's import mechanisms usefully expose different kinds of definitions differently, allowing users to not ever need problematic implicit imports.
-  - Rok enables readable markdown documentation comments for definitions.
-  - Rok's builtin formatter warns about inconsistent naming and capitalization.
-  - Rok's core educational materials set a convention of approachability, tracability (calling out prerequisites), and clarity.
+  - Magma syntax rules only allow custom notation through the macro system, which ensures it is always scoped beneath a tracable and searchable name, making it much easier for new users to find explanations or definitions of custom notation.
+  - Magma syntax is whitespace sensitive and designed to make program structure and code formatting directly correspond.
+  - Magma syntax intentionally compresses different ways of expressing the same thing into the most general syntax choices, and requires the use of syntax sugars when they are available.
+  - Magma's import mechanisms usefully expose different kinds of definitions differently, allowing users to not ever need problematic implicit imports.
+  - Magma enables readable markdown documentation comments for definitions.
+  - Magma's builtin formatter warns about inconsistent naming and capitalization.
+  - Magma's core educational materials set a convention of approachability, tracability (calling out prerequisites), and clarity.
 - **Practicality**
-  - Rok is arbitrariliy metaprogrammable, allowing all the flexibility and power that entails, including creating "zero-cost languages" that enable fine-grained verification at higher levels of abstraction. It also means the compiler doesn't require any kind of extension or plugin API, the metaprogramming facilities subsume such things especially when combined with a query-based compiler.
-  - Rok compute theory is generic over the environment, allowing programs in any environment to be verified. It includes a core "abstract assembly language" akin to llvm that allows general-purpose programs to be compiled to many architectures.
-  - Rok trackable effects (based on Iron trackable resources) allow programs to be gradually verified, allowing users to understand and accept tradeoffs as they work on a codebase.
-  - Rok trackable effects are generic over the environment, allowing environments to introduce new trackable effects.
-  - Rok is designed with usability in mind, and has an easy to use `cargo`-like cli and package manager.
-  - Rok is a "one-stop-shop" for engineers creating correct and performant software, since it can both verify and compile code.
-  - Rok uses a query-based compiler, so its internals can be more easily exposed to allow more ergonomic and powerful macros.
+  - Magma is arbitrariliy metaprogrammable, allowing all the flexibility and power that entails, including creating "zero-cost languages" that enable fine-grained verification at higher levels of abstraction. It also means the compiler doesn't require any kind of extension or plugin API, the metaprogramming facilities subsume such things especially when combined with a query-based compiler.
+  - Magma compute theory is generic over the environment, allowing programs in any environment to be verified. It includes a core "abstract assembly language" akin to llvm that allows general-purpose programs to be compiled to many architectures.
+  - Magma trackable effects (based on Iron trackable resources) allow programs to be gradually verified, allowing users to understand and accept tradeoffs as they work on a codebase.
+  - Magma trackable effects are generic over the environment, allowing environments to introduce new trackable effects.
+  - Magma is designed with usability in mind, and has an easy to use `cargo`-like cli and package manager.
+  - Magma is a "one-stop-shop" for engineers creating correct and performant software, since it can both verify and compile code.
+  - Magma uses a query-based compiler, so its internals can be more easily exposed to allow more ergonomic and powerful macros.
 - **Performance**
-  - Rok compute theory goes all the way down to the metal, allowing arbitrarily fine-grained guarantees and optimizations.
-  - Rok is itself built in compute Rok, meaning the same performance benefits it promises to users it also gives during type-checking and compilation.
-  - Rok metaprograms are defined in Rok, meaning they perform well and can even be verified.
-  - Rok uses a query-based compiler, so it efficiently avoids recomputing unchanged forms of a program.
+  - Magma compute theory goes all the way down to the metal, allowing arbitrarily fine-grained guarantees and optimizations.
+  - Magma is itself built in compute Magma, meaning the same performance benefits it promises to users it also gives during type-checking and compilation.
+  - Magma metaprograms are defined in Magma, meaning they perform well and can even be verified.
+  - Magma uses a query-based compiler, so it efficiently avoids recomputing unchanged forms of a program.
 
 
 My hypothesis for what determines language enthusiasm is: `possible_correctness * possible_performance * average_productive_usability`
 
 # Design
 
-Rok has three type universes:
+Magma has three type universes:
 
 - `Prop`, representing propositions (equivalent to coq `Prop`).
 - `Ideal`, representing pure logical types arranged in an infinite hierarchy of universes (equivalent to coq `Set`/`Type`).
@@ -100,7 +100,7 @@ known code execution
 
 abstraction over concrete machines
 
-### phase 1, bootstrapping the rok compiler (catching a spark)
+### phase 1, bootstrapping the magma compiler (catching a spark)
 
 specifying calculus of constructions in coq (reusing coqcoqcorrect)
 
@@ -109,15 +109,15 @@ defining an abstract assembly language program that implements the proof checkin
 building parser/renderer that can translate that assembly language program (and maybe it's higher-level forms?) into some usable machine code program, possibly reusing something like llvm but also possibly just going directly into x86? (at this point we're building an environment that acts like a "castle in the air", since the environment is merely stated axiomatically rather than directly inheriting its semantics from a verified lower-level host system)
 
 we actually have a few different possible avenues here
-- build the first version of the compiler in coq and extract to ocaml, which means we *might* have a functioning compiler sooner to use while building the self-hosting version, and we have a functional model to use while verifying the rok version. however it also means we have to implement the whole compiler twice.
-- build a mere execution function in coq that interprets rok. probably really slow, not sure I like this option
-- merely build a coq parser capable of ingesting the rok implementation *to verify it in coq* and then just a barebones renderer to compile it as llvm or x86
+- build the first version of the compiler in coq and extract to ocaml, which means we *might* have a functioning compiler sooner to use while building the self-hosting version, and we have a functional model to use while verifying the magma version. however it also means we have to implement the whole compiler twice.
+- build a mere execution function in coq that interprets magma. probably really slow, not sure I like this option
+- merely build a coq parser capable of ingesting the magma implementation *to verify it in coq* and then just a barebones renderer to compile it as llvm or x86
 
 the *finished, self-hosting* compiler will have these layers:
-- the axiomatic specification of the calculus of constructions (trusted theory base), written in ideal/prop rok
-- the proof checker component, written in compute rok but verified using the axiomatic specification (probably useful to introduce a concept of "perfectly models" vs "models with assumptions" to link datatypes between ideal/prop rok and compute rok. for example something like a fixed width bit-word can only model numbers within certain assumptions, but enums or records or other such things can be a perfect correspondence)
-- the compute theory libraries, written in ideal/prop rok but *modeling* compute rok
-- the compiler component, written in compute rok *defining* the compute datatypes that *represent* rok, and verified using the compute theory libraries
+- the axiomatic specification of the calculus of constructions (trusted theory base), written in ideal/prop magma
+- the proof checker component, written in compute magma but verified using the axiomatic specification (probably useful to introduce a concept of "perfectly models" vs "models with assumptions" to link datatypes between ideal/prop magma and compute magma. for example something like a fixed width bit-word can only model numbers within certain assumptions, but enums or records or other such things can be a perfect correspondence)
+- the compute theory libraries, written in ideal/prop magma but *modeling* compute magma
+- the compiler component, written in compute magma *defining* the compute datatypes that *represent* magma, and verified using the compute theory libraries
 - the standard library
 
 this is really as far as the core project will likely have to go, once something is usable it will hopefully be much easier to attract outside contributions
@@ -154,12 +154,12 @@ syntax highlighting/language server
 
 
 
-## How does Rok work?
+## How does Magma work?
 
 The logical language where proofs are conducted is in concert with the concrete language where computation is done. The computational language defines the instructions that perform type(proof)-checking and manipulate proof terms. But then proof terms justify the computational types of the concrete language, and are used to define the instructions that are then assembled into real programs.
 
-The Rok compiler is a program, whose source is written in the Rok abstract assembly language (but of course any part of it can be *actually* written in some embedded language and then unfolded metaprogramatically to the abstract assembly language)
-This program includes definitions for the basic ast of Rok. This ast is almost entirely the (path-based) module system, and all the logical stuff (coq equivalents). The abstract assembly language is then entirely defined within this logical language, and metaprogrammatically converted
+The Magma compiler is a program, whose source is written in the Magma abstract assembly language (but of course any part of it can be *actually* written in some embedded language and then unfolded metaprogramatically to the abstract assembly language)
+This program includes definitions for the basic ast of Magma. This ast is almost entirely the (path-based) module system, and all the logical stuff (coq equivalents). The abstract assembly language is then entirely defined within this logical language, and metaprogrammatically converted
 
 So you could possibly say that the "object" language is the logical proof one, and the "meta" language is the concrete computational one. However the "object" language has an unusual link back to the "meta" language, since the meta language is defined and proven in terms of the object language.
 
@@ -170,7 +170,7 @@ So you could possibly say that the "object" language is the logical proof one, a
     |                     |                    |
     |                     |                    |
     v                     |                    |
-Logic Rok                 +-------------> Compute Rok
+Logic Magma                 +-------------> Compute Magma
     |                                          ^
     |                                          |
     |                                          |

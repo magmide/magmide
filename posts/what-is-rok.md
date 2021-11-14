@@ -1,16 +1,14 @@
-Rok is a metaprogrammable dependently-typed language with an integrated abstract assembly language with trackable effects. This means it's the first and only language that brings together these capabilities:
+Magma is a metaprogrammable dependently-typed language with an integrated abstract assembly language with trackable effects. This means it's the first and only language that brings together these capabilities:
 
-- Fully Verifiable: Rok has an embedded dependently-typed proof checker much like [Coq]() or [Lean](). This means any logical property provable within the [Calculus of Constructions]() can be stated and proven in Rok, including the correctness of programs.
-- Bare Metal Performance: Rok's internal library includes types and theorems formalizing [Von Neumann computation]() and assembly language execution, allowing it to be used to write and verify programs at the lowest level of software abstraction. This means even the most daring and high performance programs can be written, proven correct, and compiled in the same tool.
-- Infinitely Flexible: Rok has extremely powerful and yet simple metaprogramming, allowing manipulation of proofs, functions, and data at compile time. Write verified proof tactics, plugins, and even embedded higher-level programming languages within Rok.
+- Fully Verifiable: Magma has an embedded dependently-typed proof checker much like [Coq]() or [Lean](). This means any logical property provable within the [Calculus of Constructions]() can be stated and proven in Magma, including the correctness of programs.
+- Bare Metal Performance: Magma's internal library includes types and theorems formalizing [Von Neumann computation]() and assembly language execution, allowing it to be used to write and verify programs at the lowest level of software abstraction. This means even the most daring and high performance programs can be written, proven correct, and compiled in the same tool.
+- Infinitely Flexible: Magma has extremely powerful and yet simple metaprogramming, allowing manipulation of proofs, functions, and data at compile time. Write verified proof tactics, plugins, and even embedded higher-level programming languages within Magma.
 
-This combination of capabilities opens up possibilities we've only dared to imagine. Our limits in designing software have mostly been defined by the immense difficulty of safely and correctly composing code together, but using Rok any code can be arbitrarily composed. The basic assumptions of software architecture can be entirely reexamined and we can finally let our imaginations lead the way.
+This combination of capabilities opens up possibilities we've only dared to imagine. Our limits in designing software have mostly been defined by the immense difficulty of safely and correctly composing code together, but using Magma any code can be arbitrarily composed. The basic assumptions of software architecture can be entirely reexamined and we can finally let our imaginations lead the way.
 
-## Who is Rok for?
+## Who is Magma for?
 
-Rok has the absurdly ambitious goal of being a new universal substrate for all software! Since Rok is an *abstract* assembly language, it can theoretically compile correct programs for even the most obscure Von Neumann environments. The long term goal is for Rok to be used for embedded devices, normal application software, web programs, etc.
-
-
+Magma has the absurdly ambitious goal of being a new universal substrate for all software! Since Magma is an *abstract* assembly language, it can theoretically compile correct programs for even the most obscure Von Neumann environments. The long term goal is for Magma to be used for embedded devices, normal application software, web programs, etc.
 
 
 
@@ -31,17 +29,19 @@ Rok has the absurdly ambitious goal of being a new universal substrate for all s
 
 
 
-# What is Rok and why is it important?
 
-Rok is a dependently typed, metaprogrammable proof checker with an integrated abstract assembly language with trackable effects
 
-This post is intended for anyone in the software engineering space, meant to persuade you we desperately need something like Rok and that the design choices it makes are the right ones to achieve our goals. If you want a deep dive on the technical design of Rok, please read [The Technical Design of Rok](), and if you want to feel what it would be like to learn Rok once it's finished, please read [Introduction to Rok]().
+# What is Magma and why is it important?
+
+Magma is a dependently typed, metaprogrammable proof checker with an integrated abstract assembly language with trackable effects
+
+This post is intended for anyone in the software engineering space, meant to persuade you we desperately need something like Magma and that the design choices it makes are the right ones to achieve our goals. If you want a deep dive on the technical design of Magma, please read [The Technical Design of Magma](), and if you want to feel what it would be like to learn Magma once it's finished, please read [Introduction to Magma]().
 
 
 Includes things that can be built, some of which I intend to build.
 
 
-Verified hardware simulators are easy with rok
+Verified hardware simulators are easy with magma
 
 Engineers want tools that can give them stronger guarantees about safety robustness and performance, but that tool has to be tractably usable and respect their time
 
@@ -65,7 +65,7 @@ What's better than a standard? An automatically checkable and enforceable standa
 
 
 https://project-oak.github.io/rust-verification-tools/2021/09/01/retrospective.html
-we have to go all the way. anything less than the capabilities given by a full proof checker proving theories on the literal environment abstractions isn't going to be good enough, will always have bugs and hard edges and cases that can't be done. but those full capabilties can *contain* other more "ad hoc" things like fuzzers, quickcheck libraries, test generators, etc. we must build upon a rok!
+we have to go all the way. anything less than the capabilities given by a full proof checker proving theories on the literal environment abstractions isn't going to be good enough, will always have bugs and hard edges and cases that can't be done. but those full capabilties can *contain* other more "ad hoc" things like fuzzers, quickcheck libraries, test generators, etc. we must build upon a magma!
 
 
 
@@ -116,8 +116,8 @@ https://www.ponylang.io/discover/#what-is-pony
 Overall the difference between "the-right-thing" and "worse-is-better" can be understood as the difference between upfront and marginal costs. Doing something right the first time is an upfront cost, and once paid decreases marginal costs *forever*.
 The main problem in software, and the reason "worse-is-better" has been winning in an environment of growth-focused viral capitalism, was that it was basically impossible in practice to actually do something the right way! Since our languages haven't ever supported automatic verification we could only hope to weakly attempt to understand what correct even meant and then actually implement it. This meant the cost to chase the truly right thing was unacceptably uncertain.
 
-Rok promises neither performance nor correctness nor consistency nor completeness, but instead promises the one thing that underlies all of those qualities: knowledge. Complete and total formal knowledge about the program you're writing.
-Rok is simply a raw exposure of the basic elements of computing, in both the real sense of actual machine instructions and the ideal sense of formal logic. These basic elements can be combined in whatever way someone desires, even in the "worse-is-better" way! The main contribution of Rok is that the tradeoffs one makes can be made *and flagged*. Nothing is done without knowledge.
+Magma promises neither performance nor correctness nor consistency nor completeness, but instead promises the one thing that underlies all of those qualities: knowledge. Complete and total formal knowledge about the program you're writing.
+Magma is simply a raw exposure of the basic elements of computing, in both the real sense of actual machine instructions and the ideal sense of formal logic. These basic elements can be combined in whatever way someone desires, even in the "worse-is-better" way! The main contribution of Magma is that the tradeoffs one makes can be made *and flagged*. Nothing is done without knowledge.
 
 
 If you can prove it you can do it
@@ -140,7 +140,7 @@ Why isn't (X) good enough?
 - LLVM. Not actually safe, which also means its optimizations can't be as aggressive. Focuses on downwards compilation rather than upwards metaprogrammatic recombination. Perhaps abstracts too much of the machine away in certain circumstances.
 
 - Coq
-because of metacoq and ml extraction, coq *technically* could be used to do everything in this project. however it's important to note that metacoq defines metaprogramming in coq without extraction, which means it will always perform quite poorly. rok by comparison defines its metaprograming in terms of *compute* rok rather than *theory* rok, so it can perform extremely well.
+because of metacoq and ml extraction, coq *technically* could be used to do everything in this project. however it's important to note that metacoq defines metaprogramming in coq without extraction, which means it will always perform quite poorly. magma by comparison defines its metaprograming in terms of *compute* magma rather than *theory* magma, so it can perform extremely well.
 but to be truly honest, the real reason coq isn't good enough is because *it has a truly punishing user experience*. it's not good enough for coq to be *powerful*, it has to be *approachable* to meet the goal of making formal verification common in engineering practice
 using myself as an example, I'm an extremely determined and curious person who has been hell-bent on understanding both it and the theory behind it, but since I'm not being led through it in an academic context where all the implicit knowledge is exposed through in-person mentors, it has been extremely challenging
 coq has existed *since the 80s* and is still a very niche tool mostly only used by academics or former academics. rust by comparison doesn't offer anywhere close to the correctness-proving power, and has only been a mature language since 2015, but has achieved truly impressive adoption.
@@ -159,7 +159,7 @@ This project is seeking to solve these problems by creating a Tool, and a Commun
 
 - vale
 focused on cryptographic code, and it isn't a new proof assistant with the intent to make formal verification go mainstream, but instead a library in an existing proof assistant meant to help crypto researchers
-however this project does in a way hint that the rok project is a good idea! it is also generic over different architectures and uses automatic verification condition generators
+however this project does in a way hint that the magma project is a good idea! it is also generic over different architectures and uses automatic verification condition generators
 
 - ivy http://microsoft.github.io/ivy/language.html
 only first order
@@ -169,7 +169,7 @@ Proprietary! It's essential systems like this aren't only controlled by corporat
 http://adam.chlipala.net/papers/BedrockICFP13/BedrockICFP13.pdf
 https://plv.csail.mit.edu/bedrock/
 https://bedrocksystems.com/products/
-The original purely research version of bedrock is yet another project that is promising for the rok project, since it shows that verified *macros* are possible and tractable. However it's still stuck in coq and therefore slow and obtuse.
+The original purely research version of bedrock is yet another project that is promising for the magma project, since it shows that verified *macros* are possible and tractable. However it's still stuck in coq and therefore slow and obtuse.
 
 need to look at xcap paper and other references in the bedrock paper
 
@@ -183,7 +183,7 @@ Formally verifying the correctness of legacy systems after the fact is necessari
 
 That work only matters once it has been applied in a way that benefits the world.
 
-The goal behind this project is to answer the question: what would we design if we started from scratch? Rok really is an attempt to lay a completely new foundation for all of computing that could be used to entirely rethink how every layer of software infrastructure works, all the way down to the bare metal.
+The goal behind this project is to answer the question: what would we design if we started from scratch? Magma really is an attempt to lay a completely new foundation for all of computing that could be used to entirely rethink how every layer of software infrastructure works, all the way down to the bare metal.
 
 ## Why Do We Need More Verification?
 
@@ -199,9 +199,9 @@ Even if the correctness of some piece of software isn't "critical", its correctn
 
 In exactly the same way that [`null` was a billion dollar mistake](TODO), general software incorrectness has probably cost trillions of dollars in lost productivity and potential progress.
 
-## Why Will Rok Be Able to find mainstream success?
+## Why Will Magma Be Able to find mainstream success?
 
-Mostly because of the metaprogramming, and the focus on upward recombination over downward translation. The language *itself* doesn't have to achieve mainstream success to massively improve the quality of all downstream software, but merely some sub-language. Many engineers have never heard of LLVM, but they still implicitly rely on it every day. Rok would seek to do the same.
+Mostly because of the metaprogramming, and the focus on upward recombination over downward translation. The language *itself* doesn't have to achieve mainstream success to massively improve the quality of all downstream software, but merely some sub-language. Many engineers have never heard of LLVM, but they still implicitly rely on it every day. Magma would seek to do the same.
 
 We don't have to take full formal verification fully mainstream, we just have to make it available for the handful of people willing to do the work. If a full theorem prover is sitting right below the high-level language you're currently working in, you don't have to bother with it most of the time, but you still have the option to do so when it makes sense.
 
@@ -209,18 +209,18 @@ And of course we have to be humble. It might not work! Hopefully at the very lea
 
 We shouldn't be scared to put the power of a full proof checker into a computation focused language. Not everyone has to use it! And those who do don't have to use it all the time!
 
-- Make it possible: at this moment in time, it isn't really even *possible* to fully verify a truly bare metal program on an arbitrary architecture. This stage focuses on creating the basic Rok compiler
-  - define rok semantics and theories in coq
-  - use extracted ml to compile first runnable version, so rok has been bootstrapped out of coq
-  - complete rok from within
+- Make it possible: at this moment in time, it isn't really even *possible* to fully verify a truly bare metal program on an arbitrary architecture. This stage focuses on creating the basic Magma compiler
+  - define magma semantics and theories in coq
+  - use extracted ml to compile first runnable version, so magma has been bootstrapped out of coq
+  - complete magma from within
 - Make it productive: bring the project to maturity, with tolerable compiler performance, broad architecture and context support, ergonomic tooling and libraries, good proof methodology, and solid documentation.
-- Make it common: do evangelism, write books to spread rok into different domains, use the tool to create verified infrastructure and new programming environments.
+- Make it common: do evangelism, write books to spread magma into different domains, use the tool to create verified infrastructure and new programming environments.
 
 ## Verification Leverage
 
 Verification is obviously very difficult. Although I have some modest theories about ways to speed up/improve automatic theorem proving, and how to teach verification concepts in a more intuitive way that can thereby involve a larger body of engineers, we still can't avoid the fact that refining our abstractions and proving theorems is hard and will remain so.
 
-But we don't have to make verification completely easy and approachable to still get massive improvements. We only have to make the labor of researchers and experts more *available* and *reusable*. Since Rok is inherently metaprogrammable and integrates programming and proving, developments in one area of research can quickly disseminate through the entire language diaspora. Research would be much less likely to remain trapped in the ivory tower, and could be usefully deployed in real software much more quickly.
+But we don't have to make verification completely easy and approachable to still get massive improvements. We only have to make the labor of researchers and experts more *available* and *reusable*. Since Magma is inherently metaprogrammable and integrates programming and proving, developments in one area of research can quickly disseminate through the entire language diaspora. Research would be much less likely to remain trapped in the ivory tower, and could be usefully deployed in real software much more quickly.
 
 ## Environment Genericity
 
@@ -265,7 +265,7 @@ checking assertions from the bottom up and in reverse instruction order, keeping
 
 ## Intended Applications
 
-Obviously a language that allows robust verification of any useful program will be an obvious fit for critical software of all kinds, such as blockchains/smart contracts, cryptography, firmware, operating systems, language runtimes, financial/legal/medical applications, web servers, databases, etc. Check out [this blog post](TODO my personal essay describing my long journey and the half finished projects toward Rok)
+Obviously a language that allows robust verification of any useful program will be an obvious fit for critical software of all kinds, such as blockchains/smart contracts, cryptography, firmware, operating systems, language runtimes, financial/legal/medical applications, web servers, databases, etc. Check out [this blog post](TODO my personal essay describing my long journey and the half finished projects toward Magma)
 
 But there are a few specific uses I'm personally excited to pursue once this language is functional.
 

@@ -1,32 +1,32 @@
-# Rok
+# Magma
 
 > Correct, Fast, Productive: pick three.
 
-Rok is the first language built from the ground up to allow software engineers to productively write extremely high performance software for any computational environment, logically prove the software correct, and run/compile that code all within the same tool.
+Magma is the first language built from the ground up to allow software engineers to productively write extremely high performance software for any computational environment, logically prove the software correct, and run/compile that code all within the same tool.
 
 The goal of the project is to spread the so-far purely academic knowledge of software verification and formal logic to a broad audience. It should be normal for engineers to create programs that are truly correct, safe, secure, robust, and performant.
 
-This file is a "by example" style reference for the features and interface of Rok. It doesn't try to explain any of the underlying concepts, just document decisions, so you might want to read one of these other resources:
+This file is a "by example" style reference for the features and interface of Magma. It doesn't try to explain any of the underlying concepts, just document decisions, so you might want to read one of these other resources:
 
-- If you want to be convinced the goal of this project is both possible and necessary, please read [What is Rok and Why is it Important?]()
-- If you want to learn about software verification and formal logic using Rok, please read [Intro to Verification and Logic with Rok]().
-- If you want to contribute and need the nitty-gritty technical details and current roadmap, please read [The Technical Design of Rok]().
+- If you want to be convinced the goal of this project is both possible and necessary, please read [What is Magma and Why is it Important?]()
+- If you want to learn about software verification and formal logic using Magma, please read [Intro to Verification and Logic with Magma]().
+- If you want to contribute and need the nitty-gritty technical details and current roadmap, please read [The Technical Design of Magma]().
 
 ## Install and Use
 
-Rok is heavily inspired by Rust and its commitment to ergonomic tooling and straightforward documentation.
+Magma is heavily inspired by Rust and its commitment to ergonomic tooling and straightforward documentation.
 
 ```bash
-# install rok and its tools
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rokup.dev | sh
+# install magma and its tools
+curl --proto '=https' --tlsv1.2 -sSf https://sh.magmaup.dev | sh
 
 # create a new project
-rok new hello-world
+magma new hello-world
 cd hello-world
 
-rok check <entry>
-rok run
-rok build
+magma check <entry>
+magma run
+magma build
 ```
 
 ## Syntax
@@ -69,7 +69,7 @@ include the "backpassing" idea? or simplify it by somehow creating an "implicit 
 
 
 
-Rok is whitespace/indentation sensitive.
+Magma is whitespace/indentation sensitive.
 Anywhere a `;` can be used an opening indent can be used *additionally*.
 Anywhere a `,` can be used a newline can be used *instead*.
 The `:` operator is always used in some way to indicate type-like assertions.
@@ -331,7 +331,7 @@ Why `;`? Because `:` is for type specification.
 `==` is for equality, and maps to the two different kinds of equality if it's used in a logical or computational context.
 
 
-### trait system in rokrs
+### trait system in magmars
 don't need an orphan rule, just need explicit impl import and usage. the default impl is the bare one defined alongside the type, and either you always have to manually include/specify a different impl or its a semver violation to add a bare impl alongside a type that previously didn't have one
 
 
@@ -358,7 +358,7 @@ Keyword macros
 
 
 
-Instead of defining an extremely complicated set of macro definition rules, metaprogramming in Rok chooses to give three very simple "syntactic entrypoints", and then just expose as much of the compiler query api as possible.
+Instead of defining an extremely complicated set of macro definition rules, metaprogramming in Magma chooses to give three very simple "syntactic entrypoints", and then just expose as much of the compiler query api as possible.
 
 There are three ways to "capture" program text and have it processed at compile time:
 
