@@ -10,7 +10,7 @@ The goal of this project is to: **create a programming language and surrounding 
 
 Software is an increasingly critical component of our society, underpinning almost everything we do. It's also extremely vulnerable and unreliable. Software vulnerabilities and errors have likely caused humanity trillions of dollars in damage, social harm, waste, and lost growth opportunity in the digital age (I think [Tony Hoare's estimate](https://en.wikipedia.org/wiki/Tony_Hoare#Apologies_and_retractions) is way too conservative, especially if you include more than `null` errors). What would it look like if it was both possible and tractable for working software engineers to build and deploy software that was *provably correct*?
 
-I strongly believe a world with such a capability would not only see a significant improvement in *magnitude* of social good produced by software, but a significant improvement in *kind* of social good. In the same way that Rust gave engineers much more capability to safely compose arbitrary pieces of software therefore enabling them to confidently build much more ambitious systems, a language that gives them the ability to automatically check arbitrary conditions will make safe composition and ambitious design arbitrarily easier to do correctly.
+I strongly believe a world with such a capability would not only see a significant improvement in *magnitude* of social good produced by software, but a significant improvement in *kind* of social good. In the same way that Rust gave engineers much more capability to safely compose pieces of software therefore enabling them to confidently build much more ambitious systems, a language that gives them the ability to automatically check arbitrary conditions will make safe composition and ambitious design arbitrarily easier to do correctly.
 
 What kinds of ambitious software projects have been conceived but not pursued because getting them working would simply be too difficult? With machine checkable proofs in many more hands could we finally build *truly secure* operating systems, trustless networks, decentralized ledgers, or even electronic voting systems? How many people could be making previously unimagined contributions to computer science, mathematics, and even other logical fields such as economics and philosophy if only they had approachable tools to do so? Read [my blog post discussing my journey to this project and what I intend to build with it once its mature](https://blainehansen.me/post/my-path-to-magma/) if you're interested in a more personal view of these questions.
 
@@ -20,13 +20,13 @@ This is a huge goal, and a language capable of achieving it will need a strong d
 
 In order to really deliver the kind of truly transformative correctness guarantees that will inspire working engineers to learn and use a difficult new language, it doesn't make sense to stop short and only give them an "easy mode" verification tool. It should be possible to formalize and attempt to prove any proposition humanity is capable of representing logically, not only those that a fully automated tool like an [SMT solver](https://liquid.kosmikus.org/01-intro.html) can figure out. A language with full logical expressiveness can still use convenient automation alongside manual proofs.
 
-To achieve this goal, the language is fully **dependently typed** and uses the [Calculus of Constructions](https://en.wikipedia.org/wiki/Calculus_of_constructions) much like [Coq](https://en.wikipedia.org/wiki/Coq).
+To achieve this goal, the language will be fully **dependently typed** and use the [Calculus of Constructions](https://en.wikipedia.org/wiki/Calculus_of_constructions) much like [Coq](https://en.wikipedia.org/wiki/Coq). The [metacoq](https://github.com/MetaCoq/metacoq) and ["Coq Coq Correct!"](https://www.irif.fr/~sozeau/research/publications/drafts/Coq_Coq_Correct.pdf) projects have already done the (mindbending) work of formalizing and verifying Coq using Coq, so that work will be very helpful while implementing Magma.
 
 ## Capable of bare metal performance
 
 Software needs to perform well! Not all software has the same requirements, but often performance is intrinsically tied to correct execution. Very often the software that most importantly needs to be correct also most importantly needs to perform well. If the language is capable of truly bare metal performance, it can still choose to create easy abstractions that sacrifice performance where that makes sense.
 
-To achieve this goal, the language includes in its core libraries a formalization of the basic principles of von neumann computation, allowing users to specify the axiomatic assumptions of any software execution environment, from concrete instruction set architectures, to any **abstract assembly language** such as LLVM capable of compiling to many targets, and even up to operating system userlands or bytecode environments such as webassembly. Making it possible to specify software at this level of fidelity ensures it is truly aligned with reality and isn't making unrealistic assumptions.
+To achieve this goal, the language will include in its core libraries a formalization of the basic principles of von neumann computation, allowing users to specify the axiomatic assumptions of any software execution environment, from concrete instruction set architectures, to any **abstract assembly language** such as LLVM capable of compiling to many targets, and even up to operating system userlands or bytecode environments such as webassembly. Making it possible to specify software at this level of fidelity ensures it is truly aligned with reality and isn't making unrealistic assumptions.
 
 Verifying raw assembly code is much more difficult than verifying a mathematically pure language, but recent advancements such as the [Iris higher-order concurrent separation logic](https://iris-project.org/) have finally made this goal truly achievable.
 
@@ -34,9 +34,9 @@ Verifying raw assembly code is much more difficult than verifying a mathematical
 
 Just because it's *possible* to fully verify all code, doesn't mean it should be *required*. It simply isn't practical to try to completely rewrite a legacy system in order to verify it. Successful languages with goals of increased rigor such as Rust and Typescript strategically use concessions in the language such as `unsafe` and `any` to allow more rigorous code to coexist with legacy code as it's incrementally replaced. The only problem is that these concessions introduce genuine soundness holes into the language, and it's often difficult or impossible to really understand how exposed your program is to these safety holes.
 
-We can get both practical incremental adoption and complete understanding of the current safety of our program by leveraging work done by the [Iron obligation management logic](https://iris-project.org/pdfs/2019-popl-iron-final.pdf) built using Iris. We can use a concept of **trackable effects**, where a piece of some "token" has to be given up in order to perform a dangerous operation without justifying its safety with a proof. This "infects" the violating code block with an effect type that will bubble up through any parent blocks. Project teams can choose how strict they want the effects of their program to be, some choosing to fail compilation if a program isn't memory safe or could panic, and others tolerating some possible effects or writing proofs to assert that these effects only happen in certain well-defined circumstances. New kinds of trackable effects can even be defined and used, allowing different projects to introduce new kinds of safety and correctness tracking, such as ensuring asynchronous code doesn't block the executor, or a web app doesn't render raw untrusted input, or a server doesn't leak secrets.
+We can get both practical incremental adoption and complete understanding of the current safety of our program by leveraging work done by the [Iron obligation management logic](https://iris-project.org/pdfs/2019-popl-iron-final.pdf) built using Iris. We can use a concept of **trackable effects**, where a piece of some "token" has to be given up in order to perform a dangerous operation without justifying its safety with a proof. This would "infect" the violating code block with an effect type that will bubble up through any parent blocks. Project teams could choose how strict they want the effects of their program to be, some choosing to fail compilation if a program isn't memory safe or could panic, and others tolerating some possible effects or writing proofs to assert that these effects only happen in certain well-defined circumstances. New kinds of trackable effects could even be defined and used, allowing different projects to introduce new kinds of safety and correctness tracking, such as ensuring asynchronous code doesn't block the executor, or a web app doesn't render raw untrusted input, or a server doesn't leak secrets.
 
-Importantly, even if some piece of software chooses to ignore some negative effects, other projects will be automatically informed of those negative effects if they try to use that software. We can have a genuinely secure trustless software ecosystem!
+Importantly, even if some piece of software chooses to ignore some negative effects, other projects could be automatically informed of those negative effects if they try to use that software. We can have a genuinely secure trustless software ecosystem!
 
 ## Deeply metaprogrammable
 
@@ -50,7 +50,7 @@ Importantly, this language is self-hosting, so metaprogramming functions benefit
 
 My experience using languages like Coq has been extremely painful, and the interface is "more knife than handle". I've been astounded how willing academics seem to be to use extremely clunky workflows and syntaxes just to avoid having to build better tools.
 
-To achieve this goal, this project will learn heavily from `cargo` and other excellent projects. It should be possible to verify, interactively prove, query, compile, and run any magma code with a single tool.
+To achieve this goal, this project will learn heavily from `cargo` and other excellent projects. It should be possible to verify, interactively prove, query, compile, and run any Magma code with a single tool.
 
 ## Taught effectively
 
@@ -68,14 +68,14 @@ To achieve this goal, this project will enshrine the following values in regard 
 
 ## Is it technically possible to build a language like this?
 
-Yes! None of the technical details of this idea are untested or novel. Dependently typed proof languages, higher-order separation logic, query-based compilers, introspective metaprogramming, and abstract assembly languages are all ideas that have been proven in other contexts. Magma would merely attempt to combine them into one unified and usable package.
+Yes! None of the technical details of this idea are untested or novel. Dependently typed proof languages, higher-order separation logic, query-based compilers, introspective metaprogramming, and abstract assembly languages are all ideas that have been proven in other contexts. Magma would merely attempt to combine them into one unified and practical package.
 
 ## Will working engineers actually use it?
 
 Maybe! We can't force people or guarantee it will be successful, but we can learn a lot from how Rust has been able to successfully teach quite complex type-theoretical ideas to an huge and excited audience. I think Rust has succeeded by:
 
-- *Making big promises* in terms of how performant/robust/safe the final code will be.
-- *Delivering* on those promises by making something awesome. I hope that since the entire project will have verification in mind from the start it will be easier to ship something excellent and robust with less churn than usual.
+- *Making big promises* in terms of how performant/robust/safe the final code can be.
+- *Delivering* on those promises by building something awesome. I hope that since the entire project will have verification in mind from the start it will be easier to ship something excellent and robust with less churn than usual.
 - *Respecting people's time* by making the teaching materials clear and distilled and the tooling simple and ergonomic.
 
 All of those things are easier said than done! Fully achieving those goals will require work from a huge community of contributors.
@@ -98,13 +98,13 @@ This question is a lot like asking the Rust project creators "why not just write
 
 No! And honestly, doing so would probably be a huge waste of time. Not all software has the same constraints, and it would be dumb to try to verify a recipe app with the same level of rigor as a crypography function.
 
-But even a recipe app would benefit from the *foundations* it sits on being much more verified. I imagine something like a "verification pyramid" with excruciatingly verified software at the bottom, going up through less verified code all the way to throwaway scripts that aren't even tested. At the bottom even the tiniest details such as the possibility of integer overflow must be explicitly accounted for, and at the top we just do a basic and highly inferred type-check. Every layer can rely on the safety of abstractions underneath to not worry about certain kinds of error conditions and only verify what they feel they need to.
+But even a recipe app would benefit from the *foundations* it sits on being much more verified. I imagine something like a "verification pyramid", with excruciatingly verified software at the bottom, going up through less verified code all the way to throwaway scripts that aren't even tested. At the bottom even the tiniest details such as the possibility of integer overflow must be explicitly accounted for, and at the top we just do a basic and highly inferred type-check. Every layer can rely on the safety of abstractions underneath to not worry about certain kinds of error conditions and only verify what they feel they need to.
 
 Basically, the less important a piece of software is and the easier it is to change, the less verified it needs to be.
 
 ## Won't writing verified software be way more expensive? Do you actually think this is worth it?
 
-**Emphatically yes it is worth it.** As alluded to earlier, bmagmaen software is a massive drain on our society. Even if it were much more expensive to write verified software, it would still be worth it. Rust has already taught us that it's almost always worth it to [have the hangover first](https://www.youtube.com/watch?v=ylOpCXI2EMM&t=565s&ab_channel=Rust) rather than wastefully churn on a problem after you thought you could move on.
+**Emphatically yes it is worth it.** As alluded to earlier, broken software is a massive drain on our society. Even if it were much more expensive to write verified software, it would still be worth it. Rust has already taught us that it's almost always worth it to [have the hangover first](https://www.youtube.com/watch?v=ylOpCXI2EMM&t=565s&ab_channel=Rust) rather than wastefully churn on a problem after you thought you could move on.
 
 And of course, a big goal of the project is to make verification less expensive! Tooling, better education, better algorithms and abstractions can all decrease verification burden. If the project ever reaches maturity these kinds of improvements will likely be most of the continued effort for a long time.
 
