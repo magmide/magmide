@@ -1,6 +1,8 @@
 # **:construction: :construction: Magma is purely a research project at this point**
 
-This repo is still very early and rough, it's mostly just notes, speculative writing, and exploratory theorem proving. All the files in this repo other than this readme are "mad scribblings" territory, so dive in at your own risk! In this file however I give a broad overview and answer a few possible questions. Enjoy!
+This repo is still very early and rough, it's mostly just notes, speculative writing, and exploratory theorem proving. All the files in this repo other than this readme are "mad scribblings" territory, so dive in at your own risk!
+
+In this file however I give a broad overview and answer a few possible questions. Enjoy!
 
 ---
 
