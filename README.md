@@ -1,4 +1,4 @@
-# **WARNING! :construction: :construction: Magma is purely a research project at this point.**
+# **:construction: :construction: Magma is purely a research project at this point**
 
 This repo is still very early and rough, it's mostly just notes, speculative writing, and exploratory theorem proving. All the files in this repo other than this readme are "mad scribblings" territory, so dive in at your own risk! In this file however I give a broad overview and answer a few possible questions. Enjoy!
 
@@ -6,7 +6,7 @@ This repo is still very early and rough, it's mostly just notes, speculative wri
 
 The goal of this project is to: **create a programming language and surrounding education/tooling ecosystem capable of making formal verification and provably correct software mainstream and normal among working software engineers**.
 
-Software is an increasingly critical component of our society, underpinning almost everything we do. It's also extremely vulnerable and unreliable. Software vulnerabilities and errors have likely caused humanity trillions of dollars in damage, social harm, waste, and lost growth opportunity in the digital age. What would it look like if it was both possible and tractable for working software engineers to build and deploy software that was *provably correct*?
+Software is an increasingly critical component of our society, underpinning almost everything we do. It's also extremely vulnerable and unreliable. Software vulnerabilities and errors have likely caused humanity trillions of dollars in damage, social harm, waste, and lost growth opportunity in the digital age (I think [Tony Hoare's estimate](https://en.wikipedia.org/wiki/Tony_Hoare#Apologies_and_retractions) is way too conservative, especially if you include more than `null` errors). What would it look like if it was both possible and tractable for working software engineers to build and deploy software that was *provably correct*?
 
 I strongly believe a world with such a capability would not only see a significant improvement in *magnitude* of social good produced by software, but a significant improvement in *kind* of social good. In the same way that Rust gave engineers much more capability to safely compose arbitrary pieces of software therefore enabling them to confidently build much more ambitious systems, a language that gives them the ability to automatically check arbitrary conditions will make safe composition and ambitious design arbitrarily easier to do correctly.
 
