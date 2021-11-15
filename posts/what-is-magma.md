@@ -261,32 +261,4 @@ Each basic block can be given a set of "effect tokens", some of which can be env
 
 checking assertions from the bottom up and in reverse instruction order, keeping track as we go of what assertions we're concerned with and only pulling along propositions with a known transformation path to those assertions.
 
-
-
-## Intended Applications
-
-Obviously a language that allows robust verification of any useful program will be an obvious fit for critical software of all kinds, such as blockchains/smart contracts, cryptography, firmware, operating systems, language runtimes, financial/legal/medical applications, web servers, databases, etc. Check out [this blog post](TODO my personal essay describing my long journey and the half finished projects toward Magma)
-
-But there are a few specific uses I'm personally excited to pursue once this language is functional.
-
-high-level but statically lowered asynchronous actor-first borrow-checked language, ideal for application domains and high-level targets like webassembly and operating system environments. inspired by ponylang and its awareness of actor boundaries to allow aliasing in the presence of mutation
-http://jtfmumm.com/blog/2016/03/06/safely-sharing-data-pony-reference-capabilities/
-I like this:
-
-```
-Pony takes a different approach and outlaws infix precedence. Any expression where more than one infix operator is used must use parentheses to remove the ambiguity. If you fail to do this the compiler will complain.
-```
-
-metaprogrammable databases
-
-verified tree-like reactivity frameworks. especially doable with smarter actor-graph-aware lifetime systems
-
-semver enforcing package managers
-
-safe foreign code execution without sandboxing
-
-new operating system paradigms
-when it's possible to check foreign code for safety, completely new ways of thinking about operating systems open up
-capability-typed micro kernel
-
-universal typed messaging format
+## possible applications
