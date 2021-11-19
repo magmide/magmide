@@ -48,7 +48,7 @@ We can't write all software in assembly language! Including first-class support 
 
 The metaprogramming can of course also be used directly in the dependently typed language, allowing compile-time manipulation of proofs, functions, and data. Verified proof tactics, macros, and higher-level embedded programming languages are all possible.
 
-Importantly, this language is self-hosting, so metaprogramming functions benefit from the same bare metal performance and full verifiability.
+Importantly, the language will be self-hosting, so metaprogramming functions will benefit from the same bare metal performance and full verifiability.
 
 You can find rough notes about the current design thinking for the metaprogramming interface in [the unfinished `posts/design-of-magma.md` file](./posts/design-of-magma.md).
 
@@ -104,7 +104,7 @@ This question is a lot like asking the Rust project creators "why not just write
 
 Coq's [Notation system](https://coq.inria.fr/refman/user-extensions/syntax-extensions.html) is extremely complex. It essentially allows creating arbitrary custom parsers within Coq. While this may seem like a good thing, it's a bad thing. Reasoning about these custom parsing and scoping rules is extremely difficult, and easy to get wrong. It adds a huge amount of work to maintain the system in Coq, and learn the rules for users.
 
-It also makes it extremely easy for authors to create custom symbolic notation that makes their code much more difficult to learn and understand. Allowing custom symbolic notation is a bad design choice, since it blurs the line between the primitive notations defined by the language (which are reasonable to expect as prerequisite knowledge for all users) and custom notations. Although Coq makes it possible to query for notation definitions, this is again just more maintenance burden and complexity that still adds significant reading friction.
+It also makes it extremely easy to create custom symbolic notation that makes code much more difficult to learn and understand. Allowing custom symbolic notation is a bad design choice, since it blurs the line between the primitive notations defined by the language (which are reasonable to expect as prerequisite knowledge for all users) and custom notations. Although Coq makes it possible to query for notation definitions, this is again just more maintenance burden and complexity that still adds significant reading friction.
 
 Magma's metaprogramming system won't allow unsignified custom symbolic notation, and will require all metaprogrammatic concepts to be syntactically scoped within known identifiers. More information can be found [in the rough `posts/design-of-magma.md` page](./posts/design-of-magma.md).
 
@@ -124,7 +124,7 @@ We don't have to take full formal verification fully mainstream, we just have to
 
 Verification is obviously very difficult. Although I have some modest theories about ways to speed up/improve automatic theorem proving, and how to teach verification concepts in a more intuitive way that can thereby involve a larger body of engineers, we still can't avoid the fact that refining our abstractions and proving theorems is hard and will remain so.
 
-But we don't have to make verification completely easy and approachable to still get massive improvements. We only have to make the labor of researchers and experts more *available* and *reusable*. Since Magma is inherently metaprogrammable and integrates programming and proving, developments in one area of research can quickly disseminate through the entire language community. Research would be much less likely to remain trapped in the ivory tower, and could be usefully deployed in real software much more quickly.
+But we don't have to make verification completely easy and approachable to still get massive improvements. We only have to make proof labor more *available* and *reusable*. Since Magma will be inherently metaprogrammable and integrate programming and proving, developments in one project can quickly disseminate through the entire language community. Research would be much less likely to remain trapped in the ivory tower, and could be usefully deployed in real software much more quickly.
 
 And of course, a big goal of the project is to make verification less expensive! Tooling, better education, better algorithms and abstractions can all decrease verification burden. If the project ever reaches maturity these kinds of improvements will likely be most of the continued effort for a long time.
 
@@ -132,7 +132,9 @@ Besides, many projects already write [absolutely gobs of unit tests](https://sof
 
 ## Do you think this language will make all software perfectly secure?
 
-No! Although it's certainly [very exciting to see how truly secure verified software can be](https://www.quantamagazine.org/formal-verification-creates-hacker-proof-code-20160920/), there will always be a long tail of hacking risk. Not all code will be written in securable languages, not all engineers will have the diligence or the oversight to write secure code, people can make bad assumptions, and brilliant hackers might invent entirely new *types* of attack vectors that aren't considered by our safety specifications. However *any* verified software is better than *none*, and right now it's basically impossible for a security-conscious team to even attempt to prove their code secure. Hopefully the "verification pyramid" referred to earlier will enable almost all software to quickly reuse secure foundations provided by someone else.
+No! Although it's certainly [very exciting to see how truly secure verified software can be](https://www.quantamagazine.org/formal-verification-creates-hacker-proof-code-20160920/), there will always be a long tail of hacking risk. Not all code will be written in securable languages, not all engineers will have the diligence or the oversight to write secure code, people can make bad assumptions, and brilliant hackers might invent entirely new *types* of attack vectors that aren't considered by our safety specifications (although inventing new attack vectors is obviously way more difficult than just doing some web searches and running scripts, which is all a hacker has to do today).
+
+However *any* verified software is better than *none*, and right now it's basically impossible for a security-conscious team to even attempt to prove their code secure. Hopefully the "verification pyramid" referred to earlier will enable almost all software to quickly reuse secure foundations provided by someone else.
 
 And of course, social engineering and hardware tampering are never going away, no matter how perfect our software is.
 
@@ -186,7 +188,7 @@ Many software applications are critical for safety of people and property. It wo
 
 It isn't good enough for voting machines to be provably secure, the voting system itself must be cryptographically transparent and auditable. The [ideal requirements](https://en.wikipedia.org/wiki/End-to-end_auditable_voting_systems) are extremely complex, and would be very difficult to get right without machine checked proofs.
 
-Voting is sufficiently high stakes that it's extremely important for a voting infrastructure not simply be correct, but be *undeniably* correct. I imagine it will be much easier to assert the fairness and legitimacy of voting results if all the underlying code is much more than merely audited and tested.
+Voting is sufficiently high stakes that it's extremely important for a voting infrastructure to not simply be correct, but be *undeniably* correct. I imagine it will be much easier to assert the fairness and legitimacy of voting results if all the underlying code is much more than merely audited and tested.
 
 ## Universally applicable type systems
 
