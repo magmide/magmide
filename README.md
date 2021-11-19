@@ -46,7 +46,7 @@ Importantly, even if some piece of software chooses to ignore some negative effe
 
 We can't write all software in assembly language! Including first-class support for powerful metaprogramming, alongside a [query-based compiler](https://ollef.github.io/blog/posts/query-based-compilers.html), will allow users of this language to build abstractions that "combine upward" into higher levels, while still allowing the possibility for those higher levels to "drop down" back into the lower levels. Being a proof assistant, these escape hatches don't have to be "unsafe", as higher level code can provide proofs to the lower level to justify its actions.
 
-The metaprogramming can of course also be used directly in the dependently typed language, allowing compile-time manipulation of proofs, functions, and data. Verified proof tactics, macros, and higher-level embedded programming languages are all possible.
+The metaprogramming can of course also be used directly in the dependently typed language, allowing compile-time manipulation of proofs, functions, and data. Verified proof tactics, macros, and higher-level embedded programming languages are all possible. This is the layer where absolutely essential proof automation tactics similar to Coq's `auto` or [Adam Chlipala's `crush`](http://adam.chlipala.net/cpdt/html/Cpdt.Intro.html), or fast counter-example searchers such as `quickcheck` would be implemented.
 
 Importantly, the language will be self-hosting, so metaprogramming functions will benefit from the same bare metal performance and full verifiability.
 
