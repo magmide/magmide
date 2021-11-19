@@ -1,65 +1,90 @@
-# The technical design of Magma.
+# Metaprogramming system
 
-This post describes the design of Magma *as if it were finished*, with the intent of clearly defining the path forward and soliciting feedback. It doesn't try to persuade you this is the right design, merely describe the design in detail. It's intended for people who already understand formal verification, especially in the Coq proof assistant. If you'd like to be able to understand and contribute to this project at its current stage, you ought to read [software foundations](), [certified programming with dependent types](), [introduction to separation logic](), and the [iris from the ground up]() paper. You probably also ought to understand basic computer hardware/architecture design and assembly languages.
+instead of defining an extremely complicated set of macro definition rules, metaprogramming in magma chooses to give three very simple "syntactic entrypoints", and then just expose as much of the compiler query api as possible to allow for compile-time type introspection or other higher-level capabilities.
 
-"Progress and Roadmap" describes what has already been done and the plan forward.
+macros can either accept raw strings as input and parse them themselves (this allows for arbitrarily flexible and evolving community parsing patterns) or accept Magma parsed token trees (like most languages). to actually call them you can do so inline, as a block, or using a "virtual" import that processes an entire file
 
-## Project goals and values
+## Inline macros
 
-The design of the project is directly informed by its values and ambitions. Magma a metaprogrammable dependently typed language based on the calculus of constructions with an integrated abstract assembly language with trackable effects. Its goal is to enable formalization/verification/compilation of any software for any environment, therefore (*finally*) making formal verification mainstream and normal. The project doesn't have any direct goals to do cutting edge research work or advance the state of the art, but merely to combine existing research into a usable tool.
+inspired by Rust's explicit `!` macros and javascript template literals
 
-To achieve that goal the project has these values:
+raw string version:
 
-- **Correctness**: this project should be a flexible toolkit capable of verifying and compiling any software for any architecture or environment. It should make it as easy as possible to model the abstractions presented by any hardware or host system with full and complete fidelity.
-- **Clarity**: this project should be accessible to as many people as possible, because it doesn't matter how powerful a tool is if no one can understand it. To guide us in this pursuit we have a few maxims: speak plainly and don't use jargon when simpler words could be just as precise; don't use a term unless you've given some path for the reader to understand it either by using a traceable definition or for prerequisites pointing readers toward them; assume your reader is capable but busy; use fully descriptive words, not vague abbreviations and symbols.
-- **Practicality**: a tool must be usable, both in terms of the demands it makes and its design. This tool is intended to be used by busy people building real things with real stakes.
-- **Performance**: often those programs which absolutely must be fast are also those which absolutely must be correct. Infrastructural software is constantly depended on, and must perform well.
+```
+macro_name`inline raw string`
+```
 
-The design decisions of the project were made intentionally to support those values. All the bullets below are given their own section discussing the details.
+syntax tree version
 
-- **Correctness**
-  - Magma is dependently typed in a strong type theory, giving it the logical power necessary to verify any property a user can prove in the calculus of constructions. Quote [Adam Chlipala "Why Coq?"](http://adam.chlipala.net/cpdt/html/Cpdt.Intro.html)
-  - Magma is self-hosting but bootstrapped from Coq, meaning it is able to verify itself and was originally verified in a well-tested and [even verified tool](TODO coqcoqcorrect).
-- **Clarity**
-  - Magma syntax rules only allow custom notation through the macro system, which ensures it is always scoped beneath a tracable and searchable name, making it much easier for new users to find explanations or definitions of custom notation.
-  - Magma syntax is whitespace sensitive and designed to make program structure and code formatting directly correspond.
-  - Magma syntax intentionally compresses different ways of expressing the same thing into the most general syntax choices, and requires the use of syntax sugars when they are available.
-  - Magma's import mechanisms usefully expose different kinds of definitions differently, allowing users to not ever need problematic implicit imports.
-  - Magma enables readable markdown documentation comments for definitions.
-  - Magma's builtin formatter warns about inconsistent naming and capitalization.
-  - Magma's core educational materials set a convention of approachability, tracability (calling out prerequisites), and clarity.
-- **Practicality**
-  - Magma is arbitrariliy metaprogrammable, allowing all the flexibility and power that entails, including creating "zero-cost languages" that enable fine-grained verification at higher levels of abstraction. It also means the compiler doesn't require any kind of extension or plugin API, the metaprogramming facilities subsume such things especially when combined with a query-based compiler.
-  - Magma compute theory is generic over the environment, allowing programs in any environment to be verified. It includes a core "abstract assembly language" akin to llvm that allows general-purpose programs to be compiled to many architectures.
-  - Magma trackable effects (based on Iron trackable resources) allow programs to be gradually verified, allowing users to understand and accept tradeoffs as they work on a codebase.
-  - Magma trackable effects are generic over the environment, allowing environments to introduce new trackable effects.
-  - Magma is designed with usability in mind, and has an easy to use `cargo`-like cli and package manager.
-  - Magma is a "one-stop-shop" for engineers creating correct and performant software, since it can both verify and compile code.
-  - Magma uses a query-based compiler, so its internals can be more easily exposed to allow more ergonomic and powerful macros.
-- **Performance**
-  - Magma compute theory goes all the way down to the metal, allowing arbitrarily fine-grained guarantees and optimizations.
-  - Magma is itself built in compute Magma, meaning the same performance benefits it promises to users it also gives during type-checking and compilation.
-  - Magma metaprograms are defined in Magma, meaning they perform well and can even be verified.
-  - Magma uses a query-based compiler, so it efficiently avoids recomputing unchanged forms of a program.
+```
+macro_name$(some >magma (symbols args))
+```
 
+## Block macros
 
-My hypothesis for what determines language enthusiasm is: `possible_correctness * possible_performance * average_productive_usability`
+uses explicit indentation to clearly indicate scope without requiring complex parsing rules
 
-# Design
+raw string version uses a "stripped indentation" syntax inspired by [scala multiline strings](https://docs.scala-lang.org/overviews/scala-book/two-notes-about-strings.html#multiline-strings), but using pure indentation instead of manual `|` characters.
+
+```
+// the |` syntax could be generally used to create multiline strings
+// with the base indentation whitespace automatically stripped
+let some_string = |`
+  my random `string`
+    with what'''
+    ''' ever I want
+
+// placing the literal directly against a path expression
+// will call that expression as a raw string macro
+macro_name|`
+  some
+    raw string
+  the base indentation
+  will be stripped
+```
+
+token tree version is like "custom keywords", with an "opening block" that takes two token trees for header and body, and possible contination blocks. here's an example of a "custom" if-else block being used.
+
+```
+$my_if some.conditional statement;
+  the.body
+  >> of my thing
+
+/my_else; some_symbol()
+```
+
+## Import macros
+
+allows entire files to be processed by a macro to fulfill an import command. you'll notice the syntax here is exactly the same as inline macros, but the language will detect their usage in an import statement and provide file contents and metadata automatically.
+
+```
+// raw string version
+use function_name from macro_name`./some/file/path.extension`
+// token tree version
+use function_name from macro_name$(./some/file/path.extension)
+```
+
+---
 
 Magma has three type universes:
 
 - `Prop`, representing propositions (equivalent to coq `Prop`).
 - `Ideal`, representing pure logical types arranged in an infinite hierarchy of universes (equivalent to coq `Set`/`Type`).
-- `Type`, representing concrete computable types encodable in bits.
+- `Data`, representing concrete computable types encodable in bits.
 
+---
 
+- Magma syntax rules only allow custom notation through the macro system, which ensures it is always scoped beneath a tracable and searchable name, making it much easier for new users to find explanations or definitions of custom notation.
+- Magma syntax is whitespace sensitive and designed to make program structure and code formatting directly correspond.
+- Magma syntax intentionally compresses different ways of expressing the same thing into the most general syntax choices, and requires the use of syntax sugars when they are available.
+- Magma's import mechanisms usefully expose different kinds of definitions differently, allowing users to not ever need problematic implicit imports.
+- Magma enables readable markdown documentation comments for definitions.
+- Magma's builtin formatter warns about inconsistent naming and capitalization.
+- Magma's core educational materials set a convention of approachability, tracability (calling out prerequisites), and clarity.
 
-
-
+---
 
 ## progress and roadmap
-
 
 the project is in a very early embryonic state right now. I'm trying to create the essential skeleton of correctness reasoning for one specific very simple abstract assembly language, and then with that skeleton make it both more detailed, more accurate, and more general. pieces of the skeleton:
 
@@ -136,22 +161,7 @@ syntax highlighting/language server
 
 ### phase 4, build the whole ecosystem! (lighting up the world)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+---
 
 
 ## How does Magma work?

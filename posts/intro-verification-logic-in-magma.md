@@ -302,7 +302,7 @@ But what about this definition of `True`?
 
 TODO
 
-
+---
 
 
 
@@ -342,7 +342,7 @@ Representing propositions as datatypes and theorems as functions means that we d
 
 
 
-
+---
 
 ## Basics of Compute Magma
 
@@ -709,7 +709,7 @@ This is the key insight. When we make any kind of logical claim, we have to defi
 
 
 
-
+---
 
 Theorem proving
 
@@ -745,7 +745,7 @@ Or let's define a *computational* function using tactics.
 
 
 
-
+---
 
 ## Abstract assembly language
 
@@ -803,24 +803,5 @@ done:
   ret i32 %b
 }
 ```
-
-
-- The logical inductives/theorems/functions that define von neumann computation and instruction assembly, as well as concurrent separation logic. This layer is the most abstract and could be instantiated with any specific von neumann machine, even an abstract one.
-- `core.asm`. A collection of instruction types that should be generalizable to any machine. At
-- `core`.
-
-
-
-
-```
-use core
-
-core.program@
-  main:
-
-
-
-```
-
 
 perhaps given all arguments then conclusion is a better syntax for implications, for readability

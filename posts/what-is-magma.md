@@ -1,46 +1,3 @@
-Magma is a metaprogrammable dependently-typed language with an integrated abstract assembly language with trackable effects. This means it's the first and only language that brings together these capabilities:
-
-- Fully Verifiable: Magma has an embedded dependently-typed proof checker much like [Coq]() or [Lean](). This means any logical property provable within the [Calculus of Constructions]() can be stated and proven in Magma, including the correctness of programs.
-- Bare Metal Performance: Magma's internal library includes types and theorems formalizing [Von Neumann computation]() and assembly language execution, allowing it to be used to write and verify programs at the lowest level of software abstraction. This means even the most daring and high performance programs can be written, proven correct, and compiled in the same tool.
-- Infinitely Flexible: Magma has extremely powerful and yet simple metaprogramming, allowing manipulation of proofs, functions, and data at compile time. Write verified proof tactics, plugins, and even embedded higher-level programming languages within Magma.
-
-This combination of capabilities opens up possibilities we've only dared to imagine. Our limits in designing software have mostly been defined by the immense difficulty of safely and correctly composing code together, but using Magma any code can be arbitrarily composed. The basic assumptions of software architecture can be entirely reexamined and we can finally let our imaginations lead the way.
-
-## Who is Magma for?
-
-Magma has the absurdly ambitious goal of being a new universal substrate for all software! Since Magma is an *abstract* assembly language, it can theoretically compile correct programs for even the most obscure Von Neumann environments. The long term goal is for Magma to be used for embedded devices, normal application software, web programs, etc.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# What is Magma and why is it important?
-
-Magma is a dependently typed, metaprogrammable proof checker with an integrated abstract assembly language with trackable effects
-
-This post is intended for anyone in the software engineering space, meant to persuade you we desperately need something like Magma and that the design choices it makes are the right ones to achieve our goals. If you want a deep dive on the technical design of Magma, please read [The Technical Design of Magma](), and if you want to feel what it would be like to learn Magma once it's finished, please read [Introduction to Magma]().
-
-
-Includes things that can be built, some of which I intend to build.
-
-
 Verified hardware simulators are easy with magma
 
 Engineers want tools that can give them stronger guarantees about safety robustness and performance, but that tool has to be tractably usable and respect their time
@@ -185,46 +142,6 @@ That work only matters once it has been applied in a way that benefits the world
 
 The goal behind this project is to answer the question: what would we design if we started from scratch? Magma really is an attempt to lay a completely new foundation for all of computing that could be used to entirely rethink how every layer of software infrastructure works, all the way down to the bare metal.
 
-## Why Do We Need More Verification?
-
-### Safety and Correctness
-
-Software is important, and we would like to have more confidence when using it for more critical applications.
-
-### Bug Rate, Rework, and Velocity
-
-One of the most frustrating experiences when trying to build something is to discover bugs or obvious gaps in a lower layer. When software you implicitly trust fails for reasons entirely beyond your control, you lose a huge amount of time, and those gaps almost always transitively produce gaps in *your* layer as well, continuing the harmful ripple effect.
-
-Even if the correctness of some piece of software isn't "critical", its correctness is still helpful. its users can simply enjoy its power without interruptions or frustration. The overall velocity of all engineering work can improve dramatically when all layers are made more robust.
-
-In exactly the same way that [`null` was a billion dollar mistake](TODO), general software incorrectness has probably cost trillions of dollars in lost productivity and potential progress.
-
-## Why Will Magma Be Able to find mainstream success?
-
-Mostly because of the metaprogramming, and the focus on upward recombination over downward translation. The language *itself* doesn't have to achieve mainstream success to massively improve the quality of all downstream software, but merely some sub-language. Many engineers have never heard of LLVM, but they still implicitly rely on it every day. Magma would seek to do the same.
-
-We don't have to take full formal verification fully mainstream, we just have to make it available for the handful of people willing to do the work. If a full theorem prover is sitting right below the high-level language you're currently working in, you don't have to bother with it most of the time, but you still have the option to do so when it makes sense.
-
-And of course we have to be humble. It might not work! Hopefully at the very least
-
-We shouldn't be scared to put the power of a full proof checker into a computation focused language. Not everyone has to use it! And those who do don't have to use it all the time!
-
-- Make it possible: at this moment in time, it isn't really even *possible* to fully verify a truly bare metal program on an arbitrary architecture. This stage focuses on creating the basic Magma compiler
-  - define magma semantics and theories in coq
-  - use extracted ml to compile first runnable version, so magma has been bootstrapped out of coq
-  - complete magma from within
-- Make it productive: bring the project to maturity, with tolerable compiler performance, broad architecture and context support, ergonomic tooling and libraries, good proof methodology, and solid documentation.
-- Make it common: do evangelism, write books to spread magma into different domains, use the tool to create verified infrastructure and new programming environments.
-
-## Verification Leverage
-
-Verification is obviously very difficult. Although I have some modest theories about ways to speed up/improve automatic theorem proving, and how to teach verification concepts in a more intuitive way that can thereby involve a larger body of engineers, we still can't avoid the fact that refining our abstractions and proving theorems is hard and will remain so.
-
-But we don't have to make verification completely easy and approachable to still get massive improvements. We only have to make the labor of researchers and experts more *available* and *reusable*. Since Magma is inherently metaprogrammable and integrates programming and proving, developments in one area of research can quickly disseminate through the entire language diaspora. Research would be much less likely to remain trapped in the ivory tower, and could be usefully deployed in real software much more quickly.
-
-## Environment Genericity
-
-
 ## Effect-Aware Tokens and Gradual Correctness
 
 One of the main innovations of Rust was introducing an extremely strict safety-oriented type system, but simultaneously acknowledging its limitations by still allowing `unsafe` operations. By explicitly acknowledging when the type system can't verify the correctness of program behavior, engineers are much better able to focus on potential problem spots in code. Projects such as [RustBelt](TODO) can then do further work to either increase the sophistication of the type system to allow a larger domain of correct programs, or semantically prove the correctness of `unsafe` operations "on the side". Many other languages also have such "trapdoors" in their type systems, such as [various unsafe operations in Haskell](TODO), [unchecked type coercions in languagess like C or Java](TODO), or [the `any` type in TypeScript](TODO).
@@ -235,30 +152,6 @@ However with a full proof checker embedded in a language, we can design these tr
 
 Each basic block can be given a set of "effect tokens", some of which can be environment-specific. Each of these effect tokens essentially has a "pure" version representing correct and safe execution, and some set of "impure" versions representing incorrect or unsafe execution. Different instructions can then consume a token, and depending on if proofs of correct behavior have been provided, either return the pure or impure version. Since these instructions *consume* and then *return* a token (we don't need an affine logic to enable them), a program that contains some impure program effect, no matter how transitively, will be alerted to the fact that this has occurred. Different projects can choose to tie program correctness (and the success of their automated build process) to freedom from certain program effects. However the opposite is also true, and projects can choose to ignore possibly undesirable effects if such admissions are acceptable.
 
-**Everything is permitted, but everything is checked.**
-
-### Memory Safety
-
-### Memory Leaks
-
-### Execution Safety
-
-### Termination/Liveness
-
-### Type Soundness
-
-### Program Failure
-
-### Maximum Time/Memory Complexity
-
-### Non-Blocking Execution
-
-### System Calls
-
-
-
 ## Possible Ways to Improve Automated Proof Checking
 
 checking assertions from the bottom up and in reverse instruction order, keeping track as we go of what assertions we're concerned with and only pulling along propositions with a known transformation path to those assertions.
-
-## possible applications
