@@ -805,3 +805,22 @@ done:
 ```
 
 perhaps given all arguments then conclusion is a better syntax for implications, for readability
+
+
+
+
+---
+
+types are algebraic because they follow algebra-like rules
+
+if False/never is 0 and True/always/unit is 1, then treating "tupling" like * and "unioning" like + has the same characteristics as with numbers
+
+anything tupled with never is equivalent to never
+anything unioned with never is equivalent to the original (since that arm of the union can't actually be constructed)
+anything tupled with always is equivalent to the original (the always adds no new information)
+anything unioned with always is just a thing with one more arm
+
+both tupling and unioning are "logically" commutative and associative (real code would have to access them differently, but that's the only difference, the information they hold is the same. it can be proven that any function taking them as input could always be transformed to a logically equivalent version)
+unioning is distributive over tupling (tupling something with a union is the same as tupling each arm of the union with that thing)
+
+(I think a partially commutative monoid with distributivity)

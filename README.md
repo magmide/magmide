@@ -106,7 +106,7 @@ Coq's [Notation system](https://coq.inria.fr/refman/user-extensions/syntax-exten
 
 It also makes it extremely easy to create custom symbolic notation that makes code much more difficult to learn and understand. Allowing custom symbolic notation is a bad design choice, since it blurs the line between the primitive notations defined by the language (which are reasonable to expect as prerequisite knowledge for all users) and custom notations. Although Coq makes it possible to query for notation definitions, this is again just more maintenance burden and complexity that still adds significant reading friction.
 
-Magma's metaprogramming system won't allow unsignified custom symbolic notation, and will require all metaprogrammatic concepts to be syntactically scoped within known identifiers. More information can be found [in the rough `posts/design-of-magma.md` page](./posts/design-of-magma.md).
+Magma's metaprogramming system won't allow unsignified custom symbolic notation, and will require all metaprogrammatic concepts to be syntactically scoped within known identifiers. In Rust macros are always explicit with an annotation or a `macro_name!` syntax, and something similar will be true in Magma. More information can be found [in the rough `posts/design-of-magma.md` page](./posts/design-of-magma.md).
 
 ## Do you really think all engineers are going to write proofs for all their code?
 
@@ -137,6 +137,22 @@ No! Although it's certainly [very exciting to see how truly secure verified soft
 However *any* verified software is better than *none*, and right now it's basically impossible for a security-conscious team to even attempt to prove their code secure. Hopefully the "verification pyramid" referred to earlier will enable almost all software to quickly reuse secure foundations provided by someone else.
 
 And of course, social engineering and hardware tampering are never going away, no matter how perfect our software is.
+
+## Is logically verifying code even useful if that code relies on possibly faulty software/hardware?
+
+This is nuanced, but the answer is still yes!
+
+First let's get something out of the way: software is *literally nothing more* than a mathematical/logical machine. It is one of the very few things in the world that can actually be perfect. Of course this perfection is in regard to an axiomatic model of a real machine rather than the true machine itself, but isn't it better to have an implementation that's provably correct according to a model rather than what we have now, an implementation that's obviously flawed according to that same model? Formal verification is really just the next level of type checking, and type checking is still incredibly useful despite also only relating to a model.
+
+If you don't think a logical model can be accurate enough to model a real machine in sufficient detail, please check out these papers discussing [separation logic](http://www0.cs.ucl.ac.uk/staff/p.ohearn/papers/Marktoberdorf11LectureNotes.pdf), extremely high fidelity formalizations of the [x86](http://nickbenton.name/hlsl.pdf) and [arm](https://www.cl.cam.ac.uk/~mom22/arm-hoare-logic.pdf) instruction sets, and the [Iris concurrent higher order separation logic](https://people.mpi-sws.org/~dreyer/papers/iris-ground-up/paper.pdf). Academics have been busy doing amazing stuff, even if they haven't been sharing it very well.
+
+If you think we'll constantly be tripping over problems in incorrectly implemented operating systems or web browsers, well you're missing the whole point of this project. These systems provide environments for other software yes, but they're still just software themselves. Even if they aren't perfectly reliable *now*, the entire ambition of this project is to *make* them reliable.
+
+Hardware axioms, which model the abstractions provided by a concrete computer architecture are tricker though. Hardware faults and ambient problems of all kinds can absolutely cause unavoidable data corruption. Hardware is intentionally designed with layers of error correction and redundancy to avoid propagating corruption, but it still gets through sometimes. There's one big reason to press on with formal verification nonetheless: the possibility of corruption or failure can be included in our axioms!
+
+Firmware and operating systems already include state consistency assertions and [error correction codes](https://en.wikipedia.org/wiki/Error_detection_and_correction), and it would be nice if those checks themselves could be verified. The entire idea of "trackable effects" is intended to allow environmental assumptions to be as high fidelity and stringent as possible without requiring every piece of software to actually care about all that detail. This means the lowest levels of our "verification pyramid" can fully include the possibility of corruption and carefully prove it can only cause a certain amount of damage in a few well-understood places. Then the higher levels of the pyramid can build on top of that much sturdier foundation.
+
+Yes it's true that we can only go so far with formal verification, so we should always remain humble and remember that real machines in the real world fail for lots of reasons we can't control. But we can go much much farther with formal verification than we can with testing alone! Proving correctness against a mere model with possible caveats is incalculably more robust than doing the same thing we've been doing for decades.
 
 ## How far are you? What remains to be done?
 
