@@ -60,7 +60,7 @@ To achieve this goal, this project will learn heavily from `cargo` and other exc
 
 ## Taught effectively
 
-Working engineers are resource constrained and don't have years of free time to wade through arcane and disconnected academic papers, or use haphazard or clunky tooling. Academics aren't incentivized to properly explain and expose their amazing work, and a massive amount of [research debt](https://distill.pub/2017/research-debt/) has accrued in many fields, including formal verification.
+Working engineers are resource constrained and don't have years of free time to wade through arcane and disconnected academic papers. Academics aren't incentivized to properly explain and expose their amazing work, and a massive amount of [research debt](https://distill.pub/2017/research-debt/) has accrued in many fields, including formal verification.
 
 To achieve this goal, this project will enshrine the following values in regard to teaching materials:
 
@@ -75,6 +75,30 @@ To achieve this goal, this project will enshrine the following values in regard 
 ## Is it technically possible to build a language like this?
 
 Yes! None of the technical details of this idea are untested or novel. Dependently typed proof languages, higher-order separation logic, query-based compilers, introspective metaprogramming, and abstract assembly languages are all ideas that have been proven in other contexts. Magma would merely attempt to combine them into one unified and practical package.
+
+# Is this design too ambitious? Is it just "everything and the kitchen sink"?
+
+This design is indeed very ambitous and broad, but here's my claim: none of the major features could be removed or weakened and still allow the project to achieve its goals. Every major design feature has intentionally been "maxed out", and chosen to nicely interlock with the others in a way that covers the largest possible number of use cases. If these features weren't the strongest versions of themselves we would be leaving power on the table that we don't have to, and we'd just be wasting time before some other better design shows up in a few years. All these design features are tractable, so we shouldn't stop short. It should be necessary for truly mind-blowing breakthroughs in logic or computational theory to appear before we have to revisit this design.
+
+There are only three major design features that hold up everything else:
+
+- **Maxed out in logical power** by using the strongest type theory I can find. Without this the design wouldn't be able to handle lots of interesting/useful/necessary problems, and couldn't be adopted by many teams. It wouldn't be able to act as a true *foundation* for verified computing. It's important to note that this one design feature enables all the other features involving formal logic, such as the ability to formalize bare metal computation at a high level of abstractness and the use of trackable effects.
+- **Maxed out in computational power** by self-hosting in a bare metal language. If the language were interpreted or garbage collected then it would always perform worse than is strictly possible. It would be silly for metaprogramming to be done in a different language than the intended target languages. If we're going to formalize bare metal computation, we might as well use it to build the tool itself!
+- **Maxed out in expressive power** by making it deeply metaprogrammable from the beginning. Metaprogramming is basically a cheat code for language design, since it gives a language access to an infinite range of possible features without having to explicitly support them. It's the single best primitive to add in terms of implementation overhead versus expressiveness. Making the compiler query-based maxes out metaprogrammatic capability, since every bit of work done in the core compiler can be exposed for reuse.
+
+# If this is such a good idea why hasn't it happened yet?
+
+Mostly because this idea exists in an "incentive no man's land".
+
+Academics aren't incentivized to create something like this, because doing so is just "applied" research which tends not to be as prestigious. You don't get to write many groundbreaking papers by taking a bunch of existing ideas and putting them together nicely.
+
+Software engineers aren't incentivized to create something like this, because a programming language is a pure public good and there aren't any truly viable business models that can support it while still remaining open. Even amazing public good ideas like the [interplanetary filesystem](https://en.wikipedia.org/wiki/InterPlanetary_File_System) could be productized by applying the protocol to markets of networked computers, but a programming language can't really pull off that kind of maneuver.
+
+Although the software startup ecosystem does routinely build pure public goods such as databases and web frameworks, those projects tend to have an obvious and relatively short path to being useful in revenue-generating SaaS companies. The problems they solve are clear and visible enough that well-funded engineers can both recognize them and justify the time to fix them. In contrast the path to usefulness for a project like Magma is absolutely not short, and despite promising immense benefits to both our industry and society as a whole, most engineers capable of building it can't clearly see those benefits behind the impenetrable fog of research debt.
+
+<!-- The problem of not properly funding pure public goods is much bigger than just this project. We do a bad job of this in every industry and so our society has to tolerate a lot of missed opportunity and negative externalities. The costs of broken software are more often borne by society than the companies at fault since insurance and limited-liability structures and PR shenanigans and expensive lawyers can all help a company wriggle out of fully internalizing the cost of their mistakes. Profit-motivated actors are extremely short-sighted and don't have to care if they leave society better off, they just have to get marketshare. -->
+
+We only got Rust because Mozilla has been investing in dedicated research for a long time, and it still doesn't seem to have really paid off for them in the way you might hope.
 
 ## Will working engineers actually use it?
 
@@ -100,7 +124,7 @@ I don't intend to throw away all the awesome work done by the Coq project though
 
 This question is a lot like asking the Rust project creators "why not just write a specialized C compiler"? Because instead of making something *awesome* we'd have to drag around a bunch of bad decisions. Sometimes it's worth it to start fresh.
 
-## Why will the metaprogramming be better than Coq's Notation system?
+## Why will the metaprogramming be more usable than Coq's Notation system?
 
 Coq's [Notation system](https://coq.inria.fr/refman/user-extensions/syntax-extensions.html) is extremely complex. It essentially allows creating arbitrary custom parsers within Coq. While this may seem like a good thing, it's a bad thing. Reasoning about these custom parsing and scoping rules is extremely difficult, and easy to get wrong. It adds a huge amount of work to maintain the system in Coq, and learn the rules for users.
 
@@ -110,7 +134,7 @@ Magma's metaprogramming system won't allow unsignified custom symbolic notation,
 
 ## Do you really think all engineers are going to write proofs for all their code?
 
-No! And honestly, doing so would probably be a huge waste of time. Not all software has the same constraints, and it would be dumb to try to verify a recipe app with the same level of rigor as a crypography function.
+No! And honestly, doing so would probably be a huge waste of time. Not all software has the same constraints, and it would be dumb to to verify a recipe app as rigorously as a crypography function.
 
 But even a recipe app would benefit from the *foundations* it sits on being much more verified. I imagine something like a "verification pyramid", with excruciatingly verified software at the bottom, going up through less verified code all the way to throwaway scripts that aren't even tested. At the bottom even the tiniest details such as the possibility of integer overflow must be explicitly accounted for, and at the top we just do a basic and highly inferred type-check. Basically, the less important a piece of software is and the easier it is to change, the less verified it needs to be.
 
@@ -161,6 +185,17 @@ Very early, and basically everything remains to be done! I've been playing with 
 In [`posts/design-of-magma.md`](./posts/design-of-magma.md) I have some rough thoughts about what the project's major milestones would be. The obvious first milestone is to create a bootstrapping compiler capable of compiling the first self-hosted version. That will likely happen in Coq in some way, but I haven't deeply thought it through. There are several ways to go about it, and I don't think I am far enough to clearly see the best path.
 
 Read [this blog post discussing my journey to this project](https://blainehansen.me/post/my-path-to-magma/) if you're interested in a more personal view.
+
+# Why will you be able to succeed where others haven't?
+
+I won't! That's why the plan is to keep soliciting help and contributions as I go, and focus diligently on just getting the project bootstrapped enough to be useful and inspire people to get involved. A successful language ecosystem requires a large number of very complex moving parts to all be excellent and interlock seamlessly. I don't think I'm going to pull that off alone, I just want to get the ball rolling.
+
+In the words of Bryan Cantrill:
+
+> "Engineers manage a duality, between arrogance and humility. ... The arrogance is what gets you to do it, and the humility is what gets you through."
+> <br>\- Bryan Cantrill in [*Leadership without management: Scaling organizations by scaling engineers*](https://www.youtube.com/watch?v=1KeYzjILqDo&feature=emb_logo&ab_channel=OmniTI).
+
+For now I simply *dare to hope* that a project like this is possible. Maybe it isn't! I'm determined to find out.
 
 ## This is an exciting idea! How can I help?
 

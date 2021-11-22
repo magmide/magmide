@@ -200,3 +200,44 @@ The only things the compiler needs to function are:
 
 
 The final language will have the logical subset and a rust-like high-level computational subset that aligns nicely with the logical language but is imperative and stateful.
+
+
+<!--
+
+the actual running compiler is all "actually" compute magma
+Logic magma and compute magma are just interfaces
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+if we target a useful target, and we can ingest all the definitions/proofs/code and check them and unfold bootstrapping metaprogramming in Coq, then we can build the first version of the compiler
+
+
+
+- build basic parsers to metaprogrammatically ingest magma code into Coq. this would allow
+- formalize the theory of just one assembly target in Coq.
+
+
+
+
+ideal definitions of the axioms and ast representations of the kernel
+compute definitions of the ast representations of the kernel and proofs of equivalance
+-->
