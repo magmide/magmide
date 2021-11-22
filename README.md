@@ -76,7 +76,7 @@ To achieve this goal, this project will enshrine the following values in regard 
 
 Yes! None of the technical details of this idea are untested or novel. Dependently typed proof languages, higher-order separation logic, query-based compilers, introspective metaprogramming, and abstract assembly languages are all ideas that have been proven in other contexts. Magma would merely attempt to combine them into one unified and practical package.
 
-# Is this design too ambitious? Is it just "everything and the kitchen sink"?
+## Is this design too ambitious? Is it just "everything and the kitchen sink"?
 
 This design is indeed very ambitous and broad, but here's my claim: none of the major features could be removed or weakened and still allow the project to achieve its goals. Every major design feature has intentionally been "maxed out", and chosen to nicely interlock with the others in a way that covers the largest possible number of use cases. If these features weren't the strongest versions of themselves we would be leaving power on the table that we don't have to, and we'd just be wasting time before some other better design shows up in a few years. All these design features are tractable, so we shouldn't stop short. It should be necessary for truly mind-blowing breakthroughs in logic or computational theory to appear before we have to revisit this design.
 
@@ -86,7 +86,7 @@ There are only three major design features that hold up everything else:
 - **Maxed out in computational power** by self-hosting in a bare metal language. If the language were interpreted or garbage collected then it would always perform worse than is strictly possible. It would be silly for metaprogramming to be done in a different language than the intended target languages. If we're going to formalize bare metal computation, we might as well use it to build the tool itself!
 - **Maxed out in expressive power** by making it deeply metaprogrammable from the beginning. Metaprogramming is basically a cheat code for language design, since it gives a language access to an infinite range of possible features without having to explicitly support them. It's the single best primitive to add in terms of implementation overhead versus expressiveness. Making the compiler query-based maxes out metaprogrammatic capability, since every bit of work done in the core compiler can be exposed for reuse.
 
-# If this is such a good idea why hasn't it happened yet?
+## If this is such a good idea why hasn't it happened yet?
 
 Mostly because this idea exists in an "incentive no man's land".
 
@@ -186,7 +186,7 @@ In [`posts/design-of-magma.md`](./posts/design-of-magma.md) I have some rough th
 
 Read [this blog post discussing my journey to this project](https://blainehansen.me/post/my-path-to-magma/) if you're interested in a more personal view.
 
-# Why will you be able to succeed where others haven't?
+## Why will you succeed where others haven't?
 
 I won't! That's why the plan is to keep soliciting help and contributions as I go, and focus diligently on just getting the project bootstrapped enough to be useful and inspire people to get involved. A successful language ecosystem requires a large number of very complex moving parts to all be excellent and interlock seamlessly. I don't think I'm going to pull that off alone, I just want to get the ball rolling.
 
