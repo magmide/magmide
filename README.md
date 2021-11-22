@@ -186,9 +186,9 @@ In [`posts/design-of-magma.md`](./posts/design-of-magma.md) I have some rough th
 
 Read [this blog post discussing my journey to this project](https://blainehansen.me/post/my-path-to-magma/) if you're interested in a more personal view.
 
-## Why will you succeed where others haven't?
+## Why will this project succeed where others haven't?
 
-I won't! That's why the plan is to keep soliciting help and contributions as I go, and focus diligently on just getting the project bootstrapped enough to be useful and inspire people to get involved. A successful language ecosystem requires a large number of very complex moving parts to all be excellent and interlock seamlessly. I don't think I'm going to pull that off alone, I just want to get the ball rolling.
+I can't be sure it will! That's why the plan is to keep soliciting help and contributions as I go, and focus diligently on just getting the project bootstrapped enough to be useful and inspire people to get involved. A successful language ecosystem requires a large number of very complex moving parts to all be excellent and interlock seamlessly. I don't think I'm going to pull that off alone, I just want to get the ball rolling.
 
 In the words of Bryan Cantrill:
 
