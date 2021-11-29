@@ -1,25 +1,3 @@
-Formalize a target environment just enough to be able to prove programs about it
-You also need to be able to do metaprogramming so it'll be tractable to write the first compiler version
-Write the first version of the compiler in that target but from within coq and prove it implements cic. Performance is completely unimportant at this stage
-Write just enough coq stuff to get that version rendered
-Port the theory base from coq to the newly rendered compiler
-You're self hosted! Continue work from there
-
-The work of building magma is slightly more complicated than building a normal bootstrapping compiler. We don't just have to implement *a* type system in the form of a type checking algorithm in our first version, we have to implement *a verified version of a specific type system*, namely the same calculus of constructions used by coq.
-I will first talk about what the *final* compiler will look like so we can know what we're aiming at. Then it will hopefully become clearer how to build the bootstrapping version.
-
-
-
-
-
-
-
-
-
-
-
-
-
 # Metaprogramming system
 
 instead of defining an extremely complicated set of macro definition rules, metaprogramming in magma chooses to give three very simple "syntactic entrypoints", and then just expose as much of the compiler query api as possible to allow for compile-time type introspection or other higher-level capabilities.
@@ -233,7 +211,15 @@ Logic magma and compute magma are just interfaces
 
 
 
+Formalize a target environment just enough to be able to prove programs about it
+You also need to be able to do metaprogramming so it'll be tractable to write the first compiler version
+Write the first version of the compiler in that target but from within coq and prove it implements cic. Performance is completely unimportant at this stage
+Write just enough coq stuff to get that version rendered
+Port the theory base from coq to the newly rendered compiler
+You're self hosted! Continue work from there
 
+The work of building magma is slightly more complicated than building a normal bootstrapping compiler. We don't just have to implement *a* type system in the form of a type checking algorithm in our first version, we have to implement *a verified version of a specific type system*, namely the same calculus of constructions used by coq.
+I will first talk about what the *final* compiler will look like so we can know what we're aiming at. Then it will hopefully become clearer how to build the bootstrapping version.
 
 
 
