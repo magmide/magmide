@@ -223,9 +223,9 @@ use lang{logic, compute}
 
 // use a local module
 // files/directories/internal modules are all accessed with .
-// `__mod.rk` can act as an "module entry" for a directory, you can't shadow child files or directories
+// `__mod.mg` can act as an "module entry" for a directory, you can't shadow child files or directories
 // the `mod` keyword can create modules inside a file, you can't shadow sibling files or directories
-// `_file.rk` means that module is private, but since this is a verified language this is just a hint to not show the module in tooling, any true invariants should be fully specified with `&`
+// `_file.mg` means that module is private, but since this is a verified language this is just a hint to not show the module in tooling, any true invariants should be fully specified with `&`
 use .local.nested{thing, further{nested.more, stuff}}
 
 // can do indented instead

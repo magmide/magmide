@@ -28,7 +28,7 @@ The [metacoq](https://github.com/MetaCoq/metacoq) and ["Coq Coq Correct!"](https
 
 Software needs to perform well! Not all software has the same requirements, but often performance is intrinsically tied to correct execution. Very often the software that most importantly needs to be correct also most importantly needs to perform well. If the language is capable of truly bare metal performance, it can still choose to create easy abstractions that sacrifice performance where that makes sense.
 
-To achieve this goal, the language will include in its core libraries a formalization of the basic principles of von neumann computation, allowing users to specify the axiomatic assumptions of any software execution environment, from concrete instruction set architectures, to any **abstract assembly language** such as LLVM capable of compiling to many targets, and even up to operating system userlands or bytecode environments such as webassembly. Making it possible to specify software at this level of fidelity helps ensure it is aligned with reality and isn't making unrealistic assumptions.
+To achieve this goal, the language will include in its core libraries a formalization of the basic principles of von Neumann computation, allowing users to specify the axiomatic assumptions of any software execution environment, from concrete instruction set architectures, to any **abstract assembly language** such as LLVM capable of compiling to many targets, and even up to operating system userlands or bytecode environments such as webassembly. Making it possible to specify software at this level of fidelity helps ensure it is aligned with reality and isn't making unrealistic assumptions.
 
 Verifying raw assembly code is much more difficult than verifying a mathematically pure language, but recent advancements such as the [Iris higher-order concurrent separation logic](https://iris-project.org/) have finally made this goal truly achievable.
 
@@ -47,6 +47,7 @@ Importantly, even if some piece of software chooses to ignore some negative effe
 We can't write all software in assembly language! Including first-class support for powerful metaprogramming, alongside a [query-based compiler](https://ollef.github.io/blog/posts/query-based-compilers.html), will allow users of this language to build abstractions that "combine upward" into higher levels, while still allowing the possibility for those higher levels to "drop down" back into the lower levels. Being a proof assistant, these escape hatches don't have to be "unsafe", as higher level code can provide proofs to the lower level to justify its actions.
 
 The metaprogramming can of course also be used directly in the dependently typed language, allowing compile-time manipulation of proofs, functions, and data. Verified proof tactics, macros, and higher-level embedded programming languages are all possible. This is the layer where absolutely essential proof automation tactics similar to Coq's `auto` or [Adam Chlipala's `crush`](http://adam.chlipala.net/cpdt/html/Cpdt.Intro.html), or fast counter-example searchers such as `quickcheck` would be implemented.
+
 
 Importantly, the language will be self-hosting, so metaprogramming functions will benefit from the same bare metal performance and full verifiability.
 
@@ -70,6 +71,48 @@ To achieve this goal, this project will enshrine the following values in regard 
 - Prefer graspable human words to represent ideas, never use opaque and unsearchable non-ascii symbols, and only use symbolic notations when it's both truly useful and properly explained.
 - Prioritize the hard work of finding clear and distilled explanations.
 
+
+<!-- use cases
+
+## just doing logic/mathematics, not intending to create runnable programs
+
+although it would seem this use case doesn't need to be able to check/compile/run computable programs, the user might still use metaprogramming to manipulate proofs, or use libraries that do. before sending the Logic Magma structures representing the code being worked on to the kernel, any metaprogrammatic constructs need to be unfolded, which means the Host Magma programs that are implied by those metaprogrammatic constructs need to be checked/compiled/run.
+
+the flow for codebases like this would be: parse into data structures, check/compile/run any meta programs using the built in Host Magma algorithms, send fully unfolded Logic Magma structures to the kernel
+
+this means that the compiler needs to have built in notions of some known Host Magma. the truly final version of Magma can have the *syntax* of some layer/variant of Host Magma built in rather than always nesting Host Magma underneath metaprogrammatic entry points
+
+## writing code intended to run on the same architecture as the host
+
+here all we need is the same Host Magma used within the compiler. the user doesn't have to do anything unusual, they just need to write Host Magma that's somehow "marked" as the "main" entry point
+
+of course prop predicates can be indexed by host types/values, so Host Magma will include custom entry points/sugars for assertions about code state that assumes these indexed predicates. assertions about host values are just logical props but more specific versions of them.
+
+so there's the *ideal* definition of a computable type, which is just a predicate about binary arrays
+this ideal definition must itself be represented computationally, so in memory it will be shaped in whatever way we decide to represent inductive types (probably with some array of values with tags and index offsets to avoid having pointers to different parts of memory and improve cache locality)
+then at the runtime of the target program, the real bits will just be formed according to how the predicate demanded they would be
+
+## cross-compiling code for a different architecture, but written in Host Magma
+
+same as above, they just have to somehow signal what architecture(s) are intended
+
+## compiling code using a completely different compute language, one incompatible with Host Magma
+
+in order to do this, the user has to specify ast datatypes for their language. they have to do this in Host Magma, since these datatypes need to be computationally represented and manipulated.
+
+they can optionally choose to create macros to convert some custom syntax into these ast datatypes, and if they do this these macros will be in Host Magma.
+
+they will almost certainly define logical specifications for their host architecture, the machine type, how their ast datatypes relate to these things, and probably (definitely?) purely imaginary logical datatypes that model the real computational ones, and all of this will be done in Logic Magma. Logic Magma terms aren't really intended to be "computed", only evaluated using the reduction rules with an interpreter inside (alongside?) the kernel.
+
+they need to be able to render/assemble their program, and they have to provide a custom rendering function. this step is ultimately a meta one, since "compile time" refers to compilation of the target program! so compilation is really just running a metaprogram that happens to produce some artifact. looking back at the more "normal" use cases we can see that those are just the same thing, except the path at each step was more known. the only thing that really distinguishes this use case from the others is that the ast/specifications/renderer were all provided custom.
+
+but the logical stuff is the thing that's confusing. should logic Prop types be indexable by Host datatypes?
+
+remember, at the very bottom of all of this is just the Host Magma *logic types*. logical inductive types are at the bottom of the tree. those types are just modeling a real computational machine state and making assertions about it.
+when we make assertions about "host types", we aren't making assertions about *it*, but about the machine state it represents?
+
+it's silly to get hung up on whether Host Magma types/values can be asserted by the Prop universe, because of course they can! host types are just predicates over binary arrays, and host values are just binary arrays. to say that some host value is equal to another is the exact same as saying two ideal values are equal. in both cases they're *definitionally* equal in the strict coq convertibility sense. -->
+
 # FAQ
 
 ## Is it technically possible to build a language like this?
@@ -78,7 +121,7 @@ Yes! None of the technical details of this idea are untested or novel. Dependent
 
 ## Is this design too ambitious? Is it just "everything and the kitchen sink"?
 
-This design is indeed very ambitous and broad, but here's my claim: none of the major features could be removed or weakened and still allow the project to achieve its goals. Every major design feature has intentionally been "maxed out", and chosen to nicely interlock with the others in a way that covers the largest possible number of use cases. If these features weren't the strongest versions of themselves we would be leaving power on the table that we don't have to, and we'd just be wasting time before some other better design shows up in a few years. All these design features are tractable, so we shouldn't stop short. It should be necessary for truly mind-blowing breakthroughs in logic or computational theory to appear before we have to revisit this design.
+This design is indeed very ambitious and broad, but here's my claim: none of the major features could be removed or weakened and still allow the project to achieve its goals. Every major design feature has intentionally been "maxed out", and chosen to nicely interlock with the others in a way that covers the largest possible number of use cases. If these features weren't the strongest versions of themselves we would be leaving power on the table that we don't have to, and we'd just be wasting time before some other better design shows up in a few years. All these design features are tractable, so we shouldn't stop short. It should be necessary for truly mind-blowing breakthroughs in logic or computational theory to appear before we have to revisit this design.
 
 There are only three major design features that hold up everything else:
 
@@ -134,7 +177,7 @@ Magma's metaprogramming system won't allow unsignified custom symbolic notation,
 
 ## Do you really think all engineers are going to write proofs for all their code?
 
-No! And honestly, doing so would probably be a huge waste of time. Not all software has the same constraints, and it would be dumb to to verify a recipe app as rigorously as a crypography function.
+No! And honestly, doing so would probably be a huge waste of time. Not all software has the same constraints, and it would be dumb to to verify a recipe app as rigorously as a cryptography function.
 
 But even a recipe app would benefit from the *foundations* it sits on being much more verified. I imagine something like a "verification pyramid", with excruciatingly verified software at the bottom, going up through less verified code all the way to throwaway scripts that aren't even tested. At the bottom even the tiniest details such as the possibility of integer overflow must be explicitly accounted for, and at the top we just do a basic and highly inferred type-check. Basically, the less important a piece of software is and the easier it is to change, the less verified it needs to be.
 
@@ -172,7 +215,7 @@ If you don't think a logical model can be accurate enough to model a real machin
 
 If you think we'll constantly be tripping over problems in incorrectly implemented operating systems or web browsers, well you're missing the whole point of this project. These systems provide environments for other software yes, but they're still just software themselves. Even if they aren't perfectly reliable *now*, the entire ambition of this project is to *make* them reliable.
 
-Hardware axioms, which model the abstractions provided by a concrete computer architecture are tricker though. Hardware faults and ambient problems of all kinds can absolutely cause unavoidable data corruption. Hardware is intentionally designed with layers of error correction and redundancy to avoid propagating corruption, but it still gets through sometimes. There's one big reason to press on with formal verification nonetheless: the possibility of corruption or failure can be included in our axioms!
+Hardware axioms, which model the abstractions provided by a concrete computer architecture are trickier though. Hardware faults and ambient problems of all kinds can absolutely cause unavoidable data corruption. Hardware is intentionally designed with layers of error correction and redundancy to avoid propagating corruption, but it still gets through sometimes. There's one big reason to press on with formal verification nonetheless: the possibility of corruption or failure can be included in our axioms!
 
 Firmware and operating systems already include state consistency assertions and [error correction codes](https://en.wikipedia.org/wiki/Error_detection_and_correction), and it would be nice if those checks themselves could be verified. The entire idea of "trackable effects" is intended to allow environmental assumptions to be as high fidelity and stringent as possible without requiring every piece of software to actually care about all that detail. This means the lowest levels of our "verification pyramid" can fully include the possibility of corruption and carefully prove it can only cause a certain amount of damage in a few well-understood places. Then the higher levels of the pyramid can build on top of that much sturdier foundation.
 
@@ -246,6 +289,12 @@ Voting is sufficiently high stakes that it's extremely important for a voting in
 Things like the [Underlay](https://research.protocol.ai/talks/the-underlay-a-distributed-public-knowledge-graph/) or the [Intercranial Abstraction System](https://research.protocol.ai/talks/the-inter-cranial-abstraction-system-icas/) get much more exciting in a world with a standardized proof checker syntax to describe binary type formats. If a piece of data can be annotated with its precise logical format, including things like endianness and layout semantics, then many more pieces of software can automatically interoperate.
 
 I'm particularly excited by the possibility of improving the universality of self-describing apis, ones that allow consumers to merely point at some endpoint and metaprogrammatically understand the protocol and type interface.
+
+## Truly universal interoperability
+
+All computer programs in our world operate on bits, and those bits are commonly interepreted as the same few types of values (numbers, strings, booleans, lists, structures of those things, standardized media types). In a world where all common computation environments are formalized and programs can be verified to correctly model common logical types in any of those common computation environments, then correct interoperation between those environments can also be verified!
+
+It would be very exciting to know with deep rigorous certainty that a program can be compiled for a broad host of architectures and model the same logical behavior on all of them.
 
 ## Semver enforcing and truly secure package management
 

@@ -1,3 +1,102 @@
+Verified hardware simulators are easy with magma
+
+Engineers want tools that can give them stronger guarantees about safety robustness and performance, but that tool has to be tractably usable and respect their time
+
+This idea exists in incentive no man's land. Academics won't think about it or care about it because it merely applies existing work, so they'll trudge along in their tenure track and keep publishing post hoc verifications of existing systems. Engineers won't think about or care about it because it can't make money quickly or be made into a service or even very quickly be used to improve some service
+This is an idea that carries basically zero short term benefits, but incalculable long term ones, mainly in the way it could shift the culture of software and even mathematics and logic if successful.
+This project is hoping and gambling that it itself won't even be the truly exciting innovation, but some other project that builds upon it, and that wouldn't have happened otherwise. I'm merely hoping to be the pair of shoulders someone else stands on, and I hope the paradigm shift this project creates is merely assumed to be obvious, that they'll think we were insane to write programs and not prove them correct
+
+
+
+
+https://mattkimber.co.uk/avoiding-growth-by-accretion/
+Most effects aren't really effects but environmental capabilities, although sometimes those capabilities come with effects
+
+
+
+Traits, shapes, and the next level of type inference
+
+Discriminated unions and procedural macros make dynamically typed languages pointless, and they've existed for eighty years. So what gives?
+
+What's better than a standard? An automatically checkable and enforceable standard
+
+
+https://project-oak.github.io/rust-verification-tools/2021/09/01/retrospective.html
+we have to go all the way. anything less than the capabilities given by a full proof checker proving theories on the literal environment abstractions isn't going to be good enough, will always have bugs and hard edges and cases that can't be done. but those full capabilties can *contain* other more "ad hoc" things like fuzzers, quickcheck libraries, test generators, etc. we must build upon a magma!
+
+
+
+
+
+stop trying to make functional programming happen, it isn't going to happen
+
+## project values
+
+- **Correctness**: this project should be a flexible toolkit capable of verifying and compiling any software for any architecture or environment. It should make it as easy as possible to model the abstractions presented by any hardware or host system with full and complete fidelity.
+- **Clarity**: this project should be accessible to as many people as possible, because it doesn't matter how powerful a tool is if no one can understand it. To guide us in this pursuit we have a few maxims: speak plainly and don't use jargon when simpler words could be just as precise; don't use a term unless you've given some path for the reader to understand it, if a topic has prerequisites point readers toward them; assume your reader is capable but busy; use fully descriptive words, not vague abbreviations and symbols.
+- **Practicality**: a tool must be usable, both in terms of the demands it makes and its design. This tool is intended to be used by busy people building real things with real stakes.
+- **Performance**: often those programs which absolutely must be fast are also those which absolutely must be correct. Infrastructural software is constantly depended on, and must perform well.
+
+These values inherently reinforce one another. As we gain more ability to guarantee correctness, we can make programs faster and solve more problems. As our tools become faster, they become more usable. Guaranteeing correctness saves others time and headache dealing with our bugs. As we improve clarity, more people gather to help improve the project, making it even better in every way.
+
+secondary values, simplicity before consistency before completeness.
+
+cultural values, code of conduct, we're accepting and open and humble.
+
+
+```
+In the spirit of Richard Gabriel, the Pony philosophy is neither "the-right-thing" nor "worse-is-better". It is "get-stuff-done".
+
+Correctness
+Incorrectness is simply not allowed. It's pointless to try to get stuff done if you can't guarantee the result is correct.
+
+Performance
+Runtime speed is more important than everything except correctness. If performance must be sacrificed for correctness, try to come up with a new way to do things. The faster the program can get stuff done, the better. This is more important than anything except a correct result.
+
+Simplicity
+Simplicity can be sacrificed for performance. It is more important for the interface to be simple than the implementation. The faster the programmer can get stuff done, the better. It's ok to make things a bit harder on the programmer to improve performance, but it's more important to make things easier on the programmer than it is to make things easier on the language/runtime.
+
+Consistency
+Consistency can be sacrificed for simplicity or performance. Don't let excessive consistency get in the way of getting stuff done.
+
+Completeness
+It's nice to cover as many things as possible, but completeness can be sacrificed for anything else. It's better to get some stuff done now than wait until everything can get done later.
+
+The "get-stuff-done" approach has the same attitude towards correctness and simplicity as "the-right-thing", but the same attitude towards consistency and completeness as "worse-is-better". It also adds performance as a new principle, treating it as the second most important thing (after correctness).
+
+https://www.ponylang.io/discover/#what-is-pony
+```
+
+Overall the difference between "the-right-thing" and "worse-is-better" can be understood as the difference between upfront and marginal costs. Doing something right the first time is an upfront cost, and once paid decreases marginal costs *forever*.
+The main problem in software, and the reason "worse-is-better" has been winning in an environment of growth-focused viral capitalism, was that it was basically impossible in practice to actually do something the right way! Since our languages haven't ever supported automatic verification we could only hope to weakly attempt to understand what correct even meant and then actually implement it. This meant the cost to chase the truly right thing was unacceptably uncertain.
+
+Magma promises neither performance nor correctness nor consistency nor completeness, but instead promises the one thing that underlies all of those qualities: knowledge. Complete and total formal knowledge about the program you're writing.
+Magma is simply a raw exposure of the basic elements of computing, in both the real sense of actual machine instructions and the ideal sense of formal logic. These basic elements can be combined in whatever way someone desires, even in the "worse-is-better" way! The main contribution of Magma is that the tradeoffs one makes can be made *and flagged*. Nothing is done without knowledge.
+
+
+If you can prove it you can do it
+
+
+Nested environments! the tradeoffs made while designing the operating system can directly inform the proof obligations and effects of nested environments
+
+Possible Ways to Improve Automated Proof Checking
+
+checking assertions from the bottom up and in reverse instruction order, keeping track as we go of what assertions we're concerned with and only pulling along propositions with a known transformation path to those assertions.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 https://dl.acm.org/doi/abs/10.1145/3453483.3454084
 https://ocamlpro.github.io/verification_for_dummies/
 https://arxiv.org/abs/2110.01098
@@ -413,18 +512,3 @@ https://media.ccc.de/v/34c3-9105-coming_soon_machine-checked_mathematical_proofs
 https://github.com/mit-plv/bedrock2
 
 http://adam.chlipala.net/frap/frap_book.pdf
-
-
-email to adamc@csail.mit.edu:
-I want to help bring formal methods to the mainstream, by learning from Rust
-
-
-
-`bedrock`
-write `bedrock` post, with lots of specific technical examples
-create unproven functions implementing basic mutating assembly language in coq, using naturals instead of bit sequences
-figure out how to use iris enough to implement some basic allocation examples
-figure out how to use iron enough to implement allocation and deallocation
-
-blog post series discussing the failure of untyped languages/software engineers and the dream of a common formal language
-read basic category theory for computer scientists
