@@ -16,12 +16,17 @@ the most damning accusation I can make against coq is that it isn't even that br
 I'm frankly not even sure what lean adds over coq. It certainly makes a few better minor design decisions, but it isn't really promising to change the game in any way, at least not sufficiently that it's worth tossing out all the existing work in coq.
 
 ## F*, Liquid Haskell
-not fully dependently typed
 
-Our lowest level of abstraction defines the limits of our control
-Coq is least suited to those applications for which it is most necessary. High performance situations like operating systems, embedded systems, safety critical systems are almost always extremely time and resource constrained, and so must have both the greatest amount of performance and correctness.
+I think the way in which they've blended effectful programming and type theory is actually counterproductive. Effectful programming is inherently imperative, and blending the two only seems like it would appeal to people who insist on using functional paradigms. The reason I think Magma should use a pure calculus of constructions is that the proving/modelling layer is intentionally "imaginary". The dependent type system is essentially just a higher order type system for an infinite range of concrete languages, and so only exists at compile time. The blend is confusing and "buries the lede".
 
-This project is seeking to solve these problems by creating a Tool, and a Community. The Tool is largely a technical work, but one we will try to build as intuitively and elegantly as possible (in contrast to existing academic tools). The Community includes governance and education materials.
+
+## any system that doesn't deeply use separation logic (z notation, b-method)
+
+https://en.wikipedia.org/wiki/B-Method
+https://en.wikipedia.org/wiki/Rodin_tool
+
+Separation logic is the critical breakthrough that (eventually) led to Rust's revolutionary ownership model. It's a very clean and intuitive way to reason about mutable and sharable global state. It seems to me that a method
+
 
 ## vale
 focused on cryptographic code, and it isn't a new proof assistant with the intent to make formal verification go mainstream, but instead a library in an existing proof assistant meant to help crypto researchers
