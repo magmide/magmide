@@ -112,7 +112,7 @@ It seems this just means the later is meaningless, *or that there's nothing in t
 
 > In this section we will interpret worlds as characterizing abstract properties of the current state of computation. In particular, in a  system with mutable references, each world contains a memory typing
 
-In different types of machines, a "world" is a different thing (a lambda calculus with a store is a pair of an expression and that store, a von neumann machine is the pair of registers (including program pointer) and memory)
+In different types of machines, a "world" is a different thing (a lambda calculus with a store is a pair of an expression and that store, a von Neumann machine is the pair of registers (including program pointer) and memory)
 
 ```
 Clearly, the same value v may or may not have type T depending on the world w, that is, depending on the data structures in memory that v points to. Accordingly, we call a pair (w, v) a configuration (abbreviated "config"):
@@ -200,9 +200,9 @@ and values `v: V`.
 
 We assume Loc subset SV (meaning locations are storable values, but there are more storable values than just locations)
 
-On a Von Neumann machine, SV = Loc (so locations *do* in fact fully describe storable values)
+On a von Neumann machine, SV = Loc (so locations *do* in fact fully describe storable values)
 and v is a vector of locations (one could think of a register-bank) indexed by a natural number j.
-That is, if v is a value, then v(j) is a Loc. (meaning a "value" is a terrible name for what they're talking about! value is a register bank, so v(j. but they're using value in the config sense of a (w, v), or a world and a *value*. this means they're saying the world is the state of memory and the value is the state of the registers, at least on a von neumann machine) is choosing a particular register to grab a Loc from. Magma will make this clearer by just making all things byte arrays and lists of byte arrays)
+That is, if v is a value, then v(j) is a Loc. (meaning a "value" is a terrible name for what they're talking about! value is a register bank, so v(j. but they're using value in the config sense of a (w, v), or a world and a *value*. this means they're saying the world is the state of memory and the value is the state of the registers, at least on a von Neumann machine) is choosing a particular register to grab a Loc from. Magma will make this clearer by just making all things byte arrays and lists of byte arrays)
 ```
 
 This part is where is gets hairier:
@@ -215,7 +215,7 @@ This way the same set of types can be used for all kinds of values.
 
 The "in order to type locations" is important. I'm hoping this will become more clear. I understand all the parts of that sentence, but not the purpose of the sentence.
 
-I think it becomes clearer with the "This way the same set of types can be used for all kinds of values." They're talking about *world/value/config* values in this context, so I guess this injective function is trying to produce some kind of equivalence between von neumann machines and lambda calculus.
+I think it becomes clearer with the "This way the same set of types can be used for all kinds of values." They're talking about *world/value/config* values in this context, so I guess this injective function is trying to produce some kind of equivalence between von Neumann machines and lambda calculus.
 
 This is even less clear
 
@@ -224,7 +224,7 @@ In lambda-calculus, `SV = V` is the usual set of values, so we have `Loc stricts
 ```
 
 again I understand the parts but not the sentence.
-perhaps they're saying that in lambda calculus the store can hold anything, and the "value" of a von neumann machine is the current expression being reduced, so there isn't a need for this injective function? I'm still not sure what the injective function is for.
+perhaps they're saying that in lambda calculus the store can hold anything, and the "value" of a von Neumann machine is the current expression being reduced, so there isn't a need for this injective function? I'm still not sure what the injective function is for.
 
 
 Singletons and slots.

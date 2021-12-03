@@ -78,3 +78,4 @@ within the segment we can just say we're making sequential progress?
 
 probably to prove a jump to dynamic code will terminate or just behave properly, we need to have the programmer provide a list of resumption locations in the current graph (which could be the exit location!) and prove the code they're jumping to will in fact only exit itself by going to those known places
 they also need to prove that somehow the unknown code has been itself checked for well-formedness and absence of unfulfilled proof obligations to justify jumping to it and still keeping clean trackable effects
+jumping to unchecked code violates *all* registered trackable effects, since the unchecked code could do literally anything it wants.
