@@ -175,6 +175,16 @@ It also makes it extremely easy to create custom symbolic notation that makes co
 
 Magma's metaprogramming system won't allow unsignified custom symbolic notation, and will require all metaprogrammatic concepts to be syntactically scoped within known identifiers. In Rust macros are always explicit with an annotation or a `macro_name!` syntax, and something similar will be true in Magma. More information can be found [in the rough `posts/design-of-magma.md` page](./posts/design-of-magma.md).
 
+## How would trackable effects compare with algebraic effects?
+
+There's a ton of overlap between the algebraic effects used in a language like [Koka](https://koka-lang.github.io/koka/doc/index.html) and the trackable effects planned for Magma. Trackable effects are actually general enough to *implement* algebraic effects, so there are some subtle differences.
+
+On the surface level the actual theoretical structure is different. Algebraic effects are "created" by certain operations and then "wrap" the results of functions. Trackable effects are defined by *starting* with some token representing a "clean slate", and then pieces of that token are given up to perform possibly effectful operations, and only given back if a proof that the operation is in fact "safe" is given.
+
+This design means that trackable effects can be used for *any* kind of program aspect, from signaling conditions that can't be "caught" or "intercepted" (such as leaking memory), to notifying callers of the presence of some polymorphic control flow entrypoint that can be "hijacked".
+
+It's important to also note that the polymorphic control flow use cases of algebraic effects could be achieved with many different patterns that no one would strictly call "algebraic effects". For example a type system could simply treat all the implicitly "captured" global symbols as the default arguments of an implicit call signature of a function, allowing those captured global signals to be swapped out by callers (if a function uses a `print` function, you could detect that capture and supply a new `print` function without the function author needing to explicitly support that ability). Or you could simply use metaprogramming to ingest foreign code and replace existing structures. For this reason trackable effects would be more focused on effects related to correctness and safety rather than control flow, despite the relationships between the two.
+
 ## Do you really think all engineers are going to write proofs for all their code?
 
 No! And honestly, doing so would probably be a huge waste of time. Not all software has the same constraints, and it would be dumb to to verify a recipe app as rigorously as a cryptography function.

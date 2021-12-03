@@ -23,7 +23,7 @@ Logic Magma                +-------------> Host Magma
                        and verifies
 ```
 
-<!-- In a real way, logic magma is just the type system of host magma, albeit one that is also a turing complete language -->
+The easiest way to understand this is to think of Logic Magma as the type system of Host Magma. Logic Magma is "imaginary" and only exists at compile time, and constrains/defines the behavior of Host Magma. Logic Magma just happens to itself be a turing complete dependently typed functional programming language!
 
 Since Host Magma is the computational language, it would make most sense to write metaprogramming routines in it, including ones that are intended to produce Logic Magma terms. This means the compiler has to be built with a definition of Host Magma present so it knows how to check and run metaprograms. (Of course since Logic Magma strictly speaking can be evaluated at compile time by the reduction rules in the kernel, then people could write compile-time functions in it, but the functions would be much slower. Language guides should focus on using Host Magma for metaprogramming.)
 
