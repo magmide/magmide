@@ -181,6 +181,23 @@ let unknown_ip = Ip(_, 0, 0, _)
 let known_ip = unknown_ip(127, 1)
 ```
 
+## Anonymous union types
+
+Often we find ourselves having to explicitly define boring "wrapper" union types that are only used in one place. It would be nice to have a syntax sugar for an anonymous union type that merely defines tuple-like variants holding the internal types. For example:
+
+```
+def my_weird_function(arg: bool | nat | str): str;
+  match arg;
+    bool(b); if b; "yes" \else; "no"
+    nat(n); format_binary(nat)
+    str(s); "string = #{s}"
+
+// values can be passed without being wrapped
+my_weird_function(true)
+my_weird_function(2)
+my_weird_function("hello")
+```
+
 ## No implicit type coercion
 
 Although type coercions can be very convenient, they make code harder to read and understand for those who didn't write it.
@@ -236,7 +253,7 @@ type EligibleVoter = Person & (.age >= 18) & .alive
 
 // using a list of predicates and a proof that all of them hold is more flexible than a single nested proposition
 type AssertedType (T: Type) (assertions: list (T -> Prop)) =
-  (x, ListForall assertions (|> assertion; assertion(x)))
+  forall (t: T), (t, ListForall assertions (|> assertion; assertion(t)))
 ```
 
 We can provide universal conversion implementations to and from types and asserted versions of themselves. Pulling a value out of an asserted type is easy. Putting a value into an asserted type or converting between two seemingly incompatible asserted types would just generate a proof obligation.
