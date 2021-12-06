@@ -144,7 +144,7 @@ thm four_is: even(4); my_prf$
 
 ## Builtin syntax for tuple-like and record-like types
 
-In Coq all types are just inductive types, and those that only have one constructor are essentially equivalent to tuple or records types in other languages. This means that *all* data accesses have to ultimately desugar to `match` statements.
+In Coq all types are just inductive types, and those that only have one constructor are essentially equivalent to tuple or record types in other languages. This means that *all* data accesses have to ultimately desugar to `match` statements.
 
 This cleanliness is fine and ought to remain that way in the kernel, but we don't have to make users deal with this distinction in their own code. Although Coq has somewhat supported these patterns with `Record` and primitive projections and other constructs, the implementation is cluttered and confusing.
 
@@ -262,7 +262,9 @@ We can provide universal conversion implementations to and from types and assert
 
 Instead of defining an extremely complicated set of macro definition rules, metaprogramming in Magma will give three very simple "syntactic entrypoints", and then just expose as much of the compiler query api as possible to allow for compile-time type introspection or other higher-level capabilities.
 
-Macros can either accept raw strings as input and parse them themselves (this allows for arbitrarily flexible and evolving community parsing patterns) or accept Magma parsed token trees (like most languages). To actually call them you can do so inline, as a block, or using a "virtual" import that processes an entire file.
+Macros can either accept raw strings as input and parse them themselves or accept Magma parsed token trees. This complete generality means that Magma can support *any* parsing pattern for embedded languages. Someone could even define something just like Coq's notation system if that's what they really wanted, and their custom system would be cleanly cordoned off behind a clear `macro_name$` style signifier. By just leaning all the way into the power of metaprogramming, we can allow *any* feature without having to explicitly support it.
+
+To actually use macros you can do so inline, as a block, or using a "virtual" import that processes an entire file.
 
 ### Inline macros
 
