@@ -235,7 +235,7 @@ Yes it's true that we can only go so far with formal verification, so we should 
 
 Very early, and basically everything remains to be done! I've been playing with models of very simple assembly languages to get my arms around formalization of truly imperative execution. Especially interesting has been what it looks like to prove some specific assembly language program will always terminate, and to ergonomically discover paths in the control flow graph which require extra proof justification. I have some raw notes and thoughts about this in [`posts/toward-termination-vcgen.md`](./posts/toward-termination-vcgen.md). Basically I've been playing with the design for the foundational computational theory.
 
-In [`posts/design-of-magmide.md`](./posts/design-of-magmide.md) I have some rough thoughts about what the project's major milestones would be. The obvious first milestone is to create a bootstrapping compiler capable of compiling the first self-hosted version. That will likely happen in Coq in some way, but I haven't deeply thought it through. There are several ways to go about it, and I don't think I am far enough to clearly see the best path.
+In [`posts/design-of-magmide.md`](./posts/design-of-magmide.md) I have some rough thoughts about what the project's major milestones would be. The obvious first milestone is to create a bootstrapping compiler capable of compiling the first self-hosted version.
 
 Read [this blog post discussing my journey to this project](https://blainehansen.me/post/my-path-to-magmide/) if you're interested in a more personal view.
 
