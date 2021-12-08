@@ -1,4 +1,4 @@
-Verified hardware simulators are easy with magma
+Verified hardware simulators are easy with magmide
 
 Engineers want tools that can give them stronger guarantees about safety robustness and performance, but that tool has to be tractably usable and respect their time
 
@@ -22,7 +22,7 @@ What's better than a standard? An automatically checkable and enforceable standa
 
 
 https://project-oak.github.io/rust-verification-tools/2021/09/01/retrospective.html
-we have to go all the way. anything less than the capabilities given by a full proof checker proving theories on the literal environment abstractions isn't going to be good enough, will always have bugs and hard edges and cases that can't be done. but those full capabilties can *contain* other more "ad hoc" things like fuzzers, quickcheck libraries, test generators, etc. we must build upon a magma!
+we have to go all the way. anything less than the capabilities given by a full proof checker proving theories on the literal environment abstractions isn't going to be good enough, will always have bugs and hard edges and cases that can't be done. but those full capabilties can *contain* other more "ad hoc" things like fuzzers, quickcheck libraries, test generators, etc. we must build upon a magmide!
 
 
 
@@ -70,8 +70,8 @@ https://www.ponylang.io/discover/#what-is-pony
 Overall the difference between "the-right-thing" and "worse-is-better" can be understood as the difference between upfront and marginal costs. Doing something right the first time is an upfront cost, and once paid decreases marginal costs *forever*.
 The main problem in software, and the reason "worse-is-better" has been winning in an environment of growth-focused viral capitalism, was that it was basically impossible in practice to actually do something the right way! Since our languages haven't ever supported automatic verification we could only hope to weakly attempt to understand what correct even meant and then actually implement it. This meant the cost to chase the truly right thing was unacceptably uncertain.
 
-Magma promises neither performance nor correctness nor consistency nor completeness, but instead promises the one thing that underlies all of those qualities: knowledge. Complete and total formal knowledge about the program you're writing.
-Magma is simply a raw exposure of the basic elements of computing, in both the real sense of actual machine instructions and the ideal sense of formal logic. These basic elements can be combined in whatever way someone desires, even in the "worse-is-better" way! The main contribution of Magma is that the tradeoffs one makes can be made *and flagged*. Nothing is done without knowledge.
+Magmide promises neither performance nor correctness nor consistency nor completeness, but instead promises the one thing that underlies all of those qualities: knowledge. Complete and total formal knowledge about the program you're writing.
+Magmide is simply a raw exposure of the basic elements of computing, in both the real sense of actual machine instructions and the ideal sense of formal logic. These basic elements can be combined in whatever way someone desires, even in the "worse-is-better" way! The main contribution of Magmide is that the tradeoffs one makes can be made *and flagged*. Nothing is done without knowledge.
 
 
 If you can prove it you can do it
@@ -106,7 +106,7 @@ https://arxiv.org/abs/2110.01098
 
 
 In most of these heap-enabled lambda calculi "allocation" just assumes an infinite heap and requires an owned points-to connective in order to read.
-In the real assembly language, you can always read, but doing so when you don't have any idea what the value you're reading just gets you a machine word of unknown shape, something like uninit or poison. How can I think about this in Magma? Are there ever programs that intentionally read garbage? That's essentially always random input. Probably there's just a non-determinism token-effect you want.
+In the real assembly language, you can always read, but doing so when you don't have any idea what the value you're reading just gets you a machine word of unknown shape, something like uninit or poison. How can I think about this in Magmide? Are there ever programs that intentionally read garbage? That's essentially always random input. Probably there's just a non-determinism token-effect you want.
 
 My hunch about why my approach is going to prove more robust then continuation-passing-style is because it doesn't seem cps can really directly understand programs as mere data, or would need special primitives to handle it, whereas in my approach it's given, which makes sense since again we're merely directly modeling what the machine actually does.
 
@@ -235,14 +235,14 @@ https://gitlab.mpi-sws.org/iris/iris/blob/master/docs/proof_mode.md
 
 
 I like the idea of having a `by` operator that can be used to justify passing a variable as some type with the accompanying proof script. so for example you could say `return x by crush`, or more complicated things such as `return x by (something; something)`. whatever level of automatic crushing should the system do by default? should there be a cheap crusher that's always used even without a `by`, and `by _` means "use a more expensive crusher"? or does no `by` mean to defer to a proof block? it makes sense to me for no `by` to imply simply deferring (trying to pass something as a type we can quickly verify it can't possibly be is just a type error), whereas `by _` means "use the crusher configured at this scope", and something like file/module/section/function/block level crushers can be configured
-a small and easy to use operator for embedding the proof language into the computational language would probably go a long way to making Magma popular and easy to understand.
+a small and easy to use operator for embedding the proof language into the computational language would probably go a long way to making Magmide popular and easy to understand.
 
 it would probably be nice to have some shorthand for "extending" the proof value of functions and type aliases. something like `fn_name ;theorem` or something that implies adding the assumptions of the thing and the thing itself into the context of the proof, and adds the new proof for further use.
 
 
 look at koka lang
-what magma can add is *unannotated* effects. polymorphic effects in a language like koka seem (at first glance) to require annotation, whereas in magma they are simply implied by the `&` combination of assertions that is inherent to what a type is.
-a problem with effectual control flow is that we almost never actually *care* about control flow differences. effects in koka seem to me to be too obsessed with "purity" in the pedantic functional programming sense, rather than in the *logical correctness* sense. I don't terribly care if a subfunction causes yield effects or catches internal exceptions, I care about its performance and if it is correct or not. magma is concerned with *correctness* effects, as in whether a function "poisons" the program with possible divergence or crashes or other issues. if a sub function does *potentially* dangerous things but internally proves them and it doesn't impact performance in a way I need to be aware of, then I don't care. well, it looks like they *largely* understand that.
+what magmide can add is *unannotated* effects. polymorphic effects in a language like koka seem (at first glance) to require annotation, whereas in magmide they are simply implied by the `&` combination of assertions that is inherent to what a type is.
+a problem with effectual control flow is that we almost never actually *care* about control flow differences. effects in koka seem to me to be too obsessed with "purity" in the pedantic functional programming sense, rather than in the *logical correctness* sense. I don't terribly care if a subfunction causes yield effects or catches internal exceptions, I care about its performance and if it is correct or not. magmide is concerned with *correctness* effects, as in whether a function "poisons" the program with possible divergence or crashes or other issues. if a sub function does *potentially* dangerous things but internally proves them and it doesn't impact performance in a way I need to be aware of, then I don't care. well, it looks like they *largely* understand that.
 what I don't love though is how obsessed they are with effect handlers, to the extent they have `fun` and `val` variants **that are equivalent to just passing down a closure or value!** I guess it allows the effect giving functions to be used in more contexts than would be possible if they just required a function or value
 value capabilities seem cool, but in a world where we can verify everything, a global variable is in fact totally acceptable. hmmm
 here's my main takeaway from koka: I actually think it's pretty cool, but I think it's important to distinguish *control flow* effects from *correctness* effects. they have completely different purposes. in fact I'm hesitant to call what koka has effects at all, they're more like "contextual handlers" or something. maybe it's better just to call what *I'm* adding something else.
@@ -255,13 +255,13 @@ The thing that bothers me about the red blue complaint is that it is just ignori
 They're of course free to do whatever they like, they can just block futures sequentially, or use the underlying blocking primitives, or use a language with transparent async, but they'll pick up the performance downsides in each case. But as they say you can choose to pick up one end of the stick but not the other
 I'm feeling more and more that other abstractions handle some of these specific cases better, at least from the perspective of how easy they are to reason about
 For example the fun and val versions of koka effects can be thought of as implicit arguments that can be separately passed in a different tuple of arguments. This is the same as giving a handler, but with stricter requirements about resumption which means we don't have to think about saving the stack. If some implicit arguments default to a global "effectful" function, then a call of that function with that default will itself have that effect
-Magma could do algebraic effects but monomorphize all the specific instances, making them zero cost. All of this can be justified using branching instructions
+Magmide could do algebraic effects but monomorphize all the specific instances, making them zero cost. All of this can be justified using branching instructions
 Functions could use a global "unsure" function equivalent to panic but that takes a symbol and a message and the default implicit value of this function is merely an instantiation of panic that ignores the symbol. Calling functions can provide something to replace the implicit panic and have it statically monomorphized
 
 
 
 
-The term "gradual verification" is useful to sell people on what's unique about this project. Magma is tractable for the same reasons something like typescript or mypy is tractable.
+The term "gradual verification" is useful to sell people on what's unique about this project. Magmide is tractable for the same reasons something like typescript or mypy is tractable.
 
 
 

@@ -1,7 +1,7 @@
 we want to do this rather than simply think at a higher level of abstraction for two reasons:
 
 - we want the power and flexibility to prove termination of more exotic programs that can't be represented with simple functions (goto statements, algebraic effects, jumping to dynamic code, etc)
-- we need a foundation of reasoning *upon which to build those higher levels of abstraction!* the whole point of magma is that we're extending our formal understanding as far down as we possibly can, so that we can combine upwards with confidence we haven't merely assumed something without cause.
+- we need a foundation of reasoning *upon which to build those higher levels of abstraction!* the whole point of magmide is that we're extending our formal understanding as far down as we possibly can, so that we can combine upwards with confidence we haven't merely assumed something without cause.
 
 
 

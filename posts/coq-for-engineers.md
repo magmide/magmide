@@ -59,7 +59,7 @@ For our purposes, we're just going to put "logic" and "consistency" beneath abst
 When going over different logical ideas, it might be tempting to ask questions like "why should I trust this system of rules?" "what makes this system of rules better than this other system of rules?" "what makes this system of rules trustworthy or useful?"
 
 javascript -> browser -> c/rust -> assembly -> hardware -> physics
-magma -> calculus of constructions -> type theory -> logic -> proof theory -> forever!!!
+magmide -> calculus of constructions -> type theory -> logic -> proof theory -> forever!!!
 
 To prove we can make up our own rules, let's make our own theory of numbers! We'll define a system of rules, with exactly these rules:
 

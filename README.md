@@ -1,4 +1,4 @@
-# :construction: Magma is purely a research project at this point :construction:
+# :construction: Magmide is purely a research project at this point :construction:
 
 This repo is still very early and rough, it's mostly just notes, speculative writing, and exploratory theorem proving. All the files in this repo other than this readme are "mad scribblings" territory, so dive in at your own risk!
 
@@ -22,7 +22,7 @@ In order to really deliver the kind of truly transformative correctness guarante
 
 To achieve this goal, the language will be fully **dependently typed** and use the [Calculus of Constructions](https://en.wikipedia.org/wiki/Calculus_of_constructions) much like [Coq](https://en.wikipedia.org/wiki/Coq). I find [Adam Chlipala's "Why Coq?"](http://adam.chlipala.net/cpdt/html/Cpdt.Intro.html) arguments convincing in regard to this choice.
 
-The [metacoq](https://github.com/MetaCoq/metacoq) and ["Coq Coq Correct!"](https://www.irif.fr/~sozeau/research/publications/drafts/Coq_Coq_Correct.pdf) projects have already done the work of formalizing and verifying Coq using Coq, so they will be very helpful while implementing Magma.
+The [metacoq](https://github.com/MetaCoq/metacoq) and ["Coq Coq Correct!"](https://www.irif.fr/~sozeau/research/publications/drafts/Coq_Coq_Correct.pdf) projects have already done the work of formalizing and verifying Coq using Coq, so they will be very helpful while implementing Magmide.
 
 ## Capable of bare metal performance
 
@@ -51,13 +51,13 @@ The metaprogramming can of course also be used directly in the dependently typed
 
 Importantly, the language will be self-hosting, so metaprogramming functions will benefit from the same bare metal performance and full verifiability.
 
-You can find rough notes about the current design thinking for the metaprogramming interface in [the unfinished `posts/design-of-magma.md` file](./posts/design-of-magma.md).
+You can find rough notes about the current design thinking for the metaprogramming interface in [the unfinished `posts/design-of-magmide.md` file](./posts/design-of-magmide.md).
 
 ## Practical and ergonomic
 
 My experience using languages like Coq has been extremely painful, and the interface is "more knife than handle". I've been astounded how willing academics seem to be to use extremely clunky workflows and syntaxes just to avoid having to build better tools.
 
-To achieve this goal, this project will learn heavily from `cargo` and other excellent projects. It should be possible to verify, interactively prove, query, compile, and run any Magma code with a single tool.
+To achieve this goal, this project will learn heavily from `cargo` and other excellent projects. It should be possible to verify, interactively prove, query, compile, and run any Magmide code with a single tool.
 
 ## Taught effectively
 
@@ -76,48 +76,48 @@ To achieve this goal, this project will enshrine the following values in regard 
 
 ## just doing logic/mathematics, not intending to create runnable programs
 
-although it would seem this use case doesn't need to be able to check/compile/run computable programs, the user might still use metaprogramming to manipulate proofs, or use libraries that do. before sending the Logic Magma structures representing the code being worked on to the kernel, any metaprogrammatic constructs need to be unfolded, which means the Host Magma programs that are implied by those metaprogrammatic constructs need to be checked/compiled/run.
+although it would seem this use case doesn't need to be able to check/compile/run computable programs, the user might still use metaprogramming to manipulate proofs, or use libraries that do. before sending the Logic Magmide structures representing the code being worked on to the kernel, any metaprogrammatic constructs need to be unfolded, which means the Host Magmide programs that are implied by those metaprogrammatic constructs need to be checked/compiled/run.
 
-the flow for codebases like this would be: parse into data structures, check/compile/run any meta programs using the built in Host Magma algorithms, send fully unfolded Logic Magma structures to the kernel
+the flow for codebases like this would be: parse into data structures, check/compile/run any meta programs using the built in Host Magmide algorithms, send fully unfolded Logic Magmide structures to the kernel
 
-this means that the compiler needs to have built in notions of some known Host Magma. the truly final version of Magma can have the *syntax* of some layer/variant of Host Magma built in rather than always nesting Host Magma underneath metaprogrammatic entry points
+this means that the compiler needs to have built in notions of some known Host Magmide. the truly final version of Magmide can have the *syntax* of some layer/variant of Host Magmide built in rather than always nesting Host Magmide underneath metaprogrammatic entry points
 
 ## writing code intended to run on the same architecture as the host
 
-here all we need is the same Host Magma used within the compiler. the user doesn't have to do anything unusual, they just need to write Host Magma that's somehow "marked" as the "main" entry point
+here all we need is the same Host Magmide used within the compiler. the user doesn't have to do anything unusual, they just need to write Host Magmide that's somehow "marked" as the "main" entry point
 
-of course prop predicates can be indexed by host types/values, so Host Magma will include custom entry points/sugars for assertions about code state that assumes these indexed predicates. assertions about host values are just logical props but more specific versions of them.
+of course prop predicates can be indexed by host types/values, so Host Magmide will include custom entry points/sugars for assertions about code state that assumes these indexed predicates. assertions about host values are just logical props but more specific versions of them.
 
 so there's the *ideal* definition of a computable type, which is just a predicate about binary arrays
 this ideal definition must itself be represented computationally, so in memory it will be shaped in whatever way we decide to represent inductive types (probably with some array of values with tags and index offsets to avoid having pointers to different parts of memory and improve cache locality)
 then at the runtime of the target program, the real bits will just be formed according to how the predicate demanded they would be
 
-## cross-compiling code for a different architecture, but written in Host Magma
+## cross-compiling code for a different architecture, but written in Host Magmide
 
 same as above, they just have to somehow signal what architecture(s) are intended
 
-## compiling code using a completely different compute language, one incompatible with Host Magma
+## compiling code using a completely different compute language, one incompatible with Host Magmide
 
-in order to do this, the user has to specify ast datatypes for their language. they have to do this in Host Magma, since these datatypes need to be computationally represented and manipulated.
+in order to do this, the user has to specify ast datatypes for their language. they have to do this in Host Magmide, since these datatypes need to be computationally represented and manipulated.
 
-they can optionally choose to create macros to convert some custom syntax into these ast datatypes, and if they do this these macros will be in Host Magma.
+they can optionally choose to create macros to convert some custom syntax into these ast datatypes, and if they do this these macros will be in Host Magmide.
 
-they will almost certainly define logical specifications for their host architecture, the machine type, how their ast datatypes relate to these things, and probably (definitely?) purely imaginary logical datatypes that model the real computational ones, and all of this will be done in Logic Magma. Logic Magma terms aren't really intended to be "computed", only evaluated using the reduction rules with an interpreter inside (alongside?) the kernel.
+they will almost certainly define logical specifications for their host architecture, the machine type, how their ast datatypes relate to these things, and probably (definitely?) purely imaginary logical datatypes that model the real computational ones, and all of this will be done in Logic Magmide. Logic Magmide terms aren't really intended to be "computed", only evaluated using the reduction rules with an interpreter inside (alongside?) the kernel.
 
 they need to be able to render/assemble their program, and they have to provide a custom rendering function. this step is ultimately a meta one, since "compile time" refers to compilation of the target program! so compilation is really just running a metaprogram that happens to produce some artifact. looking back at the more "normal" use cases we can see that those are just the same thing, except the path at each step was more known. the only thing that really distinguishes this use case from the others is that the ast/specifications/renderer were all provided custom.
 
 but the logical stuff is the thing that's confusing. should logic Prop types be indexable by Host datatypes?
 
-remember, at the very bottom of all of this is just the Host Magma *logic types*. logical inductive types are at the bottom of the tree. those types are just modeling a real computational machine state and making assertions about it.
+remember, at the very bottom of all of this is just the Host Magmide *logic types*. logical inductive types are at the bottom of the tree. those types are just modeling a real computational machine state and making assertions about it.
 when we make assertions about "host types", we aren't making assertions about *it*, but about the machine state it represents?
 
-it's silly to get hung up on whether Host Magma types/values can be asserted by the Prop universe, because of course they can! host types are just predicates over binary arrays, and host values are just binary arrays. to say that some host value is equal to another is the exact same as saying two ideal values are equal. in both cases they're *definitionally* equal in the strict coq convertibility sense. -->
+it's silly to get hung up on whether Host Magmide types/values can be asserted by the Prop universe, because of course they can! host types are just predicates over binary arrays, and host values are just binary arrays. to say that some host value is equal to another is the exact same as saying two ideal values are equal. in both cases they're *definitionally* equal in the strict coq convertibility sense. -->
 
 # FAQ
 
 ## Is it technically possible to build a language like this?
 
-Yes! None of the technical details of this idea are untested or novel. Dependently typed proof languages, higher-order separation logic, query-based compilers, introspective metaprogramming, and abstract assembly languages are all ideas that have been proven in other contexts. Magma would merely attempt to combine them into one unified and practical package.
+Yes! None of the technical details of this idea are untested or novel. Dependently typed proof languages, higher-order separation logic, query-based compilers, introspective metaprogramming, and abstract assembly languages are all ideas that have been proven in other contexts. Magmide would merely attempt to combine them into one unified and practical package.
 
 ## Is this design too ambitious? Is it just "everything and the kitchen sink"?
 
@@ -137,7 +137,7 @@ Academics aren't incentivized to create something like this, because doing so is
 
 Software engineers aren't incentivized to create something like this, because a programming language is a pure public good and there aren't any truly viable business models that can support it while still remaining open. Even amazing public good ideas like the [interplanetary filesystem](https://en.wikipedia.org/wiki/InterPlanetary_File_System) could be productized by applying the protocol to markets of networked computers, but a programming language can't really pull off that kind of maneuver.
 
-Although the software startup ecosystem does routinely build pure public goods such as databases and web frameworks, those projects tend to have an obvious and relatively short path to being useful in revenue-generating SaaS companies. The problems they solve are clear and visible enough that well-funded engineers can both recognize them and justify the time to fix them. In contrast the path to usefulness for a project like Magma is absolutely not short, and despite promising immense benefits to both our industry and society as a whole, most engineers capable of building it can't clearly see those benefits behind the impenetrable fog of research debt.
+Although the software startup ecosystem does routinely build pure public goods such as databases and web frameworks, those projects tend to have an obvious and relatively short path to being useful in revenue-generating SaaS companies. The problems they solve are clear and visible enough that well-funded engineers can both recognize them and justify the time to fix them. In contrast the path to usefulness for a project like Magmide is absolutely not short, and despite promising immense benefits to both our industry and society as a whole, most engineers capable of building it can't clearly see those benefits behind the impenetrable fog of research debt.
 
 <!-- The problem of not properly funding pure public goods is much bigger than just this project. We do a bad job of this in every industry and so our society has to tolerate a lot of missed opportunity and negative externalities. The costs of broken software are more often borne by society than the companies at fault since insurance and limited-liability structures and PR shenanigans and expensive lawyers can all help a company wriggle out of fully internalizing the cost of their mistakes. Profit-motivated actors are extremely short-sighted and don't have to care if they leave society better off, they just have to get marketshare. -->
 
@@ -155,7 +155,7 @@ All of those things are easier said than done! Fully achieving those goals will 
 
 ## Is this language trying to replace Rust?
 
-No! My perfect outcome of this project would be for it to sit *underneath* Rust, acting as a new verified toolchain that Rust could "drop into". The concepts and api of Rust are awesome and widely loved, so Magma would just try to give it a more solid foundation. Wouldn't it be cool to be able to *prove* that your use of `unsafe` wasn't actually unsafe??
+No! My perfect outcome of this project would be for it to sit *underneath* Rust, acting as a new verified toolchain that Rust could "drop into". The concepts and api of Rust are awesome and widely loved, so Magmide would just try to give it a more solid foundation. Wouldn't it be cool to be able to *prove* that your use of `unsafe` wasn't actually unsafe??
 
 ## Why not just write this stuff in Coq?
 
@@ -163,7 +163,7 @@ Simply? Because Coq has made a lot of bad design decisions.
 
 Metaprogramming is [technically possible in Coq](https://github.com/MetaCoq/metacoq), but it was grafted on many years into the project, and it feels like it. The language is extremely cluttered and obviously "designed by accretion". All the documentation and introductory books were clearly written by academics who have no interest in helping people with deadlines build something concrete. The [Notation system](https://coq.inria.fr/refman/user-extensions/syntax-extensions.html) just begs for unclear and profoundly confusing custom syntax, and is itself extremely overengineered. It's a pure functional language with a garbage collector, so it will never perform as well as a self-hosted bare metal compiler. And let's be honest, the name "Coq" is just terrible.
 
-I don't intend to throw away all the awesome work done by the Coq project though, which is why the first bootstrapping compiler and initial theory will be written in Coq, and I intend to (someday) create some kind of backport to allow old Coq code to be read and used by Magma. But I'm unwilling to be bound to Coq's design.
+I don't intend to throw away all the awesome work done by the Coq project though, which is why the first bootstrapping compiler and initial theory will be written in Coq, and I intend to (someday) create some kind of backport to allow old Coq code to be read and used by Magmide. But I'm unwilling to be bound to Coq's design.
 
 This question is a lot like asking the Rust project creators "why not just write a specialized C compiler"? Because instead of making something *awesome* we'd have to drag around a bunch of bad decisions. Sometimes it's worth it to start fresh.
 
@@ -173,11 +173,11 @@ Coq's [Notation system](https://coq.inria.fr/refman/user-extensions/syntax-exten
 
 It also makes it extremely easy to create custom symbolic notation that makes code much more difficult to learn and understand. Allowing custom symbolic notation is a bad design choice, since it blurs the line between the primitive notations defined by the language (which are reasonable to expect as prerequisite knowledge for all users) and custom notations. Although Coq makes it possible to query for notation definitions, this is again just more maintenance burden and complexity that still adds significant reading friction.
 
-Magma's metaprogramming system won't allow unsignified custom symbolic notation, and will require all metaprogrammatic concepts to be syntactically scoped within known identifiers. In Rust macros are always explicit with an annotation or a `macro_name!` syntax, and something similar will be true in Magma. More information can be found [in the rough `posts/design-of-magma.md` page](./posts/design-of-magma.md).
+Magmide's metaprogramming system won't allow unsignified custom symbolic notation, and will require all metaprogrammatic concepts to be syntactically scoped within known identifiers. In Rust macros are always explicit with an annotation or a `macro_name!` syntax, and something similar will be true in Magmide. More information can be found [in the rough `posts/design-of-magmide.md` page](./posts/design-of-magmide.md).
 
 ## How would trackable effects compare with algebraic effects?
 
-There's a ton of overlap between the algebraic effects used in a language like [Koka](https://koka-lang.github.io/koka/doc/index.html) and the trackable effects planned for Magma. Trackable effects are actually general enough to *implement* algebraic effects, so there are some subtle differences.
+There's a ton of overlap between the algebraic effects used in a language like [Koka](https://koka-lang.github.io/koka/doc/index.html) and the trackable effects planned for Magmide. Trackable effects are actually general enough to *implement* algebraic effects, so there are some subtle differences.
 
 On the surface level the actual theoretical structure is different. Algebraic effects are "created" by certain operations and then "wrap" the results of functions. Trackable effects are defined by *starting* with some token representing a "clean slate", and then pieces of that token are given up to perform possibly effectful operations, and only given back if a proof that the operation is in fact "safe" is given.
 
@@ -191,7 +191,7 @@ No! And honestly, doing so would probably be a huge waste of time. Not all softw
 
 But even a recipe app would benefit from the *foundations* it sits on being much more verified. I imagine something like a "verification pyramid", with excruciatingly verified software at the bottom, going up through less verified code all the way to throwaway scripts that aren't even tested. At the bottom even the tiniest details such as the possibility of integer overflow must be explicitly accounted for, and at the top we just do a basic and highly inferred type-check. Basically, the less important a piece of software is and the easier it is to change, the less verified it needs to be.
 
-And of course because of metaprogramming focused on upward recombination, every layer can rely on the safety of abstractions underneath to not worry about certain kinds of error conditions and only verify what they feel they need to. The language *itself* doesn't have to achieve mainstream success to massively improve the quality of all downstream software, but merely some sub-language. Many engineers have never heard of LLVM, but they still implicitly rely on it every day. Magma would seek to do the same.
+And of course because of metaprogramming focused on upward recombination, every layer can rely on the safety of abstractions underneath to not worry about certain kinds of error conditions and only verify what they feel they need to. The language *itself* doesn't have to achieve mainstream success to massively improve the quality of all downstream software, but merely some sub-language. Many engineers have never heard of LLVM, but they still implicitly rely on it every day. Magmide would seek to do the same.
 
 We don't have to take full formal verification fully mainstream, we just have to make it available for the handful of people willing to do the work. If a full theorem prover is sitting right below the high-level language you're currently working in, you don't have to bother with it most of the time, but you still have the option to do so when it makes sense.
 
@@ -201,7 +201,7 @@ We don't have to take full formal verification fully mainstream, we just have to
 
 Verification is obviously very difficult. Although I have some modest theories about ways to speed up/improve automatic theorem proving, and how to teach verification concepts in a more intuitive way that can thereby involve a larger body of engineers, we still can't avoid the fact that refining our abstractions and proving theorems is hard and will remain so.
 
-But we don't have to make verification completely easy and approachable to still get massive improvements. We only have to make proof labor more *available* and *reusable*. Since Magma will be inherently metaprogrammable and integrate programming and proving, developments in one project can quickly disseminate through the entire language community. Research would be much less likely to remain trapped in the ivory tower, and could be usefully deployed in real software much more quickly.
+But we don't have to make verification completely easy and approachable to still get massive improvements. We only have to make proof labor more *available* and *reusable*. Since Magmide will be inherently metaprogrammable and integrate programming and proving, developments in one project can quickly disseminate through the entire language community. Research would be much less likely to remain trapped in the ivory tower, and could be usefully deployed in real software much more quickly.
 
 And of course, a big goal of the project is to make verification less expensive! Tooling, better education, better algorithms and abstractions can all decrease verification burden. If the project ever reaches maturity these kinds of improvements will likely be most of the continued effort for a long time.
 
@@ -235,9 +235,9 @@ Yes it's true that we can only go so far with formal verification, so we should 
 
 Very early, and basically everything remains to be done! I've been playing with models of very simple assembly languages to get my arms around formalization of truly imperative execution. Especially interesting has been what it looks like to prove some specific assembly language program will always terminate, and to ergonomically discover paths in the control flow graph which require extra proof justification. I have some raw notes and thoughts about this in [`posts/toward-termination-vcgen.md`](./posts/toward-termination-vcgen.md). Basically I've been playing with the design for the foundational computational theory.
 
-In [`posts/design-of-magma.md`](./posts/design-of-magma.md) I have some rough thoughts about what the project's major milestones would be. The obvious first milestone is to create a bootstrapping compiler capable of compiling the first self-hosted version. That will likely happen in Coq in some way, but I haven't deeply thought it through. There are several ways to go about it, and I don't think I am far enough to clearly see the best path.
+In [`posts/design-of-magmide.md`](./posts/design-of-magmide.md) I have some rough thoughts about what the project's major milestones would be. The obvious first milestone is to create a bootstrapping compiler capable of compiling the first self-hosted version. That will likely happen in Coq in some way, but I haven't deeply thought it through. There are several ways to go about it, and I don't think I am far enough to clearly see the best path.
 
-Read [this blog post discussing my journey to this project](https://blainehansen.me/post/my-path-to-magma/) if you're interested in a more personal view.
+Read [this blog post discussing my journey to this project](https://blainehansen.me/post/my-path-to-magmide/) if you're interested in a more personal view.
 
 ## Why will this project succeed where others haven't?
 
@@ -254,7 +254,7 @@ For now I simply *dare to hope* that a project like this is possible. Maybe it i
 
 Just reach out! Since things are so early there are many questions to be answered, and I welcome any useful help. Feedback and encouragement are also welcome.
 
-If you would like to get up to speed with formal verification and Coq enough to contribute at this stage, you ought to read [Software Foundations](https://softwarefoundations.cis.upenn.edu/), [Certified Programming with Dependent Types](http://adam.chlipala.net/cpdt/html/Cpdt.Intro.html), [this introduction to separation logic](http://www0.cs.ucl.ac.uk/staff/p.ohearn/papers/Marktoberdorf11LectureNotes.pdf), and sections 1, 2, and 3 of the [Iris from the ground up](https://people.mpi-sws.org/~dreyer/papers/iris-ground-up/paper.pdf) paper. You might also find my unfinished [introduction to verification and logic in Magma](./posts/intro-verification-logic-in-magma.md) useful, even if it's still very rough.
+If you would like to get up to speed with formal verification and Coq enough to contribute at this stage, you ought to read [Software Foundations](https://softwarefoundations.cis.upenn.edu/), [Certified Programming with Dependent Types](http://adam.chlipala.net/cpdt/html/Cpdt.Intro.html), [this introduction to separation logic](http://www0.cs.ucl.ac.uk/staff/p.ohearn/papers/Marktoberdorf11LectureNotes.pdf), and sections 1, 2, and 3 of the [Iris from the ground up](https://people.mpi-sws.org/~dreyer/papers/iris-ground-up/paper.pdf) paper. You might also find my unfinished [introduction to verification and logic in Magmide](./posts/intro-verification-logic-in-magmide.md) useful, even if it's still very rough.
 
 Here's a broad map of all the mad scribblings in this repo:
 
@@ -268,9 +268,9 @@ Thank you! Hope to see you around!
 
 ---
 
-# What could we build with Magma?
+# What could we build with Magmide?
 
-A proof checker with builtin support for metaprogramming and verification of assembly languages would allow us to build any logically representable software system imaginable. Here are some rough ideas I think are uniquely empowered by the blend of capabilities that would be afforded by Magma. Not all of these ideas are *only* possible with full verification, but I feel they would get much more tractable.
+A proof checker with builtin support for metaprogramming and verification of assembly languages would allow us to build any logically representable software system imaginable. Here are some rough ideas I think are uniquely empowered by the blend of capabilities that would be afforded by Magmide. Not all of these ideas are *only* possible with full verification, but I feel they would get much more tractable.
 
 ## Truly eternal software
 

@@ -4,52 +4,52 @@ Hello!
 
 If you're reading this, you must be curious about how it could be possible to write truly *provably correct* programs, ones that you can have the same confidence in as proven theories of mathematics or logic. You likely want to learn how to write verified software yourself, and don't have time to wade through unnecessarily clunky academic jargon or stitch together knowledge scattered in dozens of obscure journal papers.
 
-You're in the right place! Magma has been designed from the ground up to be usable and respect your time, to enable you to gain this incredibly powerful and revolutionary skill.
+You're in the right place! Magmide has been designed from the ground up to be usable and respect your time, to enable you to gain this incredibly powerful and revolutionary skill.
 
-I hope you're excited! I powerfully believe verified software will bring in the next era of computing, one in which we don't have to settle for bmagmaen, insecure, or unpredictable software.
+I hope you're excited! I powerfully believe verified software will bring in the next era of computing, one in which we don't have to settle for broken, insecure, or unpredictable software.
 
 Here's the road ahead:
 
-First we'll take a glimpse at some Magma programs, both toys and more useful ones, just to get an idea of what's possible and how the language feels. We'll take a surface level tour of Compute Magma, the procedural portion of the language we'll use to actually write programs.
+First we'll take a glimpse at some Magmide programs, both toys and more useful ones, just to get an idea of what's possible and how the language feels. We'll take a surface level tour of Compute Magmide, the procedural portion of the language we'll use to actually write programs.
 
-Then we'll dive into Logic Magma, the pure and functional part that is used to make and prove logical claims:
+Then we'll dive into Logic Magmide, the pure and functional part that is used to make and prove logical claims:
 
 - We'll talk about why it's necessary to use a pure and functional language at all (I promise I'm not a clojure fanboy or something).
-- How to code in Logic Magma, what it feels like to write pure functional algorithms and how it's different than normal programming.
+- How to code in Logic Magmide, what it feels like to write pure functional algorithms and how it's different than normal programming.
 - A short overview of formal logic, and some comparisons to normal programming.
 - Type Theory, The Calculus of Constructions, and the Curry-Howard Correspondence, the big important ideas that make it possible for a programming language to represent proofs.
 - How to actually make and prove logical claims (it's getting good!), along with some helpful rules of thumb.
 
-Now with a working knowledge of how to use Logic Magma, we can use it to verify our real Compute Magma programs!
+Now with a working knowledge of how to use Logic Magmide, we can use it to verify our real Compute Magmide programs!
 
 - Separation Logic, the logical method that helps us reason about ownership, sharing, mutation, and destruction of finite computational resources.
-- Writing proofs about Compute Magma functions and data structures.
+- Writing proofs about Compute Magmide functions and data structures.
 - Logical modeling, or proving some kind of alignment between a pure functional structure and a real computational one.
 - Testing as a gradual path to proofs, using randomized conjecture-based testing.
 - Trackable effects, the system that allows you to prove your program is free from unexpected side-effects such as memory unsafety, infinite loops, panics, and just about anything else.
 
-And then finally all the deeper features that make Magma truly powerful:
+And then finally all the deeper features that make Magmide truly powerful:
 
-- Metaprogramming in Magma, the capabilities that allow you to write your own compile-time logic.
+- Metaprogramming in Magmide, the capabilities that allow you to write your own compile-time logic.
 - Some basic programming language and type-system theory.
 - A short overview of basic computer architecture, including assembly language concepts.
-- The lower assembly language layers of Compute Magma, and how to "drop down" into them.
-- The abstract machine system, and how Magma can be used to write and prove programs for any computational environment.
+- The lower assembly language layers of Compute Magmide, and how to "drop down" into them.
+- The abstract machine system, and how Magmide can be used to write and prove programs for any computational environment.
 - A deeper look at Iris and Resource Algebras, the complex higher-order Separation Logic that makes Trackable Effects and lots of other things possible.
 
 Throughout all of these sections, we'll do our best to not only help you understand all these concepts, but introduce you to the way academics talk about them. We'll do so in a no-nonsense way, but we think it's a good idea to make sure you can jump into the original research if you want and not have to relearn all the "formal" names for concepts you already understand.
 
 Let's get to it!
 
-## Example Programs and a Tour of Compute Magma
+## Example Programs and a Tour of Compute Magmide
 
 <!--
   - hello world
   - the code and proofs for a verified implementation of something small, like a verified growable list or arbitrary size integer, probably including but hand-waving the purely logical model. this will use asserted types
-  - a Compute Magma metaprogramming tease, something cool like the surface level use of a sql-like api to operate on raw data structures
+  - a Compute Magmide metaprogramming tease, something cool like the surface level use of a sql-like api to operate on raw data structures
 -->
 
-## Logic Magma, How to Prove Things in a Programming Language
+## Logic Magmide, How to Prove Things in a Programming Language
 
 ### Why pure and functional?
 
@@ -66,23 +66,23 @@ There's just one big obvious problem: **all that purity and immutability is a li
 
 When a computer is running, the *only thing* it's doing is mutating data. Your computer's memory and processor registers are all just mutable variables that are constantly being updated. Purity and immutability are useful abstractions, but they only go abstraction deep. Without mutation and impurity, computation can be nothing more than merely theoretical.
 
-**However,** this isn't actually a problem if we *are* just talking about something purely theoretical! We'll see in the coming sections how proof assistants like Magma don't need to *run* programs to prove things, they just need to *type check* them, meaning it *doesn't matter* if the programs can't actually be run.
+**However,** this isn't actually a problem if we *are* just talking about something purely theoretical! We'll see in the coming sections how proof assistants like Magmide don't need to *run* programs to prove things, they just need to *type check* them, meaning it *doesn't matter* if the programs can't actually be run.
 
 This means that a pure and functional language is the perfect fit for a proof assistant. All that matters for a proof is that we're able to express theoretical ideas in a way that's clear and precise and can be formally reasoned about. We don't have to care about performance or data representation or any of the details of real computation. Soon we'll even see that type theory, the logical framework powerful enough to form the foundations of all of mathematics and computer science, is itself basically just a pure functional language!
 
-In a much later section we'll also discover that it *is* actually possible to prove things about imperative mutating code, and even that mutating code can be shown to perfectly correspond with purely theoretical code. This is one of the most important contributions of Magma, that it integrates purely logical and realistically computable code and allows them to usefully interact.
+In a much later section we'll also discover that it *is* actually possible to prove things about imperative mutating code, and even that mutating code can be shown to perfectly correspond with purely theoretical code. This is one of the most important contributions of Magmide, that it integrates purely logical and realistically computable code and allows them to usefully interact.
 
 But before all that, we have to build up some foundations.
 
-### Coding in Logic Magma
+### Coding in Logic Magmide
 
-The thing that makes Logic Magma and other proof assistant languages special is *dependent types*, but we can't really understand those yet. First let's just go over the basic features of Logic Magma, the features it shares with basically every other functional language like haskell.
+The thing that makes Logic Magmide and other proof assistant languages special is *dependent types*, but we can't really understand those yet. First let's just go over the basic features of Logic Magmide, the features it shares with basically every other functional language like haskell.
 
 First, we'll define a datatype, a discriminated union (called an `enum` in Rust) that's shaped just like our old friend `boolean`. This type lives in the `Ideal` sort and so is purely theoretical.
 
 TODO
 
-Pretty simple. Logic Magma comes with a default boolean called `bool`, but we'll use our own for a second.
+Pretty simple. Logic Magmide comes with a default boolean called `bool`, but we'll use our own for a second.
 
 Now let's define a function for `Boolean`. In normal imperative languages the body of a function is a series of *statements*, commands that mutate state as you go through the function. But in pure functional languages we can't mutate anything, so the body of a function is *only one expression*. Let's define the basic `negate`, `and`, `or`, and `xor` functions:
 
@@ -90,7 +90,7 @@ TODO
 
 Some of these use `let` to give some expression a name that's used in subsequent lines, and the last expression is the final return value of the function. While this may seem at first to be a use of mutable state and against the rules, the way the evaluation rules of these languages are defined means these `let`s are technically a part of the final expression that are just evaluated first and replaced afterwards. Don't worry about it too much!
 
-Both Logic and Compute Magma have an awesome trait system, and the `if` operator in both uses a trait called `Testable` that relates a type back to `bool`. Let's make our `Boolean` testable by implementing this trait, and then use `if` to redefine the functions:
+Both Logic and Compute Magmide have an awesome trait system, and the `if` operator in both uses a trait called `Testable` that relates a type back to `bool`. Let's make our `Boolean` testable by implementing this trait, and then use `if` to redefine the functions:
 
 TODO
 
@@ -122,7 +122,7 @@ Before we move on it's a good idea to just notice a few ways these different var
 
   TODO
 
-- The basic unit and record and tuple types are essentially also discriminated unions, they just only have one variant! Deep inside Magma all types are actually represented that way, which is why an "empty" type is possible.
+- The basic unit and record and tuple types are essentially also discriminated unions, they just only have one variant! Deep inside Magmide all types are actually represented that way, which is why an "empty" type is possible.
 
   TODO
 
@@ -132,7 +132,7 @@ Now we get to the thing that makes `Ideal` types special, their ability to simpl
 
 TODO nat
 
-This type encodes natural numbers (or unsigned integers) in the weird recursive style of the [Peano axioms](https://en.wikipedia.org/wiki/Natural_number#Peano_axioms), where `0` is of course `zero`, `1` is `successor(zero)`, `2` is `successor(successor(zero))`, and so on. Remember, `successor` isn't a *function* that increments a value, it's a *type constructor* that *wraps* children values. Don't worry, you won't have to actually write them that way in practice, since the Magma compiler will coerce normally numbers into `nat` when it makes sense to.
+This type encodes natural numbers (or unsigned integers) in the weird recursive style of the [Peano axioms](https://en.wikipedia.org/wiki/Natural_number#Peano_axioms), where `0` is of course `zero`, `1` is `successor(zero)`, `2` is `successor(successor(zero))`, and so on. Remember, `successor` isn't a *function* that increments a value, it's a *type constructor* that *wraps* children values. Don't worry, you won't have to actually write them that way in practice, since the Magmide compiler will coerce normally numbers into `nat` when it makes sense to.
 
 You may wonder why we'd represent them this way? Wouldn't this be incredibly inefficient? Whatever happened to bytes?
 
@@ -152,7 +152,7 @@ Here are a few functions for `list`:
 
 TODO
 
-Now that we're basically familiar with how to code in Logic Magma, we can start understanding how to use it to prove things!
+Now that we're basically familiar with how to code in Logic Magmide, we can start understanding how to use it to prove things!
 
 ### A Crash Course in Logic
 
@@ -230,11 +230,11 @@ The crucial trick is to represent our propositions and predicates as *types* ins
 
 in a real computational language, whenever we define a datatype we're really just defining a different way for bits to be laid out in memory. A `struct` isn't a basic primitive concept, it's just a shorthand for putting a few datatypes one after another in a fixed size chunk of memory. Something similar is true for unions, tuples, lists, etc.
 
-But in a purely logical *type-theoretical* language, when we define a new type we really *are* defining something out of thin air. A new inductive type creates out of nowhere a set of rules for how logical concepts can be combined with each other, rules we've completely *constructed* in some shape that fits our needs. This is why the specific form of type-theory Magma uses is called The Calculus of Constructions, because constructing new types and values of those types is one of the primitive assumptions of the system. It's one of the axioms.
+But in a purely logical *type-theoretical* language, when we define a new type we really *are* defining something out of thin air. A new inductive type creates out of nowhere a set of rules for how logical concepts can be combined with each other, rules we've completely *constructed* in some shape that fits our needs. This is why the specific form of type-theory Magmide uses is called The Calculus of Constructions, because constructing new types and values of those types is one of the primitive assumptions of the system. It's one of the axioms.
 
 -->
 
-A reasonable place to start is by figuring out how to represent the basic ideas of true and false in Logic Magma.
+A reasonable place to start is by figuring out how to represent the basic ideas of true and false in Logic Magmide.
 
 We might try just defining them as a discriminated union, our old friend `boolean`:
 
@@ -317,7 +317,7 @@ Representing propositions as datatypes and theorems as functions means that we d
 
 ### Proofs using Tactics
 
-## Verified Compute Magma
+## Verified Compute Magmide
 
 ### Separation Logic
 
@@ -344,13 +344,13 @@ Representing propositions as datatypes and theorems as functions means that we d
 
 ---
 
-## Basics of Compute Magma
+## Basics of Compute Magmide
 
-First let's get all the stuff that isn't unique about Magma out of the way. Magma has both a "Computational" language and a "Logical" language baked in. The Computational language is what we use to write programs that will actually run on some machine, and the Logical language is used to logically model data and prove things about programs.
+First let's get all the stuff that isn't unique about Magmide out of the way. Magmide has both a "Computational" language and a "Logical" language baked in. The Computational language is what we use to write programs that will actually run on some machine, and the Logical language is used to logically model data and prove things about programs.
 
 The Computational language is technically defined as a raw assembly language, but since programming in assembly is extremely tedious, the default way to write computational code is with `core`, a language a lot like Rust.
 
-```magma
+```magmide
 // single line comments use double-slash
 //
   comments can be indented
@@ -397,7 +397,7 @@ fn main;
   // core is literally just a "portable assembly language",
   // so it doesn't have growable lists or strings by default!
   // think of core in the same way as `no_std` in rust
-  // we hope rust itself will someday be reimplemented and formally verified using magma!
+  // we hope rust itself will someday be reimplemented and formally verified using magmide!
 
 // the type system is very similar to rust
 // you can declare type aliases:
@@ -449,7 +449,7 @@ data NonEmpty T;
   rest: [T]
 ```
 
-But the entire point of Magma is that you can prove your program is correct! How do we do that?
+But the entire point of Magmide is that you can prove your program is correct! How do we do that?
 
 
 
@@ -489,29 +489,29 @@ data Person;
 
 So how do we actually prove that our program actually follows these data assertions? Can the compiler figure it out by itself? In many simple situations it actually can! But it's literally impossible for it to do so in absolutely all situations (if it could, the compiler would be capable of solving any logical proof in the universe!).
 
-To really understand how this all works, we have to get into the Logical side of Magma, and talk about `Ideal`, `Prop`, and The Calculus of Constructions.
+To really understand how this all works, we have to get into the Logical side of Magmide, and talk about `Ideal`, `Prop`, and The Calculus of Constructions.
 
-## Logical Magma
+## Logical Magmide
 
 First let's start with the `Ideal` type family. `Ideal` types are defined to represent *abstract*, *logical* data. They aren't intended to be encoded by real computers, and their only purpose is to help us define logical concepts prove things about them. To go with the `Ideal` type family is a whole separate programming language, one that's *pure* and *functional*. Why pure and functional? Simply, pure and functional languages relate directly to mathematical type theory (mathematical type theory is nothing but a pure and functional language!). It's much easier to define abstract concepts and prove things about them in pure and functional settings than the messy imperative way real computers work. Otherwise we'd have to deal with distracting details about memory layout, bit representation, allocation, etc. The "programs" we write in this pure functional language aren't actually intended to be run! They just define abstract algorithms, so we only care about them for their type-checking behavior and not their real behavior.
 
-The type system of logical Magma is shaped a lot like computational Magma to make things convenient. But the big difference between types in logical Magma and computational magma is how they handle type recursion.
+The type system of logical Magmide is shaped a lot like computational Magmide to make things convenient. But the big difference between types in logical Magmide and computational magmide is how they handle type recursion.
 
 ```
-// in computational Magma types must be representable in bits and have a finite and knowable size,
+// in computational Magmide types must be representable in bits and have a finite and knowable size,
 // meaning they can't reference themselves without some kind of pointer indirection
 data NumLinkedList T;
   item: T
   next: *(NumLinkedList T)?
 
-// but in logical magma there's no such restriction, since these types are abstract and imaginary
+// but in logical magmide there's no such restriction, since these types are abstract and imaginary
 idl List T;
   item: T
   next: List T
 ```
 
 
-Logical Magma only really needs three things to prove basically all of mathematics and therefore model computation and prove programs correct:
+Logical Magmide only really needs three things to prove basically all of mathematics and therefore model computation and prove programs correct:
 
 - Inductive types, which live in one of two different type "sorts":
   - `Ideal`, the sort for "data" (even if it's abstract imaginary data).
@@ -620,7 +620,7 @@ Equality is interesting. Depending on exactly what you're doing, you could defin
 - Two values are equal if any function you pass them to will behave exactly the same with either one.
 - A value is only equal with exactly itself.
 
-In Logical magma, since all values are "ideal" and not intended to actually ever exist, the simplest definition is actually that last one: a value is only equal with exactly itself.
+In Logical magmide, since all values are "ideal" and not intended to actually ever exist, the simplest definition is actually that last one: a value is only equal with exactly itself.
 
 ```
 prop MyEquality {T: Ideal} -- T, T;
@@ -637,7 +637,7 @@ Logical "forall" is the most interesting one, since it's the only one that's act
 
 In type theory, if we want to provide a proof that "forall objects in some set, some property holds", we just have to provide a *function* that takes as input one of those objects and returns a proof (which is just a piece of data) that it has that property. And of course it can take more than one input, any of which can be proof objects themselves.
 
-So how do you actually write a "forall" type? Since `forall` is such an important concept, its magma syntax very concisely uses `@`. Here's how you would write the type for the `is_equal_5` function we wrote earlier: `@ number: u8 -> bool.exact number == 5`. I prefer to read this as: "given any `number` which is a `u8`, I'll give you a `bool` which exactly equals whether `number` is equal to 5". For functions that take multiple "forall" variables as inputs (the academic term for accepting a forall variable as input is to "universally quantify" the variable, since a forall assertion proves something universal), you use commas instead of arrows between them: `@ n1, n2 -> bool.exact n1 == n2`.
+So how do you actually write a "forall" type? Since `forall` is such an important concept, its magmide syntax very concisely uses `@`. Here's how you would write the type for the `is_equal_5` function we wrote earlier: `@ number: u8 -> bool.exact number == 5`. I prefer to read this as: "given any `number` which is a `u8`, I'll give you a `bool` which exactly equals whether `number` is equal to 5". For functions that take multiple "forall" variables as inputs (the academic term for accepting a forall variable as input is to "universally quantify" the variable, since a forall assertion proves something universal), you use commas instead of arrows between them: `@ n1, n2 -> bool.exact n1 == n2`.
 
 Very importantly, in order for that function to *really* prove the assertion, it has to be infallible (it can't fail or crash on any input) and provably terminating (it can't infinitely loop on any input). It is allowed to require things about the input (for example a function can be written to only accept even integers rather than all integers), but it has to handle every value it makes an assertion about.
 
@@ -666,7 +666,7 @@ type Fallible T, E;
 
 
 Understanding indexed types
-In a language with normal generics, if there are multiple functions or constructors in the type that all use a generic variable then when those functions or constructors are actually used all the instances of those generic variables to have to be equal. You can get that exact same behavior in magma, but you can *also* get more "dependent" versions of generic variables which are allowed to be different.
+In a language with normal generics, if there are multiple functions or constructors in the type that all use a generic variable then when those functions or constructors are actually used all the instances of those generic variables to have to be equal. You can get that exact same behavior in magmide, but you can *also* get more "dependent" versions of generic variables which are allowed to be different.
 This is useful in many situations, but it's best to start with two examples.
 
 normal polymorphic lists, to understand the normal situation, and how it would be annoying or inconsistent to allow different values of the generic variable. forcing them on the left side basically allows us to elide any mention of them and still keep the requirement of them aligning
@@ -719,13 +719,13 @@ But writing proofs, even though it's technically the exact same as just writing 
 
 This is why theorem proving is most often done with *interactive tactics*. Instead of writing out all or most of the code as we might for a purely computational function, we instead enter an interactive session with the compiler, where it shows us what we have available to us and what we have left to prove.
 
-In `magma`, we do this using the `magma tacticmode` command, or with a variety of editor plugins that use `tacticmode` under the hood. Say we want to prove something about numbers, maybe that addition of natural numbers is symmetric. First we write out our definition of that theorem:
+In `magmide`, we do this using the `magmide tacticmode` command, or with a variety of editor plugins that use `tacticmode` under the hood. Say we want to prove something about numbers, maybe that addition of natural numbers is symmetric. First we write out our definition of that theorem:
 
 ```
 thm addition_is_symmetric: @ (x, y): nat -> x == y <-> y == x;
 ```
 
-then give the command `magma tacticmode addition_is_symmetric` (or use the equivalent start command of our editor), and magma will find that definition, parse and type check any definitions it depends on, and enter interactive tactic mode. It shows the *context*, or the variables this definition takes as inputs, and the *goal*, which is basically the type of the thing we're trying to prove. Remember, a theorem is a thing whose final output lives in the `Prop` sort, whether that be a piece of data that lives in `Prop` or a function that returns something in `Prop`. So when we "prove" a theorem we're really just constructing a piece of code!
+then give the command `magmide tacticmode addition_is_symmetric` (or use the equivalent start command of our editor), and magmide will find that definition, parse and type check any definitions it depends on, and enter interactive tactic mode. It shows the *context*, or the variables this definition takes as inputs, and the *goal*, which is basically the type of the thing we're trying to prove. Remember, a theorem is a thing whose final output lives in the `Prop` sort, whether that be a piece of data that lives in `Prop` or a function that returns something in `Prop`. So when we "prove" a theorem we're really just constructing a piece of code!
 
 To really make clear that theorems are just code, let's actually write out a theorem manually!
 
@@ -749,9 +749,9 @@ Or let's define a *computational* function using tactics.
 
 ## Abstract assembly language
 
-Here's an example of a Magma program in the "core" assembly language that is general enough to compile to basically any architecture.
+Here's an example of a Magmide program in the "core" assembly language that is general enough to compile to basically any architecture.
 
-Magma itself ships with a few different layers of computational language:
+Magmide itself ships with a few different layers of computational language:
 
 - Thinking about computation in general.
 - Thinking about a specific collection of generalizable instructions in an unknown machine. This means you're reasoning about specific calling conventions.

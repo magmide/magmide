@@ -202,7 +202,7 @@ We assume Loc subset SV (meaning locations are storable values, but there are mo
 
 On a von Neumann machine, SV = Loc (so locations *do* in fact fully describe storable values)
 and v is a vector of locations (one could think of a register-bank) indexed by a natural number j.
-That is, if v is a value, then v(j) is a Loc. (meaning a "value" is a terrible name for what they're talking about! value is a register bank, so v(j. but they're using value in the config sense of a (w, v), or a world and a *value*. this means they're saying the world is the state of memory and the value is the state of the registers, at least on a von Neumann machine) is choosing a particular register to grab a Loc from. Magma will make this clearer by just making all things byte arrays and lists of byte arrays)
+That is, if v is a value, then v(j) is a Loc. (meaning a "value" is a terrible name for what they're talking about! value is a register bank, so v(j. but they're using value in the config sense of a (w, v), or a world and a *value*. this means they're saying the world is the state of memory and the value is the state of the registers, at least on a von Neumann machine) is choosing a particular register to grab a Loc from. Magmide will make this clearer by just making all things byte arrays and lists of byte arrays)
 ```
 
 This part is where is gets hairier:
