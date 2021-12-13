@@ -2,16 +2,17 @@
 
 An important question to ask of any project is: "How is the project different than X?" or more probingly: "Why build this new project instead of just using X? Why can't X address your needs?" This page attempts to thorougly answer that question.
 
-Many comparisons with other tools aren't actually that interesting, since the projects don't even have the same goals, or the comparison project isn't "maxed out" in one of Magmide's main features [(logical/computational/expressive power)](https://github.com/blainehansen/magmide#is-this-design-too-ambitious-is-it-just-everything-and-the-kitchen-sink). Let's get all these out of the way:
+Many comparisons with other projects aren't actually that interesting, since the projects don't even have the same goals, or the comparison project isn't "maxed out" in one of Magmide's main features [(logical/computational/expressive power)](https://github.com/blainehansen/magmide#is-this-design-too-ambitious-is-it-just-everything-and-the-kitchen-sink). Let's get all these out of the way:
 
 - Rust/LLVM: Not maxed out in logical power, can't prove correctness.
 - Liquid Haskell: Not maxed out in logical power since we only have refinement types and not a full type theory. Not maxed out in computational power since Haskell doesn't easily allow bare metal operations.
-- [Ivy](http://microsoft.github.io/ivy/language.html): Only a first order logic, so not maxed out in logical power.
-- TLA+: Not maxed out in logical power, isn't a fully dependent type theory. This means that TLA+ could be implemented *in* Magmide.
+- [Ivy](http://microsoft.github.io/ivy/language.html): Only a first order logic, so not maxed out in logical power. However the idea of separating pure functions and imperative procedures was part of the inspiration for the Logic/Host Magmide separation.
+- [TLA+](https://en.wikipedia.org/wiki/TLA%2B): Not based on dependent type theory, so possibly capable of representing paradoxes, but regardless TLA+ could be implemented in Magmide. Not maxed out in computational power, since the language itself is only intended for specification writing rather than combined code/proofs.
 - Isabelle/HOL, ACL2, PVS, Twelf: Not maxed out in logical power, [missing either dependent types, higher order logic, or general `Prop` types](http://adam.chlipala.net/cpdt/html/Cpdt.Intro.html).
-https://github.com/sslab-gatech/Rudra
-https://github.com/project-oak/rust-verification-tools
-Prusti too.
+- [Rudra](https://github.com/sslab-gatech/Rudra): Intended to only uncover common undefined behaviors, rather than to prove arbitrary properties. Could be implemented in Magmide.
+- [Prusti](https://github.com/viperproject/prusti-dev): Intended to only automatically check for absence of panics or overflows, or pre/post conditions rather than arbitrary properties. Could be implemented in Magmide.
+- [KLEE](https://llvm.org/pubs/2008-12-OSDI-KLEE.html) and related tools: Intended to only generate reasonably high coverage tests rather than prove arbitrary properties. Could be implemented in Magmide.
+- [Property-based testing tools](https://www.lpalmieri.com/posts/an-introduction-to-property-based-testing-in-rust/): Intended to only test a random subset of values rather than all possible values. Could be implemented in Magmide.
 
 Then there are systems that merely *apply* formal methods to existing software. These can
 
@@ -125,5 +126,6 @@ The case could certainly be made that Magmide should *use* F* to bootstrap Magmi
 Maybe these problems all seem like minor gripes to you. Maybe you're right! But again, the intention of this project is to build a proof language *for engineers*. Academics have so many little cultural quirks and invisible assumptions, and I rarely come across an academic project that doesn't *feel* like one. Magmide asks the question "what if we designed a proof language from scratch to take formal verification mainstream?" I think that makes it worthwhile.
 
 Blaine, it will be important to point out that Coq/Lean/F* weren't really *trying* to create tools that were maximally usable and targeted at practicing engineers. It's useful to create something with that intent, even if there isn't any particular innovative idea that makes it dramatically different.
+
 
  -->
