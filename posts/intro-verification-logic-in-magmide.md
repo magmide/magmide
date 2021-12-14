@@ -320,6 +320,7 @@ Representing propositions as datatypes and theorems as functions means that we d
 ## Verified Compute Magmide
 
 ### Separation Logic
+https://cacm.acm.org/magazines/2019/2/234356-separation-logic/fulltext
 
 ### Separation Logic in Use
 

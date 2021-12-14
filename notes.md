@@ -1,3 +1,18 @@
+need to look at xcap paper and other references in the bedrock paper
+
+https://plv.csail.mit.edu/blog/iris-intro.html#iris-intro
+https://plv.csail.mit.edu/blog/alectryon.html#alectryon
+
+
+
+
+
+
+
+
+
+
+
 Verified hardware simulators are easy with magmide
 
 Engineers want tools that can give them stronger guarantees about safety robustness and performance, but that tool has to be tractably usable and respect their time
