@@ -1,12 +1,12 @@
 # :construction: Magmide is purely a research project at this point :construction:
 
-This repo is still very early and rough, it's mostly just notes, speculative writing, and exploratory theorem proving. All the files in this repo other than this readme are "mad scribblings" territory, so dive in at your own risk!
+This repo is still very early and rough, it's mostly just notes, speculative writing, and exploratory theorem proving. Most of the files in this repo are just "mad scribblings" that I haven't refined enough to actually stand by!
 
 In this file however I give a broad overview and answer a few possible questions. Enjoy!
 
 ---
 
-The goal of this project is to: **create a programming language and surrounding education/tooling ecosystem capable of making formal verification and provably correct software mainstream and normal among working software engineers**.
+The goal of this project is to: **create a programming language and surrounding education/tooling ecosystem capable of making formal verification and provably correct software mainstream among working software engineers**.
 
 Software is an increasingly critical component of our society, underpinning almost everything we do. It's also extremely vulnerable and unreliable. Software vulnerabilities and errors have likely caused humanity trillions of dollars in damage, social harm, waste, and lost growth opportunity in the digital age (I think [Tony Hoare's estimate](https://en.wikipedia.org/wiki/Tony_Hoare#Apologies_and_retractions) is way too conservative, especially if you include more than `null` errors). What would it look like if it was both possible and tractable for working software engineers to build and deploy software that was *provably correct*?
 
@@ -20,7 +20,7 @@ This is a huge goal, and a language capable of achieving it will need a strong d
 
 In order to really deliver the kind of truly transformative correctness guarantees that will inspire working engineers to learn and use a difficult new language, it doesn't make sense to stop short and only give them an "easy mode" verification tool. It should be possible to formalize and attempt to prove any proposition humanity is capable of representing logically, not only those that a fully automated tool like an [SMT solver](https://liquid.kosmikus.org/01-intro.html) can figure out. A language with full logical expressiveness can still use convenient automation alongside manual proofs.
 
-To achieve this goal, the language will be fully **dependently typed** and use the [Calculus of Constructions](https://en.wikipedia.org/wiki/Calculus_of_constructions) much like [Coq](https://en.wikipedia.org/wiki/Coq). I find [Adam Chlipala's "Why Coq?"](http://adam.chlipala.net/cpdt/html/Cpdt.Intro.html) arguments convincing in regard to this choice.
+To achieve this goal, the language will be fully **dependently typed** and use the [Calculus of Constructions](https://en.wikipedia.org/wiki/Calculus_of_constructions) much like [Coq](https://en.wikipedia.org/wiki/Coq). I find [Adam Chlipala's "Why Coq?"](http://adam.chlipala.net/cpdt/html/Cpdt.Intro.html) arguments convincing in regard to this choice. Coq will also be used to bootstrap the first version of the compiler, allowing it to be self-verifying in addition to self-hosting. Read more about the design and bootstrapping plan in [`posts/design-of-magmide.md` file](./posts/design-of-magmide.md).
 
 The [metacoq](https://github.com/MetaCoq/metacoq) and ["Coq Coq Correct!"](https://www.irif.fr/~sozeau/research/publications/drafts/Coq_Coq_Correct.pdf) projects have already done the work of formalizing and verifying Coq using Coq, so they will be very helpful while implementing Magmide.
 
@@ -51,13 +51,15 @@ The metaprogramming can of course also be used directly in the dependently typed
 
 Importantly, the language will be self-hosting, so metaprogramming functions will benefit from the same bare metal performance and full verifiability.
 
-You can find rough notes about the current design thinking for the metaprogramming interface in [the unfinished `posts/design-of-magmide.md` file](./posts/design-of-magmide.md).
+You can find rough notes about the current design thinking for the metaprogramming interface in [`posts/design-of-magmide.md`](./posts/design-of-magmide.md).
 
 ## Practical and ergonomic
 
 My experience using languages like Coq has been extremely painful, and the interface is "more knife than handle". I've been astounded how willing academics seem to be to use extremely clunky workflows and syntaxes just to avoid having to build better tools.
 
 To achieve this goal, this project will learn heavily from `cargo` and other excellent projects. It should be possible to verify, interactively prove, query, compile, and run any Magmide code with a single tool.
+
+An important design choice that will likely make the tool easier to understand and use is the "Logic/Host" split [(discussed deeply in `posts/design-of-magmide.md`)](./posts/design-of-magmide.md) that clearly separates "imaginary" pure functional code from the "real" imperative computational code.
 
 ## Taught effectively
 
@@ -119,6 +121,10 @@ it's silly to get hung up on whether Host Magmide types/values can be asserted b
 
 Yes! None of the technical details of this idea are untested or novel. Dependently typed proof languages, higher-order separation logic, query-based compilers, introspective metaprogramming, and abstract assembly languages are all ideas that have been proven in other contexts. Magmide would merely attempt to combine them into one unified and practical package.
 
+## Why use Coq to bootstrap the compiler?
+
+The biggest reason is that Coq is the language [Iris](https://gitlab.mpi-sws.org/iris/iris/) is implemented in, and since that project will be a core component of Magmide it makes the most sense to be as compatible as possible. Iris will likely need to be ported to Magmide once it's bootstrapped, so it would be nice to avoid also porting it to the bootstrapping language.
+
 ## Is this design too ambitious? Is it just "everything and the kitchen sink"?
 
 This design is indeed very ambitious and broad, but here's my claim: none of the major features could be removed or weakened and still allow the project to achieve its goals. Every major design feature has intentionally been "maxed out", and chosen to nicely interlock with the others in a way that covers the largest possible number of use cases. If these features weren't the strongest versions of themselves we would be leaving power on the table that we don't have to, and we'd just be wasting time before some other better design shows up in a few years. All these design features are tractable, so we shouldn't stop short. It should be necessary for truly mind-blowing breakthroughs in logic or computational theory to appear before we have to revisit this design.
@@ -128,6 +134,8 @@ There are only three major design features that hold up everything else:
 - **Maxed out in logical power** by using the strongest type theory I can find. Without this the design wouldn't be able to handle lots of interesting/useful/necessary problems, and couldn't be adopted by many teams. It wouldn't be able to act as a true *foundation* for verified computing. It's important to note that this one design feature enables all the other features involving formal logic, such as the ability to formalize bare metal computation at a high level of abstractness and the use of trackable effects.
 - **Maxed out in computational power** by self-hosting in a bare metal language. If the language were interpreted or garbage collected then it would always perform worse than is strictly possible. It would be silly for metaprogramming to be done in a different language than the intended target languages. If we're going to formalize bare metal computation, we might as well use it to build the tool itself!
 - **Maxed out in expressive power** by making it deeply metaprogrammable from the beginning. Metaprogramming is basically a cheat code for language design, since it gives a language access to an infinite range of possible features without having to explicitly support them. It's the single best primitive to add in terms of implementation overhead versus expressiveness. Making the compiler query-based maxes out metaprogrammatic capability, since every bit of work done in the core compiler can be exposed for reuse.
+
+The most reasonable criticism you can make of Magmide is that it's too ambitious, but we have to also consider the opposite: perhaps previous projects haven't been ambitious enough, and that's why formal verification is still niche! Software has been broken for too long, and we won't have truly solved the problem until it's possible and tractable for *all* software to be verified.
 
 ## If this is such a good idea why hasn't it happened yet?
 
@@ -143,6 +151,12 @@ Although the software startup ecosystem does routinely build pure public goods s
 
 We only got Rust because Mozilla has been investing in dedicated research for a long time, and it still doesn't seem to have really paid off for them in the way you might hope.
 
+## Can engineers understand these complex academic ideas enough to use them?
+
+**Yes.** My claim is that the core ideas of formal verification (dependent types, proof objects, higher order logic, separation logic) aren't actually that complicated, and if properly explained basically any working engineer can understand them. I've been working on better explanations in the (extremely rough and early) [`posts/intro-verification-logic-in-magmide.md`](./posts/intro-verification-logic-in-magmide.md) and [`posts/coq-for-engineers.md`](./posts/coq-for-engineers.md).
+
+There are probably many reasons formal verification hasn't caught on in the mainstream (before powerful separation logics like Iris it might have been legitimately too difficult to be worth it!). But it certainly seems to me that [research debt](https://distill.pub/2017/research-debt/) has slowed things down immensely.
+
 ## Will working engineers actually use it?
 
 Maybe! We can't force people or guarantee it will be successful, but we can learn a lot from how Rust has been able to successfully teach quite complex type-theoretical ideas to an huge and excited audience. I think Rust has succeeded by:
@@ -157,15 +171,11 @@ All of those things are easier said than done! Fully achieving those goals will 
 
 No! My perfect outcome of this project would be for it to sit *underneath* Rust, acting as a new verified toolchain that Rust could "drop into". The concepts and api of Rust are awesome and widely loved, so Magmide would just try to give it a more solid foundation. Wouldn't it be cool to be able to *prove* that your use of `unsafe` wasn't actually unsafe??
 
-## Why not just write this stuff in Coq?
+## Why can't you just teach people how to use existing proof languages like Coq?
 
-Simply? Because Coq has made a lot of bad design decisions.
+The short answer is that languages like Coq weren't designed with the intent of making formal verification mainstream, so they're all pretty mismatched to the task. If you want a deep answer to this question both for Coq and several other projects, check out [`posts/comparisons-with-other-projects.md`](./posts/comparisons-with-other-projects.md).
 
-Metaprogramming is [technically possible in Coq](https://github.com/MetaCoq/metacoq), but it was grafted on many years into the project, and it feels like it. The language is extremely cluttered and obviously "designed by accretion". All the documentation and introductory books were clearly written by academics who have no interest in helping people with deadlines build something concrete. The [Notation system](https://coq.inria.fr/refman/user-extensions/syntax-extensions.html) just begs for unclear and profoundly confusing custom syntax, and is itself extremely overengineered. It's a pure functional language with a garbage collector, so it will never perform as well as a self-hosted bare metal compiler. And let's be honest, the name "Coq" is just terrible.
-
-I don't intend to throw away all the awesome work done by the Coq project though, which is why the first bootstrapping compiler and initial theory will be written in Coq, and I intend to (someday) create some kind of backport to allow old Coq code to be read and used by Magmide. But I'm unwilling to be bound to Coq's design.
-
-This question is a lot like asking the Rust project creators "why not just write a specialized C compiler"? Because instead of making something *awesome* we'd have to drag around a bunch of bad decisions. Sometimes it's worth it to start fresh.
+This question is a lot like asking the Rust project creators "why not just write better tooling and teaching materials for C"? Because instead of making something *awesome* we'd have to drag around a bunch of frustrating design decisions. Sometimes it's worth it to start fresh.
 
 ## Why will the metaprogramming be more usable than Coq's Notation system?
 

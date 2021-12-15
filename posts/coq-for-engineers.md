@@ -14,7 +14,7 @@ now we're going to get into the meat of it, the stuff that's special about coq, 
 - type theory, just talking about the ideas, again not really bothering with anything concrete.
 - calculus of constructions, which is just a particular type theory that allows us to define inductive types. inductive types and forall-style function types are the only primitives in the type system. the computation rules do the rest and are pretty simple rules about unfolding function calls and stuff. this chapter is where we actually start doing real interesting coq examples. we only worry about `Type` level stuff and inductive types though. start with true/false, then implication, then how implication is the same as forall, then and/or
 - curry-howard, and talk of the prop universe and how propositions are types and proofs are values. also talking about interactive mode and how it works.
-- indexed types
+- indexed types. basically allows you to make the type generic, but generic over *values* rather than types. this ability means that the constructor rules have to be more specific.
 
 https://coq.inria.fr/refman/language/core/conversion.html
 

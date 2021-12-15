@@ -8,28 +8,30 @@ Magmide has two essential components:
 These two components have a symbiotic relationship with one another: Logic Magmide is used to define and make assertions about Host Magmide, and Host Magmide computationally represents and implements both Logic Magmide and Host Magmide itself.
 
 ```
-                     represents and
-                       implements
-     +---------------------+-------------------+
-     |                     |                   |
-     |                     |                   |
-     v                     |                   |
+                       represents and
+                         implements
+      +----------------------+--------------------+
+      |                      |                    |
+      |                      |                    |
+      v                      |                    |
 Logic Magmide                +-------------> Host Magmide
-     |                                         ^
-     |                                         |
-     |                                         |
-     +-----------------------------------------+
-                    logically defines
-                       and verifies
+      |                                           ^
+      |                                           |
+      |                                           |
+      +-------------------------------------------+
+                      logically defines
+                        and verifies
 ```
 
 The easiest way to understand this is to think of Logic Magmide as the type system of Host Magmide. Logic Magmide is "imaginary" and only exists at compile time, and constrains/defines the behavior of Host Magmide. Logic Magmide just happens to itself be a turing complete dependently typed functional programming language!
 
-Since Host Magmide is the computational language, it would make most sense to write metaprogramming routines in it, including ones that are intended to produce Logic Magmide terms. This means the compiler has to be built with a definition of Host Magmide present so it knows how to check and run metaprograms. (Of course since Logic Magmide strictly speaking can be evaluated at compile time by the reduction rules in the kernel, then people could write compile-time functions in it, but the functions would be much slower. Language guides should focus on using Host Magmide for metaprogramming.)
-
 Host Magmide must be runnable on the various development machines that could be used by engineers, so it needs to be highly abstract and capable of being assembled or "rendered" to many different specific architectures/environments. This means it must be similar to LLVM in terms of abstractness. However something as low-level as LLVM would be very painful to write a full production-grade compiler in, so it makes sense for Host Magmide to *really* be some higher level language that's lowered to the LLVM equivalent using metaprogramming. Since Host Magmide will be at the same level as LLVM, it will similarly need "backends" capable of rendering it to the concrete instruction set. We could very well choose to piggyback on LLVM for the first stage of the project! However LLVM doesn't have any verification/separation logic capabilities, and the backends themselves aren't verified to maintain IR semantics to the concrete architecture, so LLVM can't be the final goal.
 
 Logic Magmide can of course be used to define any *other* object language. So if you wanted to use Magmide to verify and compile a program in some other architecture/environment, you would give that architecture/environment a full definition in Logic Magmide, write your program in whatever format you choose, use Host Magmide to parse and convert that format to the language's Logic Magmide form so you can make assertions about it, and then use Host Magmide to render the program so it can be used elsewhere.
+
+I believe this Logic/Host separation is one of the key ideas that will make Magmide successful. If a dependently typed language is going to be self-hosting/verifying, then it will necessarily formalize a computational language at the same level as LLVM, one capable of being compiled for many different specific architectures and environments. The very act of doing that *for itself* has the happy coincidence of also giving it the ability to do so *for anything else*. We can support two massive families of use cases with one body of work. By going all the way in both logical and computational power, we ironically end up having to make fewer built-in decisions.
+
+Since Host Magmide is the computational language, it would make most sense to use it for metaprogramming routines, including ones that are intended to produce Logic Magmide terms. This means the compiler has to be built with a definition of Host Magmide present so it knows how to check and run metaprograms. (Since Logic Magmide strictly speaking can be evaluated at compile time by the reduction rules in the kernel, users could write compile-time functions using it, but the functions would be much slower. Language guides should focus on using Host Magmide for metaprogramming.)
 
 So the final compiler must include:
 
@@ -106,7 +108,7 @@ Once the first full version of the compiler is bootstrapped then the real work b
 
 And of course the process of improving the power, performance, and usability of the language, and the maturity of the broader ecosystem, will never end.
 
-# Notable design differences with Coq
+# Notable design choices
 
 ## No `Set` type
 
@@ -120,7 +122,7 @@ Please reach out if you have knowledge about this topic you'd like to share!
 
 ## No distinction between inductive and coinductive types
 
-Every coinductive type could be written as an inductive type and vice-versa, the real difference between the two really happens in `fix` and `cofix`. Some types wouldn't actually be useful in one or other of the settings (a truly infinite stream can't possibly be finitely constructed and so would never be useful in a normal recursive function), but occasionally we might appreciate types that can be reasoned about in both ways.
+Every coinductive type could be written as an inductive type and vice-versa, and the real difference between the two only appears in `fix` and `cofix` functions. Some types wouldn't actually be useful in one or other of the settings (a truly infinite stream can't possibly be finitely constructed and so would never be useful in a normal recursive function), but occasionally we might appreciate types that can be reasoned about in both ways.
 
 So Magmide will only have one entrypoint for defining "inductive" types, and if a type could be compatible with use in either recursive or corecursive contexts then it can be used in either. It seems we could always infer whether a type is being used inductively or coinductively based on call context. If we can't, we should have a syntax that explicitly indicates corecursive use rather than splitting the type system.
 
@@ -134,11 +136,11 @@ In Magmide the default tactic language will just be a metaprogrammatic entrypoin
 
 ```
 // `prf` (or whatever syntax we choose) is basically just a "first-class" macro
-thm four_is: even(4); prf;
+thm four_is_even: even(4); prf;
   + add_two; + add_two; + zero
 
 // you could write your own!
-thm four_is: even(4); my_prf$
+thm four_is_even: even(4); my_prf$
   ++crushit
 ```
 
@@ -192,7 +194,7 @@ def my_weird_function(arg: bool | nat | str): str;
     nat(n); format_binary(nat)
     str(s); "string = #{s}"
 
-// values can be passed without being wrapped
+// values can be passed without being wrapped or converted?
 my_weird_function(true)
 my_weird_function(2)
 my_weird_function("hello")
@@ -262,7 +264,7 @@ We can provide universal conversion implementations to and from types and assert
 
 Instead of defining an extremely complicated set of macro definition rules, metaprogramming in Magmide will give three very simple "syntactic entrypoints", and then just expose as much of the compiler query api as possible to allow for compile-time type introspection or other higher-level capabilities.
 
-Macros can either accept raw strings as input and parse them themselves or accept Magmide parsed token trees. This complete generality means that Magmide can support *any* parsing pattern for embedded languages. Someone could even define something just like Coq's notation system if that's what they really wanted, and their custom system would be cleanly cordoned off behind a clear `macro_name$` style signifier. By just leaning all the way into the power of metaprogramming, we can allow *any* feature without having to explicitly support it.
+Macros can either accept raw strings as input and parse them themselves or accept Magmide parsed token trees. This complete generality means that Magmide can support *any* parsing pattern for embedded languages. Someone could even define something just like Coq's notation system if they really want to, and their custom system would be cleanly cordoned off behind a clear `macro_name$` style signifier. By just leaning all the way into the power of metaprogramming, we can allow *any* feature without having to explicitly support it.
 
 To actually use macros you can do so inline, as a block, or using a "virtual" import that processes an entire file.
 
