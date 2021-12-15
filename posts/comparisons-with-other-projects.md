@@ -58,7 +58,7 @@ So in other words...
 
 ... or at least, just use pure functional languages in contexts where their purity is actually correct.
 
-I obviously don't think functional languages should never be used to write programs. But we shave to acknowledge the limitations of functional programming. With verified imperative foundations underneath us, it will likely be much easier to discover and implement whatever paradigms we find truly useful in whatever contexts they're useful, such as optimizations like [functional but in-place](https://www.microsoft.com/en-us/research/uploads/prod/2020/11/perceus-tr-v1.pdf).
+I obviously don't think functional languages should never be used to write programs. But we shave to acknowledge the limitations of functional programming. With verified imperative foundations underneath us, it will likely be much easier to discover and implement whatever paradigms we find truly useful in whatever contexts they're useful, such as optimizations like ["functional but in-place"](https://www.microsoft.com/en-us/research/uploads/prod/2020/11/perceus-tr-v1.pdf).
 
 Let's dive into each of those three projects in detail:
 
@@ -74,7 +74,7 @@ Coq has made a lot of frustrating design decisions.
 - It's a pure functional language with a garbage collector, so it will never perform as well as a self-hosted bare metal compiler.
 - And let's be honest, the name "Coq" is just terrible.
 
-Another really important problem is that Coq can only produce runnable programs with the [extraction mechanism](https://softwarefoundations.cis.upenn.edu/lf-current/Extraction.html), which gives no guarantees about the extracted code doing the same thing as the original. Extraction [isn't itself verified](https://github.com/MetaCoq/metacoq/issues/163), so arbitrary bugs are possible during the process itself, and even if it were verified it would rely on the target language environment being correct. Although fully verified Magmide toolchains are very far away, the design is tailored specifically to that goal.
+Another really important problem is that Coq can only produce runnable programs with the [extraction mechanism](https://softwarefoundations.cis.upenn.edu/lf-current/Extraction.html), which gives no guarantees about the extracted code doing the same thing as the original. Extraction [isn't itself verified](https://github.com/MetaCoq/metacoq/issues/163), so arbitrary bugs are possible during the process, and even if it were verified it would rely on the target language environment being correct. Although fully verified Magmide toolchains are very far away, the design is tailored specifically to that goal.
 
 Coq has existed *since 1989* and is still a very niche tool mostly only used by academics or former academics. Rust by comparison doesn't offer anywhere close to the correctness-proving power, has only been a mature language since 2015, but has achieved truly impressive adoption. The most damning accusation I can make against Coq is that it isn't even that broadly adopted *in academia*. Why aren't almost all papers in mathematics, logic, philosophy, economics, and computer science not verified in Coq? And yet approachable tools like python and julia and matlab are much more common?
 
@@ -90,15 +90,15 @@ Lean is very similar to Coq, and it seems its entire purpose is to be a more cle
 
 It also makes the mistake of overemphasizing pure functional programming, and muddies the theorem proving language with a bunch of effectfulness concepts and builtin computational types. It also uses the interpreted pure functional language itself as the metaprogramming language, which will hamper performance.
 
-Overall it seems the projects creators are more interested in the needs of academic mathematicians, or at least that seems to be the group who's actually been adopting it. I am excited to see what new things they come up with though!
+Overall it seems the project is more interested in the needs of academic mathematicians, or at least that seems to be the group who's actually been adopting it. I am excited to see what new things they come up with though!
 
 ## F*
 
-F* is the project that's most frustratingly close to being capable of Magmide's goal, since it explictly supports extraction to various targets and is already being used in production-grade verification projects. But again, I don't think it's going to achieve general adoption, not just because of it's academic tone, but because it also muddies the pure logical language with effectful computation concepts.
+F* is the project that's most frustratingly close to being capable of Magmide's goal, since it explictly supports extraction to various targets and is already being used in production-grade verification projects. But again, I don't think it's going to achieve general adoption, not just because of its academic tone, but because it also muddies the pure logical language with effectful computation concepts.
 
 Effectfulness is inherently an imperative computational concept. It seems very counterproductive to me to add primitive effects to a logical lambda calculus, since the whole point of a logical language is that it can be used to model any kind of effects for any kind of system. The logical language should be absolutely pure, because its job is just to do pure logic rather than computation.
 
-Most real functions will have *many* effects, and their engineers only care in a small handful of circumstances, when those effects are unexpected/undesired. It's better to use automated checks/proofs to assert a function is *free from* certain effects rather than having to explicitly list effects.
+Most real functions will have *many* effects, and their authors only care in a small handful of circumstances, when those effects are unexpected/undesired. It's better to use automated checks/proofs to assert a function is *free from* certain effects rather than having to explicitly list effects.
 
 [SteelCore](https://www.fstar-lang.org/papers/steelcore/steelcore.pdf), the variant of separation logic used in various F* projects, also doesn't support the kind of recursive/impredicative ghost state and complex resource algebras that Iris does, or at least only supports them if they evolve monotonically.
 
