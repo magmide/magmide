@@ -24,3 +24,7 @@ clean:
 	rm -f .*.d
 	rm -f Makefile*
 	popd
+
+# sudo apt install llvm-13
+lab:
+	lli-13 lab.ll
