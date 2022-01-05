@@ -73,48 +73,6 @@ To achieve this goal, this project will enshrine the following values in regard 
 - Prefer graspable human words to represent ideas, never use opaque and unsearchable non-ascii symbols, and only use symbolic notations when it's both truly useful and properly explained.
 - Prioritize the hard work of finding clear and distilled explanations.
 
-
-<!-- use cases
-
-## just doing logic/mathematics, not intending to create runnable programs
-
-although it would seem this use case doesn't need to be able to check/compile/run computable programs, the user might still use metaprogramming to manipulate proofs, or use libraries that do. before sending the Logic Magmide structures representing the code being worked on to the kernel, any metaprogrammatic constructs need to be unfolded, which means the Host Magmide programs that are implied by those metaprogrammatic constructs need to be checked/compiled/run.
-
-the flow for codebases like this would be: parse into data structures, check/compile/run any meta programs using the built in Host Magmide algorithms, send fully unfolded Logic Magmide structures to the kernel
-
-this means that the compiler needs to have built in notions of some known Host Magmide. the truly final version of Magmide can have the *syntax* of some layer/variant of Host Magmide built in rather than always nesting Host Magmide underneath metaprogrammatic entry points
-
-## writing code intended to run on the same architecture as the host
-
-here all we need is the same Host Magmide used within the compiler. the user doesn't have to do anything unusual, they just need to write Host Magmide that's somehow "marked" as the "main" entry point
-
-of course prop predicates can be indexed by host types/values, so Host Magmide will include custom entry points/sugars for assertions about code state that assumes these indexed predicates. assertions about host values are just logical props but more specific versions of them.
-
-so there's the *ideal* definition of a computable type, which is just a predicate about binary arrays
-this ideal definition must itself be represented computationally, so in memory it will be shaped in whatever way we decide to represent inductive types (probably with some array of values with tags and index offsets to avoid having pointers to different parts of memory and improve cache locality)
-then at the runtime of the target program, the real bits will just be formed according to how the predicate demanded they would be
-
-## cross-compiling code for a different architecture, but written in Host Magmide
-
-same as above, they just have to somehow signal what architecture(s) are intended
-
-## compiling code using a completely different compute language, one incompatible with Host Magmide
-
-in order to do this, the user has to specify ast datatypes for their language. they have to do this in Host Magmide, since these datatypes need to be computationally represented and manipulated.
-
-they can optionally choose to create macros to convert some custom syntax into these ast datatypes, and if they do this these macros will be in Host Magmide.
-
-they will almost certainly define logical specifications for their host architecture, the machine type, how their ast datatypes relate to these things, and probably (definitely?) purely imaginary logical datatypes that model the real computational ones, and all of this will be done in Logic Magmide. Logic Magmide terms aren't really intended to be "computed", only evaluated using the reduction rules with an interpreter inside (alongside?) the kernel.
-
-they need to be able to render/assemble their program, and they have to provide a custom rendering function. this step is ultimately a meta one, since "compile time" refers to compilation of the target program! so compilation is really just running a metaprogram that happens to produce some artifact. looking back at the more "normal" use cases we can see that those are just the same thing, except the path at each step was more known. the only thing that really distinguishes this use case from the others is that the ast/specifications/renderer were all provided custom.
-
-but the logical stuff is the thing that's confusing. should logic Prop types be indexable by Host datatypes?
-
-remember, at the very bottom of all of this is just the Host Magmide *logic types*. logical inductive types are at the bottom of the tree. those types are just modeling a real computational machine state and making assertions about it.
-when we make assertions about "host types", we aren't making assertions about *it*, but about the machine state it represents?
-
-it's silly to get hung up on whether Host Magmide types/values can be asserted by the Prop universe, because of course they can! host types are just predicates over binary arrays, and host values are just binary arrays. to say that some host value is equal to another is the exact same as saying two ideal values are equal. in both cases they're *definitionally* equal in the strict coq convertibility sense. -->
-
 # FAQ
 
 ## Is it technically possible to build a language like this?

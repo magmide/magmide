@@ -35,31 +35,55 @@ The long term goal however is for Magmide to step into the same role as LLVM. Ma
 
 However in contrast to LLVM, this process can be end-to-end verified if backends formally define the semantics of the target instruction set architecture and operating environment and prove the assembly process correctly translates programs to the target.
 
-Importantly, it would be very painful to write a full production-grade compiler in something as low-level as LLVM. The actual syntactic language of Host Magmide will be much higher level and then lowered to the low-level representation using metaprogramming.
+Magmide has the opportunity to expose a more pleasant language than LLVM though, and to use metaprogramming to actually expose several layers at different levels of abstraction. I feel it's very important that programmers have access to lower levels of abstraction without having to drop all the way down to a specific assembly language. So I proposes three layers of Host Magmide:
 
-Logic Magmide can also of course be used to define any *other* object language. So to use Magmide to verify and compile a program without using Host Magmide, you would give that architecture/environment a full definition in Logic Magmide, write your program in whatever format you choose, use Host Magmide to parse and convert that format to the language's Logic Magmide form so you can make assertions about it, and then use Host Magmide to render the program so it can be used elsewhere.
+- Host Magmide itself, essentially at the level of C or Rust. This will be the actual syntactic language exposed by the compiler. It will have roughly the same syntactic feel as its Logic counterpart, so it should have functions, struct/tuple/union type definitions, match/if statements, and some reasonable loops (`for .. in`, `while`, `forever`) (it's unclear at this point if we want to give it a Rust-like ownership/lifetime system). Lower levels can be exposed using macros.
+- Low Level Host Magmide, at the same level of LLVM. This means it has typed functions with labeled blocks and parameters that abstract away details of calling conventions and ABIs, as well as abstractions for system/external calls.
+- Asm Host Magmide, at the same level as a real assembly language, but with abstract instructions and registers so it can still be rendered to different architectures. This means it only has labeled sections with jump/branch instructions, allowing it to encode arbitrarily exotic control flow. However we can still use type preconditions over registers and memory locations. This layer is where calling conventions and function behaviors would be implemented.
+
+Host Magmide is named intentionally, since it is only really intended to function for "typical" architectures, ones with a sufficient operating system environment to run the actual Magmide compiler. However the tool will be useful to write code for any architecture, since Logic Magmide can be used to define *other* languages other than Host Magmide. So all these use cases will be directly supported:
+
+- Writing code for an architecture compatible with Host Magmide. This is obvious, since Host Magmide will be able to compile or cross-compile to any architecture is has a backend for. Initially this will be any architecture supported by LLVM.
+- Writing code for an architecture that *isn't* compatible with Host Magmide. To do this you would formalize your target architecture/environment in Logic Magmide, write your program in whatever format you choose, use Host Magmide to parse and convert that format to the language's Logic Magmide form so you can make assertions about it, and then use Host Magmide to render the program so it can be used elsewhere. This pattern can support literally any language imaginable, from arbitrary assembly languages to custom DSLs to smart contract languages.
+- Formalizing logic/mathematics, not intending to create runnable programs. Although it would seem this use case doesn't need to be able to check/compile/run computable programs, the user might still use metaprogramming to manipulate proofs, or use libraries that do. Before sending Logic Magmide structures to the kernel, any metaprogrammatic constructs need to be unfolded, which means the Host Magmide programs that are implied by those metaprogrammatic constructs need to be checked/compiled/run.
 
 I believe this Logic/Host separation is one of the key ideas that will make Magmide successful. If a dependently typed language is going to be self-hosting/verifying, then it will necessarily formalize a computational language at the same level as LLVM, one capable of being compiled for many different specific architectures and environments. The very act of doing that *for itself* has the happy coincidence of also giving it the ability to do so *for anything else*. We can support two massive families of use cases with one body of work. By "maxing out" both logical and computational power, we ironically end up having to make fewer built-in decisions.
 
 Since Host Magmide is the computational language, it would make most sense to use it for metaprogramming routines, including ones that are intended to produce Logic Magmide terms. This means the compiler has to be built with a definition of Host Magmide present so it knows how to check and run metaprograms. (Since Logic Magmide strictly speaking can be evaluated at compile time by the reduction rules in the kernel, users could write compile-time functions using it, but the functions would be much slower. Language guides should focus on using Host Magmide for metaprogramming.)
 
-So the final compiler must include:
+To support all of this, the final compiler must include:
 
-- Syntax tree datatypes and a parser for whatever top-level syntax we choose. This syntax must support all of Logic Magmide (inductive types, proofs, functions, theorems), whatever top-level metaprogrammatic entrypoints we choose, and whatever layer/variant of Host Magmide we choose to directly support outside of metaprogrammatic entrypoints.
+- Syntax tree datatypes and a parser for whatever top-level syntax we choose. This syntax must support all of Logic Magmide (inductive types, proofs, functions, theorems), Host Magmide, and whatever top-level metaprogrammatic entrypoints we choose.
 - Core libraries defining and exposing Host Magmide. These core libraries can also include whatever other theories of logic or computation we think could be helpful for users.
 - A proof checking kernel for Logic Magmide programs. This must include an interpreter that can evaluate Logic Magmide terms according to the [calculus of constructions reduction rules](https://coq.inria.fr/refman/language/core/conversion.html). This kernel should be verified to correspond to a trusted theory base of the calculus of constructions, heavily inspired by [Coq Coq Correct](https://metacoq.github.io/coqcoqcorrect). This means that Magmide won't only be self-hosting, but self-verifying.
 - A build/run engine capable of running a cascade of metaprograms. This engine will accept a metaprogram AST representation and use the builtin Host Magmide definition/renderer to process it into a runnable program, set up the program's inputs, jump to the rendered metaprogram in memory, collect the outputs of the program, and continue that process using the outputs of each metaprogram until a stopping point is reached. An implied part of this loop is running proof checking to verify each program, since type checking a Host Magmide program is merely proof checking the various assertions made within it both by type annotations and things like `assert` statements.
 - The above build/run engine must also be capable of rendering programs in any language with a full definition to the filesystem, including Host Magmide.
 
-To actually interact with Magmide, I imagine using a cli with these basic commands:
-
-- `magmide check` would perform proof checking. If there are any computable code blocks that make any kind of assertions (even type annotations are assertions!) then those assertions are checked. This implies the necessity to run the cascade of metaprograms, and therefore perform any side-effects performed by those metaprograms. Any commands that ask for Logic Magmide to be "evaluated" (such as Coq's `Compute` command) would happen at this level, since evaluation of Logic Magmide is merely done in the kernel.
-- `magmide compile` would perform `check` first, and implies the presence of *some* computational programs, and therefore a full definition for it that includes a renderer. The compiler ships with a full definition for Host Magmide, so users don't have to supply a definition if that's their target. If there isn't any configured path to a computational program and its definition, an error is thrown. We could include a flag to merely exit successfully if there isn't any computational program present.
-- `magmide run` would perform `check` and `compile` first, and so again implies a computational program and full definition. It also implies the availability of a machine capable of running the rendered artifact, either the host machine itself if the program is in or compatible with Host Magmide, or some connected debuggable device. If there isn't a usable machine available, an error is thrown.
-
-## Bootstrapping plan
+# Project plan
 
 To build a self-hosting and self-verifying compiler, we need to bootstrap it from a language capable of performing both functions. For this I've chosen Coq.
+
+However in order to make sure the project is reasonable and going in the right direction, we need to prioritize working code we can use to understand our assumptions and iterate on the design. It would be unwise to simply jump into bootstrapping the full real compiler. My general project plan is this:
+
+- Create a Coq program capable of ingesting Low Level Host Magmide code (easiest since it's just a razor thin convenience layer around LLVM), verifying assertions about it inside Coq, and rendering it to real LLVM. There are a lot of questions to answer about how exactly to do this, which will involve some awkward duct-taped combination of Coq extraction, metacoq, [coq io](http://coq.io/), and possibly even ocaml plugins. Even though we could use Coq notations to do some of this, if we're going to use this tool to bootstrap the real compiler it doesn't make sense to trap our source in Coq files.
+- Use small programs to iterate while adding the capability to parse real Host Magmide programs. At this point we'll have a working compiler for Host Magmide, but where all logical types and proofs exist in Coq. Any team willing and able to work with this less-than-ergonomic combination of Host Magmide and Coq can now do so to produced verified LLVM programs.
+- Bootstrap the real compiler. More on that below.
+- Then after the full language is bootstrapped it can be used for non-trivial but still extremely low level applications such as cryptography/networking libraries, deeply embedded applications such as IOT devices or firmware, os kernel level functions. During this process we can begin to aggressively seek support and contributions from the larger community, and start building tooling and infrastructure.
+- Then with confidence in the design and growing support, begin to use Magmide to define *other* languages. Magmide could be used to incrementally reimplement the foundations of Rust, giving it built-in access to a proof checker. Magmide would be a perfect fit to implement smart contract languages. I have some fun ideas for a highly inferred actor model language intended to run in WebAssembly. It might even be cool to write something at the level of Typescript with a verified interpreter. These higher level languages will likely be even more exciting to a broader audience and can give the project even more momentum.
+- Then with higher level and more diverse languages implemented in Magmide, we can start to tackle truly ambitious projects. I've shared some ideas in [this section of the README](TODO) (operating systems, databases, UI frameworks, etc etc).
+
+To summarize:
+
+- Write/verify *any* program.
+- Write/verify small programs.
+- Bootstrap the compiler.
+- Write/verify interesting but low level programs.
+- Implement higher level languages in Magmide.
+- Tackle truly ambitious projects.
+
+# Bootstrapping plan
+
+Bootstrapping the compiler is just one bullet in the above grand plan, but it's a massive endeavor all its own! At this stage we'll have a Coq compiler capable of parsing/verifying/rendering Host Magmide, so we can write Host Magmide programs capable of doing all the heavy lifting.
 
 First I'll create the foundations of the purely abstract computational theory in Coq. This is itself a fairly large task we can break up:
 
@@ -70,7 +94,7 @@ First I'll create the foundations of the purely abstract computational theory in
 - Integrate the above machine state theory with Iris, to create a similarly polymorphic separation logic. This will probably be the most difficult step, since Iris, while being very well designed, wasn't designed with ergonomic use by engineers in mind. We'll likely need a lot of help from the Iris core team with this step.
 - Formalize trackable effects with inspiration from Iron-style fractional tokens. This could need a custom resource algebra in order to be reusable for different types of effects, that remains to be seen.
 
-Then Using the above theory base, we'll define the actual Host Magmide formal semantics and build the initial Coq version of the compiler. I'll start with essentially a toy compiler, one capable of compiling a more convenient version of LLVM into actual LLVM (think type inference and more syntactic conveniences), and then add more constructs as they are needed. It will be very helpful to learn from [Vellvm](https://github.com/vellvm/vellvm) at this stage.
+Then using the above theory base, we'll define the actual Host Magmide formal semantics and build the initial Coq version of the compiler. I'll start with essentially a toy compiler, one capable of compiling a more convenient version of LLVM into actual LLVM (think type inference and more syntactic conveniences), and then add more constructs as they are needed. It will be very helpful to learn from [Vellvm](https://github.com/vellvm/vellvm) at this stage.
 
 It will also likely be helpful to write small programs and attempt to prove things about them, in order to do some early ["dog fooding"](https://en.wikipedia.org/wiki/Eating_your_own_dog_food).
 
@@ -278,6 +302,14 @@ Instead of defining an extremely complicated set of macro definition rules, meta
 Macros can either accept raw strings as input and parse them themselves or accept Magmide parsed token trees. This complete generality means that Magmide can support *any* parsing pattern for embedded languages. Someone could even define something just like Coq's notation system if they really want to, and their custom system would be cleanly cordoned off behind a clear `macro_name$` style signifier. By just leaning all the way into the power of metaprogramming, we can allow *any* feature without having to explicitly support it.
 
 To actually use macros you can do so inline, as a block, or using a "virtual" import that processes an entire file.
+
+## Cargo-like tooling
+
+To actually interact with Magmide, I imagine using a cli with these basic commands:
+
+- `magmide check` would perform proof checking. If there are any computable code blocks that make any kind of assertions (even type annotations are assertions!) then those assertions are checked. This implies the necessity to run the cascade of metaprograms, and therefore perform any side-effects performed by those metaprograms. Any commands that ask for Logic Magmide to be "evaluated" (such as Coq's `Compute` command) would happen at this level, since evaluation of Logic Magmide is merely done in the kernel.
+- `magmide compile` would perform `check` first, and implies the presence of *some* computational programs, and therefore a full definition for it that includes a renderer. The compiler ships with a full definition for Host Magmide, so users don't have to supply a definition if that's their target. If there isn't any configured path to a computational program and its definition, an error is thrown. We could include a flag to merely exit successfully if there isn't any computational program present.
+- `magmide run` would perform `check` and `compile` first, and so again implies a computational program and full definition. It also implies the availability of a machine capable of running the rendered artifact, either the host machine itself if the program is in or compatible with Host Magmide, or some connected debuggable device. If there isn't a usable machine available, an error is thrown.
 
 ### Inline macros
 
