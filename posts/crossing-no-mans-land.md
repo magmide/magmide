@@ -1,6 +1,6 @@
 # Crossing No Man's Land: figuring out Magmide's path to success
 
-Should I extend this to a full blog post? Is this too terse?
+These are just the important points I want to make. Should I extend this to a full blog post? Is this too terse?
 
 - The real problem with existing proof languages like Coq *isn't* that they aren't powerful enough to be useful. Because of their core ideas of dependent types, proof objects, and resulting theoretical tools like separation logic, they're already extremely powerful and could be used *today* to build practical things.
 - However they're so poorly designed and explained and exposed to practitioners that they might as well not exist. The real problem is the culture and incentives of academia.
