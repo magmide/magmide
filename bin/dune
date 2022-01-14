@@ -1,0 +1,8 @@
+(executable
+  (name magmide)
+  (modules magmide extr))
+
+(coq.extraction
+ (prelude Extr)
+ (extracted_modules extr)
+ (theories Theory))

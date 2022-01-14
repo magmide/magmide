@@ -13,3 +13,5 @@ Makefile.conf
 *.mli
 
 *.local.*
+
+_build
