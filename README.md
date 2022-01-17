@@ -22,7 +22,7 @@ In order to really deliver the kind of truly transformative correctness guarante
 
 To achieve this goal, the language will be fully **dependently typed** and use the [Calculus of Constructions](https://en.wikipedia.org/wiki/Calculus_of_constructions) much like [Coq](https://en.wikipedia.org/wiki/Coq). I find [Adam Chlipala's "Why Coq?"](http://adam.chlipala.net/cpdt/html/Cpdt.Intro.html) arguments convincing in regard to this choice. Coq will also be used to bootstrap the first version of the compiler, allowing it to be self-verifying in addition to self-hosting. Read more about the design and bootstrapping plan in [`posts/design-of-magmide.md`](./posts/design-of-magmide.md).
 
-The [metacoq](https://github.com/MetaCoq/metacoq) and ["Coq Coq Correct!"](https://www.irif.fr/~sozeau/research/publications/drafts/Coq_Coq_Correct.pdf) projects have already done the work of formalizing and verifying Coq using Coq, so they will be very helpful while implementing Magmide.
+The [metacoq](https://github.com/MetaCoq/metacoq) and ["Coq Coq Correct!"](https://metacoq.github.io/coqcoqcorrect) projects have already done the work of formalizing and verifying Coq using Coq, so they will be very helpful while implementing Magmide.
 
 ## Capable of bare metal performance
 
