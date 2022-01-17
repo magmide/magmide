@@ -252,14 +252,6 @@ type AssertedType (T: Type) (assertions: list (T -> Prop)) =
 
 We can provide universal conversion implementations to and from types and asserted versions of themselves. Pulling a value out of an asserted type is easy. Putting a value into an asserted type or converting between two seemingly incompatible asserted types would just generate a proof obligation.
 
-## Metaprogramming instead of custom Notation
-
-Instead of defining an extremely complicated set of macro definition rules, metaprogramming in Magmide will give three very simple "syntactic entrypoints", and then just expose as much of the compiler query api as possible to allow for compile-time type introspection or other higher-level capabilities.
-
-Macros can either accept raw strings as input and parse them themselves or accept Magmide parsed token trees. This complete generality means that Magmide can support *any* parsing pattern for embedded languages. Someone could even define something just like Coq's notation system if they really want to, and their custom system would be cleanly cordoned off behind a clear `macro_name$` style signifier. By just leaning all the way into the power of metaprogramming, we can allow *any* feature without having to explicitly support it.
-
-To actually use macros you can do so inline, as a block, or using a "virtual" import that processes an entire file.
-
 ## Cargo-like tooling
 
 To actually interact with Magmide, I imagine using a cli with these basic commands:
@@ -267,6 +259,14 @@ To actually interact with Magmide, I imagine using a cli with these basic comman
 - `magmide check` would perform proof checking. If there are any computable code blocks that make any kind of assertions (even type annotations are assertions!) then those assertions are checked. This implies the necessity to run the cascade of metaprograms, and therefore perform any side-effects performed by those metaprograms. Any commands that ask for Logic Magmide to be "evaluated" (such as Coq's `Compute` command) would happen at this level, since evaluation of Logic Magmide is merely done in the kernel.
 - `magmide compile` would perform `check` first, and implies the presence of *some* computational programs, and therefore a full definition for it that includes a renderer. The compiler ships with a full definition for Host Magmide, so users don't have to supply a definition if that's their target. If there isn't any configured path to a computational program and its definition, an error is thrown. We could include a flag to merely exit successfully if there isn't any computational program present.
 - `magmide run` would perform `check` and `compile` first, and so again implies a computational program and full definition. It also implies the availability of a machine capable of running the rendered artifact, either the host machine itself if the program is in or compatible with Host Magmide, or some connected debuggable device. If there isn't a usable machine available, an error is thrown.
+
+## Metaprogramming instead of custom Notation
+
+Instead of defining an extremely complicated set of macro definition rules, metaprogramming in Magmide will give three very simple "syntactic entrypoints", and then just expose as much of the compiler query api as possible to allow for compile-time type introspection or other higher-level capabilities.
+
+Macros can either accept raw strings as input and parse them themselves or accept Magmide parsed token trees. This complete generality means that Magmide can support *any* parsing pattern for embedded languages. Someone could even define something just like Coq's notation system if they really want to, and their custom system would be cleanly cordoned off behind a clear `macro_name$` style signifier. By just leaning all the way into the power of metaprogramming, we can allow *any* feature without having to explicitly support it.
+
+To actually use macros you can do so inline, as a block, or using a "virtual" import that processes an entire file.
 
 ### Inline macros
 
