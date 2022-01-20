@@ -6,10 +6,15 @@
 *.aux
 *.d
 
+*.cmi
+*.cmo
+*.out
+_build
+
 Makefile
 Makefile.conf
 *.cache
-*.ml
-*.mli
+theorems/*.ml
+theorems/*.mli
 
 *.local.*

@@ -1,0 +1,68 @@
+(* https://project.inria.fr/coqexchange/a-small-tutorial-for-ocaml-plugins-to-extend-the-coq-system/ *)
+(* http://gallium.inria.fr/blog/your-first-coq-plugin/ *)
+(* https://github.com/coq/coq/tree/a59c356a45180dd56b1ec86c8725a257bffe71fa/doc/plugin_tutorial *)
+
+DECLARE PLUGIN "magmide_plugin"
+{
+(* open Ltac_plugin *)
+open Pp
+open Stdarg
+
+let declare_definition ~poly name sigma body =
+  let udecl = UState.default_univ_decl in
+  let scope = Locality.Global Locality.ImportDefaultBehavior in
+  let kind = Decls.(IsDefinition Definition) in
+  let cinfo = Declare.CInfo.make ~name ~typ:None () in
+  let info = Declare.Info.make ~scope ~kind  ~udecl ~poly () in
+  Declare.declare_definition ~info ~cinfo ~opaque:false ~body sigma
+
+}
+
+(* TACTIC EXTEND Hello
+| [ "hello" ] -> { Magmide.printHello }
+END *)
+
+VERNAC COMMAND EXTEND Intern CLASSIFIED AS QUERY
+| [ "Intern" constr(e) ] -> {
+	let env = Global.env () in (* use this; never use empty *)
+	let sigma = Evd.from_env env in (* use this; never use empty *)
+	let debug sigma = Termops.pr_evar_map ~with_univs:true None env sigma in
+	Feedback.msg_notice (strbrk "State before intern: " ++ debug sigma);
+	let (sigma, t) = Constrintern.interp_constr_evars env sigma e in
+	Feedback.msg_notice (strbrk "State after intern: " ++ debug sigma);
+	let print t = Printer.pr_econstr_env env sigma t in
+	Feedback.msg_notice (strbrk "Interned: " ++ print t)
+} END
+
+VERNAC COMMAND EXTEND MyDefine CLASSIFIED AS SIDEFF
+| #[ poly = Attributes.polymorphic ] [ "MyDefine" ident(i) ":=" constr(e) ] -> {
+	let env = Global.env () in
+	let sigma = Evd.from_env env in
+	let (sigma, t) = Constrintern.interp_constr_evars env sigma e in
+	(* let yo : unit = t in *)
+	let yo1 : unit = sigma in
+	let r = declare_definition ~poly i sigma t in
+	let print r = strbrk "Defined " ++ Printer.pr_global r ++ strbrk "." in
+	Feedback.msg_notice (print r)
+} END
+
+(* VERNAC COMMAND EXTEND MagmideInspect CLASSIFIED AS QUERY
+| [ "MagmideInspect" constr(expr) ] -> {
+	let msg = expr
+
+	Feedback.msg_notice (match expr with
+		| CRef (qualident, thing) -> "yep"
+		| _ -> "nope")
+	let env = Global.env () in let sigma = Evd.from_env env in
+	Feedback.msg_notice (Ppconstr.pr_constr_expr env sigma expr)
+} END *)
+
+(* VERNAC COMMAND EXTEND MagmideLoad CLASSIFIED AS SIDEFF
+| #[ poly = Attributes.polymorphic ] [ "MagmideLoad" ident(id) ] -> {
+	let env = Global.env () in
+	let sigma = Evd.from_env env in
+	let (sigma, t) = Constrintern.interp_constr_evars env sigma e in
+	let r = Simple_declare.declare_definition ~poly i sigma t in
+	let print r = strbrk "Defined " ++ Printer.pr_global r ++ strbrk "." in
+	Feedback.msg_notice (print r)
+} END *)
