@@ -65,6 +65,11 @@ To build a self-hosting and self-verifying compiler, we need to bootstrap it fro
 
 In order to make sure the project is reasonable and going in the right direction, we need to prioritize working code and steady incremental iteration. It would be unwise to simply jump into bootstrapping the full real compiler. My general project plan is this:
 
+<!-- - using rust ocaml package, coq plugin system, and rust llvm bindings, create programs capable of parsing Low Level Host Magmide, creating a coq ast that can be lifted using the plugin system and have theorems proven about it, and emitting llvm bitcode from it.
+- integrate iris
+- figure out how to define trackable effects (resource effects?), and specifically the core ones of memory safety, termination, memory conservation
+- defining shell scripts or rust libraries that make binding to these emitted llvm chunks easier -->
+
 - First create a suite of Coq programs capable of parsing Low Level Host Magmide code (easiest since it's just a razor thin convenience layer around LLVM), verifying assertions about it inside Coq, and rendering it to real LLVM. The parsing/rendering programs will likely just be normal Coq programs that use [Coq.io](http://coq.io/) and have been extracted to ocaml. The verification program however will likely require an exotic combination of the parsing program and metacoq, or if worst comes to worst some custom ocaml plugin. Even though we could use Coq notations to do some of this, if we're going to use this tool to bootstrap the real compiler it doesn't make sense to trap our source in Coq files.
 - Use small programs to iterate while adding the capability to parse real Host Magmide programs and integrating Iris. At this point we'll have a working compiler for Host Magmide, but where all logical types and proofs exist in Coq. Any team willing and able to work with this less-than-ergonomic combination of Host Magmide and Coq can now produce verified LLVM programs. It's important to note that this version can be metaprogrammable, since we're capable of parsing/compiling/running Host Magmide. We can run Host Magmide metaprograms, but they will be chained together using Coq.io.
 - Bootstrap the real compiler. More on that below.
@@ -262,7 +267,11 @@ To actually interact with Magmide, I imagine using a cli with these basic comman
 
 ## Metaprogramming instead of custom Notation
 
-Instead of defining an extremely complicated set of macro definition rules, metaprogramming in Magmide will give three very simple "syntactic entrypoints", and then just expose as much of the compiler query api as possible to allow for compile-time type introspection or other higher-level capabilities.
+Coq's [Notation system](https://coq.inria.fr/refman/user-extensions/syntax-extensions.html) is extremely complex. It essentially allows creating arbitrary custom parsers within Coq. While this may seem like a good thing, it's a bad thing. Reasoning about these custom parsing and scoping rules is extremely difficult, and easy to get wrong. It adds a huge amount of work to maintain the system in Coq, and learn the rules for users.
+
+It also makes it extremely easy to create custom symbolic notation that makes code much more difficult to learn and understand. Allowing custom symbolic notation is a bad design choice, since it blurs the line between the primitive notations defined by the language (which are reasonable to expect as prerequisite knowledge for all users) and custom notations. Although Coq makes it possible to query for notation definitions, this is again just more maintenance burden and complexity that still adds significant reading friction.
+
+Magmide's metaprogramming system won't allow unsignified custom symbolic notation, and will require all metaprogrammatic concepts to be syntactically scoped within known identifiers. Instead of defining an extremely complicated set of macro definition rules, metaprogramming in Magmide will give three very simple "syntactic entrypoints", and then just expose as much of the compiler query api as possible to allow for compile-time type introspection or other higher-level capabilities.
 
 Macros can either accept raw strings as input and parse them themselves or accept Magmide parsed token trees. This complete generality means that Magmide can support *any* parsing pattern for embedded languages. Someone could even define something just like Coq's notation system if they really want to, and their custom system would be cleanly cordoned off behind a clear `macro_name$` style signifier. By just leaning all the way into the power of metaprogramming, we can allow *any* feature without having to explicitly support it.
 
@@ -322,10 +331,7 @@ $my_if some.conditional statement;
 Allows entire files to be processed by a macro to fulfill an import command. you'll notice the syntax here is exactly the same as inline macros, but the language will detect their usage in an import statement and provide file contents and metadata automatically.
 
 ```
-// raw string version
 use function_name from macro_name`./some/file/path.extension`
-// token tree version
-use function_name from macro_name$(./some/file/path.extension)
 ```
 
 

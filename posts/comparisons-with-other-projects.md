@@ -2,14 +2,14 @@
 
 An important question to ask of any project is: "How is the project different than X?" or more probingly: "Why build this new project instead of just using X? Why can't X address your needs?" This page attempts to thorougly answer that question.
 
-Many comparisons with other projects aren't actually that interesting, since the projects don't even have the same goals, or the comparison project isn't "maxed out" in one of Magmide's main features [(logical/computational/expressive power)](https://github.com/blainehansen/magmide#is-this-design-too-ambitious-is-it-just-everything-and-the-kitchen-sink).
+Many comparisons with other projects aren't actually that interesting, since the projects don't even have the same goals, or the comparison project isn't "maxed out" in one of Magmide's design pillars [(logical/computational/expressive power)](https://github.com/blainehansen/magmide#design-pillars).
 
 Many of these projects are essentially attempts to allow users to verify code in a fully automated way. Although full automation is nice, I ultimately don't think it's productive to hide the underlying logical ideas from users, instead of just putting in the work to explain them properly. If a tool allows manual proofs alongside metaprogramming capabilities then it can still have full automation in many domains, whereas if a tool can only prove a certain subset of claims automatically then it's forever limited to that subset.
 
 - Rust/LLVM: Not maxed out in logical power, can't prove correctness.
-- [Liquid Haskell](https://liquid.kosmikus.org/01-intro.html): Not maxed out in logical power since, only has refinement types and not a full type theory. Not maxed out in computational power since Haskell doesn't easily allow bare metal operations.
+- [Liquid Haskell](https://liquid.kosmikus.org/01-intro.html): Not maxed out in logical power since it only has refinement types and not a full type theory. Not maxed out in computational power since Haskell doesn't easily allow bare metal operations.
 - [Ivy](http://microsoft.github.io/ivy/language.html): Only a first order logic, so not maxed out in logical power. However the idea of separating pure functions and imperative procedures was part of the inspiration for the Logic/Host Magmide separation.
-- [TLA+](https://en.wikipedia.org/wiki/TLA%2B): Not based on dependent type theory, so possibly capable of representing paradoxes, but regardless TLA+ could be implemented in Magmide. Not maxed out in computational power, since the language itself is only intended for specification writing rather than combined code/proofs.
+- [TLA+](https://en.wikipedia.org/wiki/TLA%2B): Not based on dependent type theory, so not maxed out in logical power. Not maxed out in computational power, since the language itself is only intended for specification writing rather than combined code/proofs.
 - Isabelle/HOL, ACL2, PVS, Twelf: Not maxed out in logical power, [missing either dependent types, higher order logic, or general `Prop` types](http://adam.chlipala.net/cpdt/html/Cpdt.Intro.html).
 - [Dafny](https://dafny-lang.github.io/dafny/): Not maxed out in computational power, since it only exposes a fairly high level imperative language. It seems like they've tried too hard to create an "easy mode" tool.
 - [Rodin tool/B-method](https://en.wikipedia.org/wiki/Rodin_tool): Only seems to be first order, so not maxed out in logical power. Also doesn't seem to use a bare metal language and separation logic to reason about real programs, which isn't surprising since separation logic was only recognizably invented in around 2002.
@@ -48,7 +48,7 @@ All three of them certainly feel very academic, and I'm not even sure exactly ho
 
 Functional programming may have its devotees, but there's a reason it's much less adopted than imperative methods: *real computers aren't pure or functional!* In a real computer, *every* action is impure and effectful, since even the most basic operations like updating registers or memory are intrinsically mutations of global state. The main idea of functional programming is a falsehood, one that makes some problems easier to reason about, but at the cost of ignoring the real nature of the problem. That extreme level of abstraction isn't always intuitive or helpful, and most engineers trying to build high performance systems that take advantage of the real machine will never be willing to make that sacrifice.
 
-The Magmide design in contrast *splits up* Logic and Host Magmide into separate "dual" languages, each used in exactly the way it's most natural. Logic Magmide is the imaginary level where pure functions and mathematical algorithms and idealized models exist, which is the perfect realization of the goals of functional programming. Then those logical structures only exist at compile time to help reason about the messy and truly computational behavior of Host Magmide.
+The Magmide design in contrast *splits up* Logic and Host Magmide into separate "dual" languages, each used in exactly the way it's most natural. Logic Magmide is the imaginary level where pure functions and mathematical algorithms and idealized models exist, which is the perfect realization of the goals of functional programming. Then those logical structures only exist at compile time to help reason about the messy and truly computational behavior of Host Magmide. Separation logic is what makes it possible to make robust safety and correctness assertions about imperative code, rather than simply outlawing mutation and side effects as is done in functional languages. And with a deeply powerful separation logic like Iris we can build things like trackable effects that are more practical, flexible, and ergonomic than other effect systems.
 
 This again brings to mind the possible comparison between Rust and C: "Why build Rust? Can't you do everything in C you could do in Rust?" Well, yes you could! But... do you really want to? It isn't *only* about whether something's possible, it's about whether it's natural and clear and ergonomic. Why mix together the pure logical code and the real computational code when doing so doesn't make things easier and isn't really true? We don't want abstraction mismatches in our foundational language!
 
@@ -58,7 +58,7 @@ So in other words...
 
 ... or at least, just use pure functional languages in contexts where their purity is actually correct.
 
-I obviously don't think functional languages should never be used to write programs. But we shave to acknowledge the limitations of functional programming. With verified imperative foundations underneath us, it will likely be much easier to discover and implement whatever paradigms we find truly useful in whatever contexts they're useful, such as optimizations like ["functional but in-place"](https://www.microsoft.com/en-us/research/uploads/prod/2020/11/perceus-tr-v1.pdf).
+I obviously don't think functional languages should never be used to write programs. But we have to acknowledge the limitations of functional programming. With verified imperative foundations underneath us, it will be much easier to discover and implement whatever paradigms we find truly useful in whatever contexts they're useful, such as optimizations like ["functional but in-place"](https://www.microsoft.com/en-us/research/uploads/prod/2020/11/perceus-tr-v1.pdf).
 
 Let's dive into each of those three projects in detail:
 
@@ -82,7 +82,7 @@ Coq is still powerful enough to be very useful though, which is why I've chosen 
 
 <!-- using myself as an example, I'm an extremely determined and curious person who has been hell-bent on understanding both it and the theory behind it, but since I'm not being led through it in an academic context where all the implicit knowledge is exposed through in-person mentors, it has been extremely challenging -->
 
-And of course I don't think it would be wise to just throw away all the awesome work done by the Coq project. I intend to (someday) create some kind of parser/converter to allow old Coq code to be read and used by Magmide.
+And of course I don't think it would be wise to just throw away all the awesome work done by the Coq project. At some point we could create a parser/converter to allow old Coq code to be read and used by Magmide.
 
 ## Lean
 
@@ -114,4 +114,4 @@ The F* community seems very interested in solving the tricky balance between aut
 
 ---
 
-So there you go. Maybe my problems with Coq and Lean and F* all seem like minor gripes to you. Maybe you're right! But again, the intention of this project is to build a proof language *for engineers*. Academics have so many little cultural quirks and invisible assumptions, and I rarely come across an academic project that doesn't *feel* like one. Magmide asks the question "what if we designed a proof language from scratch to take formal verification mainstream?" I think that makes it worthwhile.
+So there you go. Maybe my problems with Coq and Lean and F* all seem like minor gripes to you. Maybe you're right! But again, the intention of this project is to build a proof language *for engineers*. Academics have so many little cultural quirks and invisible assumptions, and I rarely come across an academic project that doesn't *feel* like one. Magmide asks the question "what if we designed a proof language from scratch to take formal verification mainstream?" No other project has done that.
