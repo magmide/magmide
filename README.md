@@ -18,7 +18,7 @@ However Rust only exposes a simplified subset of separation logic, rather than e
 
 Isn't that amazing?! A system that can prove completely and eternally that a use of `unsafe` isn't actually unsafe??!! You'd think the entire Rust and systems programming community would be over the moon!!?
 
-But as always happens with academia, it's only being used to write papers rather than creating tools to apply it to real software. All the existing uses of Iris perform the proofs "on the side" using transcribed syntax tree versions of the target code rather than directly reading the original source. And although the papers are written more approachably than most academic papers, they're still academic papers, and so basically no working engineers have even heard of any of this.
+But as always happens with academia, it's only being used to write papers rather than creating tools to apply it to real software. All the existing uses of Iris perform the proofs "on the side" using transcribed syntax tree versions of the target code rather than directly reading the original source. And although the papers are more approachable than most academic papers, they're still academic papers, and so basically no working engineers have even heard of any of this.
 
 This is why I'm building Magmide, which is intended to be to both Coq and LLVM what Rust has been to C. There are quite a few proof languages capable of proving logical assertions in code, but none exist that are specifically designed to be used by working engineers to build real imperative programs. None have placed a full separation logic, particularly one as powerful as Iris, at the heart of their design, but instead are overly dogmatic about the pure functional paradigm. None make it possible to type-check, prove assertions about, and compile practical programs all using one unified tool. And all existing proof languages are hopelessly mired in the obtuse and unapproachable fog of [research debt](https://distill.pub/2017/research-debt/) created by the culture of academia. Even if formal verification is already capable of producing [provably safe and secure code](https://www.quantamagazine.org/formal-verification-creates-hacker-proof-code-20160920/), it isn't good enough if only professors have the time to gain the necessary expertise. We need to pull all this amazing knowledge out of the ivory tower and finally put it to work to make computing truly safe and robust.
 
@@ -36,13 +36,13 @@ In order to really deliver the kind of truly transformative correctness guarante
 
 To achieve this goal, the language will be fully **dependently typed** and use the [Calculus of Constructions](https://en.wikipedia.org/wiki/Calculus_of_constructions) much like [Coq](https://en.wikipedia.org/wiki/Coq). I find [Adam Chlipala's "Why Coq?"](http://adam.chlipala.net/cpdt/html/Cpdt.Intro.html) arguments convincing in regard to this choice. Coq will also be used to bootstrap the first version of the compiler, allowing it to be self-hosting and even self-verifying using a minimally small trusted theory base. Read more about the design and bootstrapping plan in [`posts/design-of-magmide.md`](./posts/design-of-magmide.md). The [metacoq](https://github.com/MetaCoq/metacoq) and ["Coq Coq Correct!"](https://metacoq.github.io/coqcoqcorrect) projects have already done the work of formalizing and verifying Coq using Coq, so they will be very helpful.
 
-It's absoluely possible for mainstream engineers to learn and use these powerful logical concepts. The core ideas of formal verification (dependent types, proof objects, higher order logic, separation logic) aren't actually that complicated. They just haven't ever been properly explained because of [research debt](https://distill.pub/2017/research-debt/), and they weren't even all that practical before separation logic and Iris. I've been working on better explanations in the (extremely rough and early) [`posts/intro-verification-logic-in-magmide.md`](./posts/intro-verification-logic-in-magmide.md) and [`posts/coq-for-engineers.md`](./posts/coq-for-engineers.md).
+It's absolutely possible for mainstream engineers to learn and use these powerful logical concepts. The core ideas of formal verification (dependent types, proof objects, higher order logic, separation logic) aren't actually that complicated. They just haven't ever been properly explained because of [research debt](https://distill.pub/2017/research-debt/), and they weren't even all that practical before separation logic and Iris. I've been working on better explanations in the (extremely rough and early) [`posts/intro-verification-logic-in-magmide.md`](./posts/intro-verification-logic-in-magmide.md) and [`posts/coq-for-engineers.md`](./posts/coq-for-engineers.md).
 
 ## Capable of bare metal performance
 
 Software needs to perform well! Not all software has the same requirements, but often performance is intrinsically tied to correct execution. Very often the software that most importantly needs to be correct also most importantly needs to perform well. If the language is capable of truly bare metal performance, it can still choose to create easy abstractions that sacrifice performance where that makes sense.
 
-To achieve this goal, the language will include in its core libraries a formalization of the basic principles of von Neumann computation, allowing users to specify the axiomatic assumptions of any software execution environment, from concrete instruction set architectures, to any **abstract assembly language** such as LLVM capable of compiling to many targets, and even up to operating system userlands or bytecode environments such as webassembly. Making it possible to specify software at this level of fidelity helps ensure it is aligned with reality and isn't making unrealistic assumptions.
+To achieve this goal, the language will include in its core libraries a formalization of the basic principles of von Neumann computation, allowing users to specify the axiomatic assumptions of any software execution environment, from concrete instruction set architectures, to any **abstract assembly language** such as LLVM capable of compiling to many targets, and even up to operating system userlands or bytecode environments such as WebAssembly. Making it possible to specify software at this level of fidelity helps ensure it is aligned with reality and isn't making unrealistic assumptions.
 
 Because of separation logic and Iris, it is finally possible to verify code at this extremely granular level.
 
@@ -84,7 +84,7 @@ Working engineers are resource constrained and don't have years of free time to 
 
 To achieve this goal, this project will enshrine the following values in regard to teaching materials:
 
-- Speak to a person who wants to get something done and not a review committee evaulating academic merit.
+- Speak to a person who wants to get something done and not a review committee evaluating academic merit.
 - Put concrete examples front and center.
 - Point the audience toward truly necessary prerequisites rather than assuming shared knowledge.
 - Prefer graspable human words to represent ideas, never use opaque and unsearchable non-ascii symbols, and only use symbolic notations when it's both truly useful and properly explained.
@@ -250,7 +250,7 @@ What kind of performance improvements and increased flexibility could we gain if
 
 ## Verified critical systems
 
-Many software applications are critical for safety of people and property. It would be nice if applications in aeronautics, medicine, industrial automation, cars, banking and finance, decentralizd ledgers, and all the others were fully verified.
+Many software applications are critical for safety of people and property. It would be nice if applications in aeronautics, medicine, industrial automation, cars, banking and finance, decentralized ledgers, and all the others were fully verified.
 
 ## Secure voting protocols
 
@@ -266,7 +266,7 @@ I'm particularly excited by the possibility of improving the universality of sel
 
 ## Truly universal interoperability
 
-All computer programs in our world operate on bits, and those bits are commonly interepreted as the same few types of values (numbers, strings, booleans, lists, structures of those things, standardized media types). In a world where all common computation environments are formalized and programs can be verified to correctly model common logical types in any of those common computation environments, then correct interoperation between those environments can also be verified!
+All computer programs in our world operate on bits, and those bits are commonly interpreted as the same few types of values (numbers, strings, booleans, lists, structures of those things, standardized media types). In a world where all common computation environments are formalized and programs can be verified to correctly model common logical types in any of those common computation environments, then correct interoperation between those environments can also be verified!
 
 It would be very exciting to know with deep rigorous certainty that a program can be compiled for a broad host of architectures and model the same logical behavior on all of them.
 
