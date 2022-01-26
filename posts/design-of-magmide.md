@@ -41,7 +41,7 @@ Magmide has the opportunity to expose a more pleasant language than LLVM though,
 - Low Level Host Magmide, at the same level of LLVM. This means it has typed functions with labeled blocks and parameters that abstract away details of calling conventions and ABIs, as well as abstractions for system/external calls.
 - Assembly Host Magmide, at the same level as a real assembly language, but with abstract instructions and registers so it can still be rendered to different architectures. This means it only has labeled sections with jump/branch instructions, allowing it to encode arbitrarily exotic control flow. However we can still use type preconditions over registers and memory locations. This layer is where calling conventions and function behaviors would be implemented.
 
-Host Magmide is named intentionally, since it is only really intended to function for "typical" architectures, ones with a sufficient operating system environment to run the actual Magmide compiler. However the tool will be useful to write code for any architecture, since Logic Magmide can be used to define *other* languages other than Host Magmide. So all these use cases will be directly supported:
+Host Magmide is named intentionally, since it is only really intended to function for "typical" architectures, ones with a sufficient operating system environment to run the actual Magmide compiler. However the tool will be useful to write code for any architecture, since Logic Magmide can be used to define *other* languages than Host Magmide. All these use cases will be directly supported:
 
 - Writing code for an architecture compatible with Host Magmide. This is obvious, since Host Magmide will be able to compile or cross-compile to any architecture is has a backend for. Initially this will be any architecture supported by LLVM.
 - Writing code for an architecture that *isn't* compatible with Host Magmide. To do this you would formalize your target architecture/environment in Logic Magmide, write your program in whatever format you choose, use Host Magmide to parse and convert that format to the language's Logic Magmide form so you can make assertions about it, and then use Host Magmide to render the program so it can be used elsewhere. This pattern can support literally any language imaginable, from arbitrary assembly languages to custom DSLs to smart contract languages.
@@ -63,37 +63,36 @@ To support all of this, the final compiler must include:
 
 To build a self-hosting and self-verifying compiler, we need to bootstrap it from a language capable of performing both functions. For this I've chosen Coq.
 
-In order to make sure the project is reasonable and going in the right direction, we need to prioritize working code and steady incremental iteration. It would be unwise to simply jump into bootstrapping the full real compiler. My general project plan is this:
+In order to make sure the project is reasonable and going in the right direction, we need to prioritize working code and steady incremental iteration. It would be unwise to simply jump into bootstrapping the full real compiler. We also need to design our milestones strategically so that each milestone will be useful or exciting enough to inspire contributors to help push the project to the next milestone.
 
-<!-- - using rust ocaml package, coq plugin system, and rust llvm bindings, create programs capable of parsing Low Level Host Magmide, creating a coq ast that can be lifted using the plugin system and have theorems proven about it, and emitting llvm bitcode from it.
-- integrate iris
-- figure out how to define trackable effects (resource effects?), and specifically the core ones of memory safety, termination, memory conservation
-- defining shell scripts or rust libraries that make binding to these emitted llvm chunks easier -->
+My general project plan is this:
 
-- First create a suite of Coq programs capable of parsing Low Level Host Magmide code (easiest since it's just a razor thin convenience layer around LLVM), verifying assertions about it inside Coq, and rendering it to real LLVM. The parsing/rendering programs will likely just be normal Coq programs that use [Coq.io](http://coq.io/) and have been extracted to ocaml. The verification program however will likely require an exotic combination of the parsing program and metacoq, or if worst comes to worst some custom ocaml plugin. Even though we could use Coq notations to do some of this, if we're going to use this tool to bootstrap the real compiler it doesn't make sense to trap our source in Coq files.
-- Use small programs to iterate while adding the capability to parse real Host Magmide programs and integrating Iris. At this point we'll have a working compiler for Host Magmide, but where all logical types and proofs exist in Coq. Any team willing and able to work with this less-than-ergonomic combination of Host Magmide and Coq can now produce verified LLVM programs. It's important to note that this version can be metaprogrammable, since we're capable of parsing/compiling/running Host Magmide. We can run Host Magmide metaprograms, but they will be chained together using Coq.io.
-- Bootstrap the real compiler. More on that below.
-- After the full language is bootstrapped it can be used for non-trivial but still extremely low level applications such as cryptography/networking libraries, deeply embedded applications such as IOT devices or firmware, or OS kernel level functions. During this phase we can begin to aggressively seek support and contributions from the larger community, and start building the ecosystem foundations (awesome educational materials, standard libraries for Logic and Host Magmide, a package management system, a cli, a standard formatter, syntax highlighting and auto-completion plugins for common editors).
+- First create a toolchain capable of parsing Low Level Host Magmide code (easiest since it's just a razor thin convenience layer around LLVM), verifying assertions about it inside Coq, and rendering it to real LLVM. This whole pipeline will be a combination of Rust functions to parse source code and [construct LLVM](https://github.com/TheDan64/inkwell), linked together with a [Coq Ocaml plugin](http://gallium.inria.fr/blog/your-first-coq-plugin/) using the [Rust Ocaml bindings](https://docs.rs/ocaml/latest/ocaml/). Using unverified languages like Rust and Ocaml mean that this first version won't itself be verified, but it will still be capable of producing LLVM programs verified by the Coq kernel. These verified LLVM programs can be linked with any compatible language, such as Rust or WebAssembly. This milestone will already be useful to anyone willing to write their own theory and proofs in Coq and deal with this awkward toolchain.
+- Then we can expand the syntax, capabilities, and theory of the language, and integrate Iris into the theory. Using Iris we can define how trackable effects work, and define the most important trackable effects relating to termination, execution safety, memory safety, and memory conservation. With each step of this milestone the language gets more legitimately useful to more people, since more things can be done and more things proven safe, they just have to write proofs in Coq. It would be possible and maybe useful to create Rust macros to allow easily binding to these externally verified programs.
+- Build metaprogramming capability into the language, by using the Rust LLVM bindings to JIT compile metaprograms, set up their inputs, pass them control, gather their outputs, and continue the cycle.
+- Now we can bootstrap the real compiler. More on that below.
+- After the full language is bootstrapped it can be used for non-trivial but still extremely low level applications such as cryptography/networking libraries, deeply embedded applications such as IOT devices or firmware, or OS kernel level functions. During this phase we can begin to aggressively seek support and contributions from a much larger community, and start building the ecosystem foundations (awesome educational materials, standard libraries for Logic and Host Magmide, a package management system, a cli, a standard formatter, syntax highlighting and auto-completion plugins for common editors).
 - With confidence in the design and growing support, begin to use Magmide to define *other* languages. Magmide could be used to incrementally reimplement the foundations of Rust, giving it built-in access to a proof checker. Magmide would be a perfect fit to implement smart contract languages. I have some fun ideas for a highly inferred async actor language. It might even be cool to write something at the level of Typescript with a verified interpreter. These higher level languages will likely be even more exciting to a broader audience and can give the project even more momentum.
 - Then with higher level and more diverse languages, we can start to tackle ambitious projects that are uniquely enabled by Magmide. I've shared some ideas in [this section of the README](https://github.com/magmide/magmide#what-could-we-build-with-magmide) (operating systems, databases, UI frameworks, etc etc).
 
 To summarize:
 
 - Write/verify *any* program.
-- Write/verify small programs.
+- Write/verify small programs with useful theory.
+- Build metaprogramming.
 - Bootstrap the compiler.
 - Write/verify interesting but low level programs.
 - Implement higher level languages in Magmide.
 - Tackle truly novel projects.
 
-Bootstrapping the compiler is just one bullet in the above grand plan, but it's a massive endeavor all its own! At that stage we'll have a Coq compiler capable of parsing/verifying/rendering Host Magmide, but with all the propositions and proofs existing in Coq.
+Bootstrapping the compiler is just one bullet in the above plan, but it's a massive endeavor all its own! At that stage we'll have a Coq compiler capable of parsing/verifying/rendering Host Magmide, but with all propositions and proofs existing in Coq.
 
 The final compiler however must be fully integrated, with all the theory, proofs, and implementation together in one codebase. Although the most straightforward way to achieve this is to simply implement the entire compiler all at once in Host Magmide, I think we can wriggle our way there incrementally by following this path:
 
-- Implement Logic Magmide (parsing, AST, proof checker) using Host Magmide, checking the implementation using a Coq trusted theory base, which must be very carefully defined and audited by as many qualified people as we can manage to get. With a functioning proof checker we no longer need Coq to *check* our programs, but we still need it to compile Host Magmide. This means the Logic Magmide implementation needs to temporarily use an external call to the extracted Coq compiler to run any metaprograms it encounters.
+- Implement Logic Magmide (parsing, AST, proof checker) using Host Magmide, checking the implementation using a Coq trusted theory base, which must be very carefully defined and audited by as many qualified people as possible.
 - Implement an interactive proof system as a cli or language server. It will be extremely painful to implement the total compiler in an integrated way without this capability. We now officially have a usable proof assistant!
-- Now we can port the theory and Host Magmide formalization from Coq to Logic Magmide, and get it checking correctly.
-- And finally we can reimplement Host Magmide compilation using Host Magmide, and replace the external call to Coq with one to the integrated implementation.
+- Now we can port the theory and Host Magmide formalization from Coq to Logic Magmide, and get it working correctly with the new bare metal proof checker.
+- And finally we can reimplement Host Magmide compilation using Host Magmide!
 
 This first version will only focus on correctness, and leave performance and ergonomics for future iterations.
 
