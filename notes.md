@@ -1,3 +1,6 @@
+https://github.com/coq/coq/wiki/TheoryBehindCoq
+
+
 need to look at xcap paper and other references in the bedrock paper
 
 https://plv.csail.mit.edu/blog/iris-intro.html#iris-intro
