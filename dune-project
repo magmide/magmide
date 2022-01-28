@@ -8,4 +8,6 @@
 	(name magmide)
 	(depends
 		(ocaml (= 4.13.1))
-		(coq (= 8.15.0))))
+		(coq (= 8.15.0))
+	)
+)

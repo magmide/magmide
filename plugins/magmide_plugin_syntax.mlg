@@ -1,6 +1,7 @@
 (* https://project.inria.fr/coqexchange/a-small-tutorial-for-ocaml-plugins-to-extend-the-coq-system/ *)
 (* http://gallium.inria.fr/blog/your-first-coq-plugin/ *)
 (* https://github.com/coq/coq/tree/a59c356a45180dd56b1ec86c8725a257bffe71fa/doc/plugin_tutorial *)
+(* https://coq.github.io/doc/master/api/coq-core/index.html *)
 
 DECLARE PLUGIN "magmide_plugin"
 {
@@ -8,19 +9,8 @@ DECLARE PLUGIN "magmide_plugin"
 open Pp
 open Stdarg
 
-(** Example: simple, no-op tactic + print *)
-module PV = Proofview
-
-let msg_in_tactic str : unit PV.tactic =
-	PV.tclLIFT (PV.NonLogical.make (fun () ->
-		Feedback.msg_warning (Pp.str str)))
-
-let printHello : unit PV.tactic =
-	let open PV.Notations in
-	msg_in_tactic "hello" >>= fun () ->
-	Tacticals.tclIDTAC
-
-let declare_definition ~poly name sigma body =
+let declare_definition ~poly name env sigma expr =
+	let (sigma, body) = Constrintern.interp_constr_evars env sigma expr in
 	let udecl = UState.default_univ_decl in
 	let scope = Locality.Global Locality.ImportDefaultBehavior in
 	let kind = Decls.(IsDefinition Definition) in
@@ -28,112 +18,32 @@ let declare_definition ~poly name sigma body =
 	let info = Declare.Info.make ~scope ~kind  ~udecl ~poly () in
 	Declare.declare_definition ~info ~cinfo ~opaque:false ~body sigma
 
-let cnt = ref 0
-
-let display csr =
-	let rec term_display c = match Constr.kind c with
-	| Constr.Rel n -> "Rel("^(string_of_int n)^")"
-	| Constr.Meta n -> "Meta("^(string_of_int n)^")"
-	| Constr.Var id -> "Var("^(Names.Id.to_string id)^")"
-	| Constr.Sort s -> "Sort("^(sort_display s)^")"
-	| Constr.Cast (c,k, t) ->
-			"Cast("^(term_display c)^","^(cast_kind_display k)^","^(term_display t)^")"
-	| Constr.Prod (na,t,c) ->
-			"Prod("^(name_display na)^","^(term_display t)^","^(term_display c)^")\n"
-	| Constr.Lambda (na,t,c) ->
-			"Lambda("^(name_display na)^","^(term_display t)^","^(term_display c)^")\n"
-	| Constr.LetIn (na,b,t,c) ->
-			"LetIn("^(name_display na)^","^(term_display b)^","
-			^(term_display t)^","^(term_display c)^")"
-	| Constr.App (c,l) -> "App("^(term_display c)^","^(array_display l)^")\n"
-	| Constr.Evar (e,l) -> "Evar("^(Pp.string_of_ppcmds (Evar.print e))^","^(array_display (Array.of_list l))^")"
-	| Constr.Const (c,u) -> "Const("^(Names.Constant.to_string c)^","^(universes_display u)^")"
-	| Constr.Ind ((sp,i),u) ->
-			"MutInd("^(Names.MutInd.to_string sp)^","^(string_of_int i)^","^(universes_display u)^")"
-	| Constr.Construct (((sp,i),j),u) ->
-			"MutConstruct(("^(Names.MutInd.to_string sp)^","^(string_of_int i)^"),"
-			^","^(universes_display u)^(string_of_int j)^")"
-	| Constr.Proj (p, c) -> "Proj("^(Names.Constant.to_string (Names.Projection.constant p))^","^term_display c ^")"
-	| Constr.Case (ci,u,pms,(_,p),iv,c,bl) ->
-			"MutCase(<abs>,"^(term_display p)^","^(term_display c)^","
-			^(array_display (Array.map snd bl))^")"
-	| Constr.Fix ((t,i),(lna,tl,bl)) ->
-			"Fix(([|"^(Array.fold_right (fun x i -> (string_of_int x)^(if not(i="")
-				then (";"^i) else "")) t "")^"|],"^(string_of_int i)^"),"
-			^(array_display tl)^",[|"
-			^(Array.fold_right (fun x i -> (name_display x)^(if not(i="")
-				then (";"^i) else "")) lna "")^"|],"
-			^(array_display bl)^")"
-	| Constr.CoFix(i,(lna,tl,bl)) ->
-			"CoFix("^(string_of_int i)^"),"
-			^(array_display tl)^","
-			^(Array.fold_right (fun x i -> (name_display x)^(if not(i="")
-				then (";"^i) else "")) lna "")^","
-			^(array_display bl)^")"
-	| Constr.Int i ->
-			"Int("^(Uint63.to_string i)^")"
-	| Constr.Float f ->
-			"Float("^(Float64.to_string f)^")"
-	| Constr.Array (u,t,def,ty) -> "Array("^(array_display t)^","^(term_display def)^","^(term_display ty)^")@{" ^universes_display u^"\n"
-
-	and array_display v = "["^ (Array.fold_right
-		(fun x i -> (term_display x)^(if not(i="") then ("; "^i) else "")) v ""
-	) ^"]"
-
-	and univ_display u =
-		incr cnt; "with " ^ string_of_int !cnt ^ " " ^ string_of_ppcmds(Univ.pr_uni u)
-
-	and level_display u =
-		incr cnt; "with " ^ string_of_int  !cnt ^ " " ^ string_of_ppcmds(Univ.Level.pr u)
-
-	and sort_display s = match s with
-		| Sorts.SProp -> "SProp"
-		| Sorts.Set -> "Set"
-		| Sorts.Prop -> "Prop"
-		| Sorts.Type u -> (univ_display u)^ "Type("^(string_of_int !cnt)^")"
-
-	and universes_display l =
-		Array.fold_right (fun x i -> level_display x ^ (string_of_int !cnt)^(if not(i="")
-				then (" "^i) else "")) (Univ.Instance.to_array l) ""
-
-	and name_display x = match x.binder_name with
-		| Name id -> "Name("^(Names.Id.to_string id)^")"
-		| Anonymous -> "Anonymous"
-
-	and cast_kind_display k = match k with
-	  | VMcast -> "VMcast"
-	  | DEFAULTcast -> "DEFAULTcast"
-	  | NATIVEcast -> "NATIVEcast"
-
-	in
-	(str (term_display csr) ++fnl ())
+let read_whole_file filename =
+	let ch = open_in filename in
+	let s = really_input_string ch (in_channel_length ch) in
+	close_in ch;
+	s
 }
 
+VERNAC COMMAND EXTEND Magmide CLASSIFIED AS SIDEFF
+| #[ poly = Attributes.polymorphic ] [ "Magmide" string(filename) "use" ident(name)] -> {
+	(* Feedback.msg_debug(strbrk (Sys.getcwd())); *)
+	let filename = Filename.concat "../../test_code" filename in
+	(* Feedback.msg_debug(strbrk filename); *)
+	(* Feedback.msg_debug(bool (Sys.file_exists filename)); *)
+	let file_token = String.trim (read_whole_file filename) in
+	(* Feedback.msg_debug(strbrk file_token); *)
+	let expr = Constrexpr_ops.mkIdentC (Names.Id.of_string file_token) in
 
-VERNAC COMMAND EXTEND MyDefine CLASSIFIED AS SIDEFF
-| #[ poly = Attributes.polymorphic ] [ "MyDefine" constr(e) ] -> {
-	let env = Global.env () in
-	let sigma = Evd.from_env env in
-	let (sigma, t) = Constrintern.interp_constr_evars env sigma e in
-
-	(* let r = declare_definition ~poly i sigma t in *)
-	(* let print r = strbrk "Defined " ++ Printer.pr_global r ++ strbrk "." in
-	Feedback.msg_notice (print r) *)
-	(* Feedback.msg_debug (Termops.Internal.debug_print_constr_env env sigma t) *)
-
-	Feedback.msg_debug (display EConstr.Unsafe.(to_constr t))
+	let env = Global.env () in let sigma = Evd.from_env env in
+	let r = declare_definition ~poly name env sigma expr in
+	Feedback.msg_notice (strbrk "Defined " ++ Printer.pr_global r ++ strbrk ".")
 } END
 
-(* VERNAC COMMAND EXTEND MagmideInspect CLASSIFIED AS QUERY
-| [ "MagmideInspect" constr(expr) ] -> {
-	let msg = expr
-
-	Feedback.msg_notice (match expr with
-		| CRef (qualident, thing) -> "yep"
-		| _ -> "nope")
-	let env = Global.env () in let sigma = Evd.from_env env in
-	Feedback.msg_notice (Ppconstr.pr_constr_expr env sigma expr)
-} END *)
+VERNAC COMMAND EXTEND MagmideInspectExpr CLASSIFIED AS QUERY
+| [ "MagmideInspectExpr" constr(expr) ] -> {
+	Feedback.msg_debug (strbrk (Magmide_constrexpr.dbg_constrexpr expr))
+} END
 
 (* VERNAC COMMAND EXTEND Intern CLASSIFIED AS QUERY
 | [ "Intern" constr(e) ] -> {
@@ -145,14 +55,4 @@ VERNAC COMMAND EXTEND MyDefine CLASSIFIED AS SIDEFF
 	Feedback.msg_notice (strbrk "State after intern: " ++ debug sigma);
 	let print t = Printer.pr_econstr_env env sigma t in
 	Feedback.msg_notice (strbrk "Interned: " ++ print t)
-} END *)
-
-(* VERNAC COMMAND EXTEND MagmideLoad CLASSIFIED AS SIDEFF
-| #[ poly = Attributes.polymorphic ] [ "MagmideLoad" ident(id) ] -> {
-	let env = Global.env () in
-	let sigma = Evd.from_env env in
-	let (sigma, t) = Constrintern.interp_constr_evars env sigma e in
-	let r = Simple_declare.declare_definition ~poly i sigma t in
-	let print r = strbrk "Defined " ++ Printer.pr_global r ++ strbrk "." in
-	Feedback.msg_notice (print r)
 } END *)
