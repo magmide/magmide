@@ -132,11 +132,11 @@ Now we get to the thing that makes `Ideal` types special, their ability to simpl
 
 TODO nat
 
-This type encodes natural numbers (or unsigned integers) in the weird recursive style of the [Peano axioms](https://en.wikipedia.org/wiki/Natural_number#Peano_axioms), where `0` is of course `zero`, `1` is `successor(zero)`, `2` is `successor(successor(zero))`, and so on. Remember, `successor` isn't a *function* that increments a value, it's a *type constructor* that *wraps* children values. Don't worry, you won't have to actually write them that way in practice, since the Magmide compiler will coerce normally numbers into `nat` when it makes sense to.
+This type encodes natural numbers (or unsigned integers) in the weird recursive style of the [Peano axioms](https://en.wikipedia.org/wiki/Natural_number#Peano_axioms), where `0` is of course `zero`, `1` is `successor(zero)`, `2` is `successor(successor(zero))`, and so on. Remember, `successor` isn't a *function* that increments a value, it's a *type constructor* that *wraps* children values. Don't worry, you won't have to actually write them that way in practice, since the Magmide compiler will coerce normal numbers into `nat` when it makes sense to.
 
 You may wonder why we'd represent them this way? Wouldn't this be incredibly inefficient? Whatever happened to bytes?
 
-And you'd be right! In a real program this way of encoding numbers would be an absolute disaster. But Peano naturals are perfect for proving properties of numbers since the definition is so simple, precise, and doesn't depend on any other types. Our real programs will never use this idealized representation, but it's extremely useful when we're proving things about bits and arrays and a whole lot more. We'll see exactly how when we finally get to proofs, so for now let's not worry about it and just write some functions for these numbers:
+And you'd be right! In a real program this way of encoding numbers would be an absolute disaster. But the Peano encoding is perfect for proving properties of numbers since the definition is so simple, precise, and doesn't depend on any other types. Our real programs will never use this idealized representation, but it's extremely useful when we're proving things about bits and arrays and a whole lot more. We'll see exactly how when we finally get to proofs, so for now let's not worry about it and just write some functions for these numbers:
 
 TODO nat operations add, subtract, multiply, remainder divide, is_even
 
@@ -173,14 +173,14 @@ We can assign these claims to a variable, to make it shorter to refer to them (`
 Then we can combine these variables together into bigger propositions using [logical connectives](https://en.wikipedia.org/wiki/Logical_connective):
 
 - The `not` rule reverses or "negates" (the academic term) the truth value of a proposition. It's usually written with the symbol `¬`, but we'll use `~`. So if `A := ~P` then `A` is true when `P` isn't true.
-- The `and` rule requires two variables to both be true for the whole "conjunction" (the academic term) to be true. It's usually written with the `∧` symbol (think of it as being "strict" or "closed", since `and` is more "demanding" and points downward), but we'll use `&`. So if `A := P & Q` then `A` is true only when both `P` and `Q` are both true.
+- The `and` rule requires two variables to both be true for the whole "conjunction" (the academic term) to be true. It's usually written with the `∧` symbol (think of it as being "strict" or "closed", since `and` is more "demanding" and points downward), but we'll use `&`. So if `A := P & Q` then `A` is true only when `P` and `Q` are both true.
 - The `or` rule requires only one of two variables to be true for the whole "disjunction" (the academic term) to be true. It's usually written with the `∨` symbol (think of it as a "loose" or "open" link, since `or` is less "demanding" and points upward), but we'll use `|`. So if `A := P | Q` then `A` is true when either `P` or `Q` are true.
 
 All these connectives can have a "truth table" written for them, which tells us if the overall expression is true based on the truth of the sub expressions.
 
 TODO truth tables for not, and, or
 
-The `implication` rule is has an especially important place in the type theory we'll get into in later chapters. It's usually written with the `→` symbol or just `->`, and it's easy to think why it's shaped like an arrow: the truth value of the left variable "points to" the truth value of the right variable. So for example, if `A := P -> Q`, then `A` is true if whenever `P` is true `Q` is also true. It's also not an accident that `->` represents both implication and the type of functions (`str -> bool`), but we'll get to that later.
+The `implication` rule is especially important in the type theory we'll get into in later chapters. It's usually written with the `→` symbol or just `->`, and it's easy to think why it's shaped like an arrow: the truth value of the left variable "points to" the truth value of the right variable. So for example, if `A := P -> Q`, then `A` is true if whenever `P` is true `Q` is also true. It's also not an accident that `->` represents both implication and the type of functions (`str -> bool`), but we'll get to that later.
 
 TODO truth table
 
@@ -385,7 +385,7 @@ fn main;
 
   // standard signed and unsigned integers
   let unsigned_8_bits: u8 = 0
-  let unsigned_8_bits: u8 = 0
+  let signed_8_bits: i8 = 0
 
   // floating point numbers
   let float_32_bits: f32 = 0.0
@@ -475,11 +475,11 @@ alias Above min; usize & _ > min
 // this works for tuples and structs too
 // "^" can be used to refer to the parent datatype
 // so fields of a type can refer to other fields
-alias Range; i32, i32 & > ^.1
+alias Range; i32, i32 & > ^.0
 
 data Person;
   age: u8
-  // here the value of is_adult
+  // the value of is_adult
   // has to line up with .age >= 18
   is_adult: bool & == ^.age >= 18
   // this pattern of requiring a bool
@@ -494,7 +494,7 @@ To really understand how this all works, we have to get into the Logical side of
 
 ## Logical Magmide
 
-First let's start with the `Ideal` type family. `Ideal` types are defined to represent *abstract*, *logical* data. They aren't intended to be encoded by real computers, and their only purpose is to help us define logical concepts prove things about them. To go with the `Ideal` type family is a whole separate programming language, one that's *pure* and *functional*. Why pure and functional? Simply, pure and functional languages relate directly to mathematical type theory (mathematical type theory is nothing but a pure and functional language!). It's much easier to define abstract concepts and prove things about them in pure and functional settings than the messy imperative way real computers work. Otherwise we'd have to deal with distracting details about memory layout, bit representation, allocation, etc. The "programs" we write in this pure functional language aren't actually intended to be run! They just define abstract algorithms, so we only care about them for their type-checking behavior and not their real behavior.
+First let's start with the `Ideal` type family. `Ideal` types are defined to represent *abstract*, *logical* data. They aren't intended to be encoded by real computers, and their only purpose is to help us define logical concepts and prove things about them. To go with the `Ideal` type family is a whole separate programming language, one that's *pure* and *functional*. Why pure and functional? Simply, pure and functional languages relate directly to mathematical type theory (mathematical type theory is nothing but a pure and functional language!). It's much easier to define abstract concepts and prove things about them in pure and functional settings than the messy imperative way real computers work. Otherwise we'd have to deal with distracting details about memory layout, bit representation, allocation, etc. The "programs" we write in this pure functional language aren't actually intended to be run! They just define abstract algorithms, so we only care about them for their type-checking behavior and not their real behavior.
 
 The type system of logical Magmide is shaped a lot like computational Magmide to make things convenient. But the big difference between types in logical Magmide and computational magmide is how they handle type recursion.
 
@@ -520,7 +520,7 @@ Logical Magmide only really needs three things to prove basically all of mathema
 - Function types.
 
 
-
+---
 
 ```
 data equal_5 number;
