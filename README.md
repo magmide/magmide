@@ -218,7 +218,7 @@ Read [this blog post discussing my journey to this project](https://blainehansen
 
 ## This is an exciting idea! How can I help?
 
-Just reach out! Since things are so early there are many questions to be answered, and I welcome any useful help. Feedback and encouragement are welcome, and of course financial support like grants or protected research positions could do the most to push the project forward at this early stage.
+Just reach out! Since things are so early there are many questions to be answered, and I welcome any useful help. Feedback and encouragement are welcome, and you're free to reach out tome directly if you think you can contribute in some substantial way.
 
 If you would like to get up to speed with formal verification and Coq enough to contribute at this stage, you ought to read [Software Foundations](https://softwarefoundations.cis.upenn.edu/), [Certified Programming with Dependent Types](http://adam.chlipala.net/cpdt/html/Cpdt.Intro.html), [this introduction to separation logic](http://www0.cs.ucl.ac.uk/staff/p.ohearn/papers/Marktoberdorf11LectureNotes.pdf), and sections 1, 2, and 3 of the [Iris from the ground up](https://people.mpi-sws.org/~dreyer/papers/iris-ground-up/paper.pdf) paper. You might also find my unfinished [introduction to verification and logic in Magmide](./posts/intro-verification-logic-in-magmide.md) useful, even if it's still very rough.
 
