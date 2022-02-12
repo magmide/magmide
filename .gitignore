@@ -18,3 +18,7 @@ theorems/*.ml
 theorems/*.mli
 
 *.local.*
+
+# Added by cargo
+
+/target
