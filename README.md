@@ -58,7 +58,7 @@ If the trackable effect system is defined in a sufficiently generic way then cus
 
 Even if a project chooses to ignore some effects, they'll always know those effects are there, which means that other possible users of the project will know as well. Project teams could choose to fail compilation if their program isn't memory safe or could panic, while others could tolerate some possible effects or write proofs to assert they only happen in certain well-defined circumstances. It would even be possible to create code that provably sandboxes an effect by ensuring it can't be detected at any higher level if contained within the sandbox. With all these systems in place, we can finally have a genuinely secure software ecosystem!
 
-## Deeply metaprogrammable
+## Fully reusable
 
 We can't write all software in assembly language! Including first-class support for powerful metaprogramming, alongside a [query-based compiler](https://ollef.github.io/blog/posts/query-based-compilers.html), will allow users of this language to build verified abstractions that "combine upward" into higher levels, while still allowing the possibility for those higher levels to "drop down" back into the lower levels. Being a proof assistant, these escape hatches don't have to be unsafe, as higher level code can provide proofs to the lower level to justify its actions.
 
