@@ -2,7 +2,11 @@
 
 This repo is still very early and rough, it's mostly just notes, speculative writing, and exploratory theorem proving. Most of the files in this repo are just "mad scribblings" that I haven't refined enough to actually stand by!
 
-In this file however I give a broad overview and answer a few possible questions. Enjoy!
+If you prefer video, this presentation talks about the core ideas that make formal verification and Magmide possible, and the design goals and intentions of the project:
+
+[![magmide talk](https://img.youtube.com/vi/Lf7ML_ErWvQ/0.jpg)](https://www.youtube.com/watch?v=Lf7ML_ErWvQ)
+
+In this readme I give a broad overview and answer a few possible questions. Enjoy!
 
 ---
 
@@ -30,7 +34,7 @@ Read [`posts/design-of-magmide.md`](./posts/design-of-magmide.md) or [`posts/com
 
 This is a huge goal, and a language capable of achieving it must have all these qualities:
 
-## Fully verifiable
+## Capable of arbitrary logic
 
 In order to really deliver the kind of truly transformative correctness guarantees that will inspire working engineers to learn and use a difficult new language, it doesn't make sense to stop short and only give them an "easy mode" verification tool. It should be possible to formalize and attempt to prove any proposition humanity is capable of representing logically, not only those that a fully automated tool like an [SMT solver](https://liquid.kosmikus.org/01-intro.html) can figure out. A language with full logical expressiveness and manual proofs can still use convenient automation as well, but the opposite isn't true.
 
