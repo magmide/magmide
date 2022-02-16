@@ -201,6 +201,24 @@ Section Sized.
 			-> Steps program start (steps ++ [prev]) cur
 	.
 
+	(*
+	Inductive Trace: list MachineState -> Prop :=
+		| Trace_start: forall start,
+			Trace [start]
+
+		| Trace_step: forall past cur next,
+			Trace (past ++ [cur])
+			-> Step cur next
+			-> Trace (past ++ [cur] ++ [next])
+	.
+
+	Theorem Trace_transitive: forall before mid after,
+		Trace (before ++ [mid])
+		-> Trace ([mid] ++ after)
+		-> Trace (before ++ [mid] ++ after).
+	Proof. Qed.
+	*)
+
 	Theorem Steps_start_inversion program cur next:
 		Steps program cur [] next -> Step program cur next.
 	Proof.
