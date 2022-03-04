@@ -106,6 +106,14 @@ As we progress from Coq bootstrapping compiler to real compiler, we'll need to f
 
 # Notable design choices
 
+## Corruption Panics
+
+Magmide will have some kind of `panic` operator that safely halts the program when unexpected conditions arise. However since it is a proof language, it makes sense to attach a trackable effect to possible panics, so that ambitious projects can prove their program can never possibly panic.
+
+However very low level software often needs to directly contend with the possibility that some *hardware* failure has created data corruption, and these scenarios are guarded against with data consistency checks that ensure invariants have been maintained. If hardware could be trusted absolutely, then we could simply remove those low-level consistency checks if we first proved those invariants will always hold, but we will never live in that world.
+
+Do we have to tolerate ubiquitous `panic` trackable effects on all our code, even when we can prove that in the absence of hardware failure the code will always operate correctly? Not if we introduce a separate idea of a *corruption* panic, a `panic` operator that requires a proof that, *assuming the hardware axioms*, the `panic` is impossible. Normal panics infect their enclosing code with a trackable effect, whereas corruption panics don't but require a proof of *logical* impossibility.
+
 ## No `Set` type
 
 `Set` is just `Type{0}`, so I personally don't see a reason to bother with `Set`. It makes learning more complex, and in the situations where someone might demand their objects to live at the lowest universe level (I can't come up with any convincing places where this is truly necessary, please reach out if you can think of one), they can simply use some syntax equivalent of `Type{0}`.
