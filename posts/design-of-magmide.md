@@ -8,19 +8,19 @@ Magmide has two essential components:
 These two components have a symbiotic relationship with one another: Logic Magmide is used to define and make assertions about Host Magmide, and Host Magmide computationally represents and implements both Logic Magmide and Host Magmide itself.
 
 ```
-                    represents and
-                      implements
-      +--------------------+--------------------+
-      |                    |                    |
-      |                    |                    |
-      v                    |                    |
-Logic Magmide              +-------------> Host Magmide
-      |                                         ^
-      |                                         |
-      |                                         |
-      +-----------------------------------------+
-                    logically defines
-                      and verifies
+             represents and
+               implements
+      +------------+------------+
+      |            |            |
+      |            |            |
+      v            |            |
+Logic Magmide      +-----> Host Magmide
+      |                         ^
+      |                         |
+      |                         |
+      +-------------------------+
+            logically defines
+              and verifies
 ```
 
 The easiest way to understand this is to think of Logic Magmide as the type system of Host Magmide. Logic Magmide is "imaginary" and only exists at compile time, and constrains/defines the behavior of Host Magmide. Logic Magmide just happens to itself be a Turing complete dependently typed functional programming language!
