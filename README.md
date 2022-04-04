@@ -2,7 +2,11 @@
 
 This repo is still very early and rough, it's mostly just notes, speculative writing, and exploratory theorem proving. Most of the files in this repo are just "mad scribblings" that I haven't refined enough to actually stand by!
 
-In this file however I give a broad overview and answer a few possible questions. Enjoy!
+If you prefer video, this presentation talks about the core ideas that make formal verification and Magmide possible, and the design goals and intentions of the project:
+
+[![magmide talk](https://img.youtube.com/vi/Lf7ML_ErWvQ/0.jpg)](https://www.youtube.com/watch?v=Lf7ML_ErWvQ)
+
+In this readme I give a broad overview and answer a few possible questions. Enjoy!
 
 ---
 
@@ -30,7 +34,7 @@ Read [`posts/design-of-magmide.md`](./posts/design-of-magmide.md) or [`posts/com
 
 This is a huge goal, and a language capable of achieving it must have all these qualities:
 
-## Fully verifiable
+## Capable of arbitrary logic
 
 In order to really deliver the kind of truly transformative correctness guarantees that will inspire working engineers to learn and use a difficult new language, it doesn't make sense to stop short and only give them an "easy mode" verification tool. It should be possible to formalize and attempt to prove any proposition humanity is capable of representing logically, not only those that a fully automated tool like an [SMT solver](https://liquid.kosmikus.org/01-intro.html) can figure out. A language with full logical expressiveness and manual proofs can still use convenient automation as well, but the opposite isn't true.
 
@@ -184,7 +188,7 @@ If you think we'll constantly be tripping over problems in incorrectly implement
 
 We would however need hardware axioms to model the abstractions provided by a concrete computer architecture, and this layer is trickier to be completely confident in. Hardware faults and ambient problems of all kinds can absolutely cause unavoidable data corruption. Hardware is intentionally designed with layers of error correction and redundancy to avoid propagating corruption, but it still gets through sometimes. There's one big reason to press on with formal verification nonetheless: the possibility of corruption or failure can be included in our axioms!
 
-Firmware and operating systems already include state consistency assertions and [error correction codes](https://en.wikipedia.org/wiki/Error_detection_and_correction), and it would be nice if those checks themselves could be verified. The entire purpose of trackable effects is to allow environmental assumptions to be as high fidelity and stringent as possible without requiring every piece of software to actually care about all that detail. This means the lowest levels of our verification pyramid can fully include the possibility of corruption and carefully prove it can only cause a certain amount of damage in a few well-understood places. Then the higher levels of the pyramid can build on top of that much sturdier foundation.
+Firmware and operating systems already include state consistency assertions and [error correction codes](https://en.wikipedia.org/wiki/Error_detection_and_correction), and it would be nice if those checks themselves could be verified. The entire purpose of trackable effects is to allow environmental assumptions to be as high fidelity and stringent as possible without requiring every piece of software to actually care about all that detail. This means the lowest levels of our verification pyramid can fully include the possibility of corruption and carefully prove it can only cause a certain amount of damage in a few well-understood places. Then the higher levels of the pyramid can build on top of that much sturdier foundation. Additionally the concept of [corruption panics](https://github.com/magmide/magmide/blob/main/posts/design-of-magmide.md#corruption-panics) would allow software to include consistency checks even in situations that are logically impossible, to account for situations where the hardware has failed.
 
 Yes it's true that we can only go so far with formal verification, so we should always remain humble and remember that real machines in the real world fail for lots of reasons we can't control. But we can go much much farther with formal verification than we can with testing alone! Proving correctness against a mere model with possible caveats is incalculably more robust than doing the same thing we've been doing for decades.
 

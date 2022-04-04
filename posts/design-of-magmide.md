@@ -8,19 +8,19 @@ Magmide has two essential components:
 These two components have a symbiotic relationship with one another: Logic Magmide is used to define and make assertions about Host Magmide, and Host Magmide computationally represents and implements both Logic Magmide and Host Magmide itself.
 
 ```
-                    represents and
-                      implements
-      +--------------------+--------------------+
-      |                    |                    |
-      |                    |                    |
-      v                    |                    |
-Logic Magmide              +-------------> Host Magmide
-      |                                         ^
-      |                                         |
-      |                                         |
-      +-----------------------------------------+
-                    logically defines
-                      and verifies
+             represents and
+               implements
+      +------------+------------+
+      |            |            |
+      |            |            |
+      v            |            |
+Logic Magmide      +-----> Host Magmide
+      |                         ^
+      |                         |
+      |                         |
+      +-------------------------+
+            logically defines
+              and verifies
 ```
 
 The easiest way to understand this is to think of Logic Magmide as the type system of Host Magmide. Logic Magmide is "imaginary" and only exists at compile time, and constrains/defines the behavior of Host Magmide. Logic Magmide just happens to itself be a Turing complete dependently typed functional programming language!
@@ -68,7 +68,7 @@ In order to make sure the project is reasonable and going in the right direction
 My general project plan is this:
 
 - First create a toolchain capable of parsing Low Level Host Magmide code (easiest since it's just a razor thin convenience layer around LLVM), verifying assertions about it inside Coq, and rendering it to real LLVM. This whole pipeline will be a combination of Rust functions to parse source code and [construct LLVM](https://github.com/TheDan64/inkwell), linked together with a [Coq Ocaml plugin](http://gallium.inria.fr/blog/your-first-coq-plugin/) using the [Rust Ocaml bindings](https://docs.rs/ocaml/latest/ocaml/). Using unverified languages like Rust and Ocaml mean that this first version won't itself be verified, but it will still be capable of producing LLVM programs verified by the Coq kernel. These verified LLVM programs can be linked with any compatible language, such as Rust or WebAssembly. This milestone will already be useful to anyone willing to write their own theory and proofs in Coq and deal with this awkward toolchain.
-- Then we can expand the syntax, capabilities, and theory of the language, and integrate Iris into the theory. Using Iris we can define how trackable effects work, and define the most important trackable effects relating to termination, execution safety, memory safety, and memory conservation. With each step of this milestone the language gets more legitimately useful to more people, since more things can be done and more things proven safe, they just have to write proofs in Coq. It would be possible and maybe useful to create Rust macros to allow easily binding to these externally verified programs.
+- Then we can expand the syntax, capabilities, and theory of the language, and integrate Iris into the theory. Since Magmide isn't a lambda calculus, we will have to define our own weakest-precondition proposition rather than reusing those already built for other languages. Using Iris we can define how trackable effects work, and define the most important trackable effects relating to termination, execution safety, memory safety, and memory conservation. With each step of this milestone the language gets more legitimately useful to more people, since more things can be done and more things proven safe, they just have to write proofs in Coq. It would be possible and maybe useful to create Rust macros to allow easily binding to these externally verified programs.
 - Build metaprogramming capability into the language, by using the Rust LLVM bindings to JIT compile metaprograms, set up their inputs, pass them control, gather their outputs, and continue the cycle.
 - Now we can bootstrap the real compiler. More on that below.
 - After the full language is bootstrapped it can be used for non-trivial but still extremely low level applications such as cryptography/networking libraries, deeply embedded applications such as IOT devices or firmware, or OS kernel level functions. During this phase we can begin to aggressively seek support and contributions from a much larger community, and start building the ecosystem foundations (awesome educational materials, standard libraries for Logic and Host Magmide, a package management system, a cli, a standard formatter, syntax highlighting and auto-completion plugins for common editors).
@@ -105,6 +105,14 @@ As we progress from Coq bootstrapping compiler to real compiler, we'll need to f
 - A formalization of trackable effects with inspiration from Iron-style fractional tokens. This could need a custom resource algebra in order to be reusable for different types of effects, that remains to be seen.
 
 # Notable design choices
+
+## Corruption Panics
+
+Magmide will have some kind of `panic` operator that safely halts the program when unexpected conditions arise. However since it is a proof language, it makes sense to attach a trackable effect to possible panics, so that ambitious projects can prove their program can never possibly panic.
+
+However very low level software often needs to directly contend with the possibility that some *hardware* failure has created data corruption, and these scenarios are guarded against with data consistency checks that ensure invariants have been maintained. If hardware could be trusted absolutely, then we could simply remove those low-level consistency checks if we first proved those invariants will always hold, but we will never live in that world.
+
+Do we have to tolerate ubiquitous `panic` trackable effects on all our code, even when we can prove that in the absence of hardware failure the code will always operate correctly? Not if we introduce a separate idea of a *corruption* panic, a `panic` operator that requires a proof that, *assuming the hardware axioms*, the `panic` is impossible. Normal panics infect their enclosing code with a trackable effect, whereas corruption panics don't but require a proof of *logical* impossibility.
 
 ## No `Set` type
 
