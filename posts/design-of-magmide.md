@@ -264,6 +264,13 @@ type AssertedType (T: Type) (assertions: list (T -> Prop)) =
 
 We can provide universal conversion implementations to and from types and asserted versions of themselves. Pulling a value out of an asserted type is easy. Putting a value into an asserted type or converting between two seemingly incompatible asserted types would just generate a proof obligation.
 
+This same syntax makes sense to declare trait requirements on types as well:
+
+```
+def my_function<T & Orderable>(t: T):
+  ...
+```
+
 ## Cargo-like tooling
 
 To actually interact with Magmide, I imagine using a cli with these basic commands:
