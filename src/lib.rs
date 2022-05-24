@@ -86,11 +86,17 @@ ocaml_export! {
 #[cfg(test)]
 mod tests {
     use crate::*;
+    use std::{fmt::Debug, fs};
+
+    fn err_to_string<T, E: Debug>(r: Result<T, E>) -> Result<T, String> {
+        r.map_err(|err| format!("{:?}", err))
+    }
+
     macro_rules! test_parse {
         ($name:ident, $in:expr, $out:expr) => {
             #[test]
             fn $name() {
-                assert_eq!(parse($in).map_err(|err| format!("{:?}", err)), $out);
+                assert_eq!(err_to_string(parse($in)), $out);
             }
         };
     }
@@ -109,4 +115,12 @@ mod tests {
         "(0 + ((1 + (2 + 3)) + 4))",
         Ok(add(num(0), add(add(num(1), add(num(2), num(3))), num(4))))
     );
+
+    #[test]
+    fn from_file() {
+        assert_eq!(err_to_string(fs::write("test.mg", b"(1 + 2)")), Ok(()));
+        let result = err_to_string(parse_file("test.mg"));
+        assert_eq!(err_to_string(fs::remove_file("test.mg")), Ok(()));
+        assert_eq!(result, Ok(add(num(1), num(2))));
+    }
 }
