@@ -9,7 +9,7 @@ use nom::{
     Finish, IResult,
 };
 use ocaml_interop::{impl_conv_ocaml_variant, ocaml_export, OCaml, OCamlInt, OCamlRef, ToOCaml};
-use std::{fs::read, str::from_utf8};
+use std::{fs::read, path::Path, str::from_utf8};
 
 #[derive(Debug, PartialEq)]
 pub enum AST {
@@ -67,7 +67,7 @@ pub fn render(ast: &AST, to: &str) {
     }
 
     builder.build_return(Some(&build((&builder, i32_type), ast)));
-    module.write_bitcode_to_path(&std::path::Path::new(to));
+    module.write_bitcode_to_path(&Path::new(to));
 }
 
 ocaml_export! {
