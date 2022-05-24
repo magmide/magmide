@@ -1,4 +1,5 @@
 use anyhow::Result;
+use inkwell::{builder::Builder, context::Context, types::IntType, values::IntValue};
 use nom::{
     branch::alt, bytes::complete::tag, character::complete, combinator::map,
     sequence::separated_pair, Finish, IResult,
@@ -34,29 +35,26 @@ fn ast(i: &str) -> IResult<&str, AST> {
     alt((number, add))(i)
 }
 
-// // #[ocaml::func]
-// fn render(ast: &AST, to: &str) {
-// 	let context = Context::create();
-// 	let module = context.create_module("lab");
-// 	let builder = context.create_builder();
+// #[ocaml::func]
+pub fn render(ast: &AST, to: &str) {
+	let context = Context::create();
+	let module = context.create_module("lab");
+	let builder = context.create_builder();
 
-// 	let i32_type = context.i32_type();
-// 	let fn_type = i32_type.fn_type(&[], false);
-// 	let function = module.add_function("main", fn_type, None);
-// 	let basic_block = context.append_basic_block(function, "doit");
+	let i32_type = context.i32_type();
+	let fn_type = i32_type.fn_type(&[], false);
+	let function = module.add_function("main", fn_type, None);
+	let basic_block = context.append_basic_block(function, "doit");
 
-// 	builder.position_at_end(basic_block);
+	builder.position_at_end(basic_block);
 
-//     fn build(ast: &AST) -> ? {
-//         Number(x) => i32_type.const_int(x, false),
-//         Add(a, b) => builder.build_int_add(build(a), build(b), "sum"),
-//     }
+    fn build<'ctx>(env: (&Builder<'ctx>, IntType<'ctx>), ast: &AST) -> IntValue<'ctx> {
+        match ast {
+            AST::Number(x) => env.1.const_int(*x as u64, false),
+            AST::Add(a, b) => env.0.build_int_add(build(env, a), build(env, b), "sum"),
+        }
+    }
 
-//     builder.build_return(Some(build(ast)));
-
-// // 	let sum = builder.build_int_add(i32_type.const_int(2, false), i32_type.const_int(4, false), "sum");
-// // 	let sum = builder.build_int_add(sum, sum, "sum");
-// // 	builder.build_return(Some(&sum));
-
-// 	module.write_bitcode_to_path(&std::path::Path::new(to));
-// }
+    builder.build_return(Some(&build((&builder, i32_type), ast)));
+	module.write_bitcode_to_path(&std::path::Path::new(to));
+}
