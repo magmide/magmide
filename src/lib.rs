@@ -1,8 +1,12 @@
 use anyhow::Error;
 use inkwell::{builder::Builder, context::Context, types::IntType, values::IntValue};
 use nom::{
-    branch::alt, bytes::complete::tag, character::complete, combinator::map,
-    sequence::{delimited, separated_pair}, Finish, IResult,
+    branch::alt,
+    bytes::complete::tag,
+    character::complete,
+    combinator::map,
+    sequence::{delimited, separated_pair},
+    Finish, IResult,
 };
 use ocaml_interop::{impl_conv_ocaml_variant, ocaml_export, OCaml, OCamlInt, OCamlRef, ToOCaml};
 use std::{fs::read, str::from_utf8};
@@ -33,9 +37,10 @@ fn number(i: &str) -> IResult<&str, AST> {
 }
 
 fn add(i: &str) -> IResult<&str, AST> {
-    map(delimited(tag("("), separated_pair(ast, tag(" + "), ast), tag(")")), |(a, b)| {
-        AST::Add(Box::new(a), Box::new(b))
-    })(i)
+    map(
+        delimited(tag("("), separated_pair(ast, tag(" + "), ast), tag(")")),
+        |(a, b)| AST::Add(Box::new(a), Box::new(b)),
+    )(i)
 }
 
 fn ast(i: &str) -> IResult<&str, AST> {
@@ -87,11 +92,15 @@ mod tests {
             fn $name() {
                 assert_eq!(parse($in).map_err(|err| format!("{:?}", err)), $out);
             }
-        }
+        };
     }
 
-    fn num(n: i32) -> AST { AST::Number(n) }
-    fn add(a: AST, b: AST) -> AST { AST::Add(Box::new(a), Box::new(b)) }
+    fn num(n: i32) -> AST {
+        AST::Number(n)
+    }
+    fn add(a: AST, b: AST) -> AST {
+        AST::Add(Box::new(a), Box::new(b))
+    }
 
     test_parse!(four, "4", Ok(num(4)));
     test_parse!(plus, "(2 + 3)", Ok(add(num(2), num(3))));
