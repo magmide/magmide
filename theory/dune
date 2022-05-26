@@ -1,5 +1,13 @@
 ; https://dune.readthedocs.io/en/stable/dune-files.html#coq-theory-1
 
+(executables
+  (names bloop)
+  (libraries alcotest magmide_rust))
+
+(rule
+  (alias runtest)
+  (action (run ./bloop.exe)))
+
 (coq.theory
 	(name theory)
 
