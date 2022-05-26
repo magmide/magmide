@@ -71,12 +71,12 @@ pub fn render(ast: &AST, to: &str) {
 }
 
 ocaml_export! {
-    fn ocaml_parse(cr, filename: OCamlRef<String>) -> OCaml<Result<AST, String>> {
+    fn rust_parse(cr, filename: OCamlRef<String>) -> OCaml<Result<AST, String>> {
         let filename: String = filename.to_rust(&cr);
         parse_file(filename.as_str()).map_err(|err| format!("{:#}", err)).to_ocaml(cr)
     }
 
-    fn ocaml_render(cr, ast: OCamlRef<AST>, to: OCamlRef<String>) {
+    fn rust_render(cr, ast: OCamlRef<AST>, to: OCamlRef<String>) {
         let to: String = to.to_rust(&cr);
         render(&ast.to_rust(&cr), to.as_str());
         OCaml::unit()
