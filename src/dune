@@ -1,11 +1,11 @@
 (rule
   (targets libmagmide_rust.a dllmagmide_rust.so)
-  (deps (sandbox always) ../Cargo.toml (source_tree .))
+  (deps (sandbox always) ../Cargo.lock ../Cargo.toml (source_tree .))
   (action
     (no-infer
      (progn
        (run ln -s ../../../../target ../target)
-       (run ln -s ../../../../Cargo.lock ../Cargo.lock)
+       (run ln -sf ../../../../Cargo.lock ../Cargo.lock)
        (run cargo build)
        (system
          "cp ../target/debug/libmagmide.so ./dllmagmide_rust.so 2> /dev/null ||
