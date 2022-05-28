@@ -2,13 +2,15 @@
 	; This is the name you will use in Coq's `Declare ML Module`, and the name of the main OCaml module of your plugin.
 	(name magmide_plugin)
 
-	; This makes the plugin installable; recommended, must match opam package name
-	(public_name magmide)
+	(public_name magmide.plugin)
 
 	(synopsis "Magmide Coq Plugin. Parses .mg files and loads them as a Magmide AST object in Coq.")
 
 	; Coq requires the `-rectypes` flag; CoqPP generated code requires to disable warning 27 often.
 	(flags :standard -rectypes -w -27)
+
+	(foreign_archives ../src/magmide_rust)
+	(c_library_flags -lpthread -lc -lm -lLLVM-13)
 
 	; ML Libraries we want to link with, your choice here.
 	(libraries

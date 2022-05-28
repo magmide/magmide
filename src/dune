@@ -4,6 +4,7 @@
   (action
     (no-infer
      (progn
+       (run mkdir -p ../../../../../target)
        (run ln -s ../../../../target ../target)
        (run ln -sf ../../../../Cargo.lock ../Cargo.lock)
        (run cargo build)
@@ -11,8 +12,3 @@
          "cp ../target/debug/libmagmide.so ./dllmagmide_rust.so 2> /dev/null ||
           cp ../target/debug/libmagmide.dylib ./dllmagmide_rust.so")
        (run cp ../target/debug/libmagmide.a ./libmagmide_rust.a)))))
-
-(library
-  (name magmide_rust)
-  (c_library_flags -lpthread -lc -lm -lLLVM-13)
-  (foreign_archives magmide_rust))

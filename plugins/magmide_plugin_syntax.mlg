@@ -9,6 +9,8 @@ DECLARE PLUGIN "magmide_plugin"
 open Pp
 open Stdarg
 
+let scoop = Magmide_rust_bindings.Rust.parse
+
 let declare_definition ~poly name env sigma expr =
 	let (sigma, body) = Constrintern.interp_constr_evars env sigma expr in
 	let udecl = UState.default_univ_decl in

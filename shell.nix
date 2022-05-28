@@ -1,14 +1,15 @@
 { pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/52dc75a4fee3fdbcb792cb6fba009876b912bfe0.tar.gz") {} }:
 
 let
-  coq = pkgs.coq.override { customOCamlPackages = pkgs.ocamlPackages; };
+  coq = pkgs.coq.override { version = "cbe681ab1a9db43e28327716a76db4dee5adc2e2"; customOCamlPackages = pkgs.ocamlPackages; };
 in
 
 pkgs.mkShell {
   buildInputs = with pkgs; [
     cargo
     coq
-    dune_2
+    dune_3
+    inotify-tools
     just
     libffi
     libiconv
