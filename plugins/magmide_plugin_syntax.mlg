@@ -1,4 +1,4 @@
-(* https://project.inria.fr/coqexchange/a-small-tutorial-for-ocaml-plugins-to-extend-the-coq-system/ *)
+(* https://project.inria.fr/coqexchange/-small-tutorial-for-ocaml-plugins-to-extend-the-coq-system/ *)
 (* http://gallium.inria.fr/blog/your-first-coq-plugin/ *)
 (* https://github.com/coq/coq/tree/a59c356a45180dd56b1ec86c8725a257bffe71fa/doc/plugin_tutorial *)
 (* https://coq.github.io/doc/master/api/coq-core/index.html *)
@@ -8,6 +8,8 @@ DECLARE PLUGIN "magmide_plugin"
 (* open Ltac_plugin *)
 open Pp
 open Stdarg
+
+open Magmide_rust_bindings
 
 let scoop = Magmide_rust_bindings.Rust.parse
 
@@ -20,6 +22,11 @@ let declare_definition ~poly name env sigma expr =
 	let info = Declare.Info.make ~scope ~kind  ~udecl ~poly () in
 	Declare.declare_definition ~info ~cinfo ~opaque:false ~body sigma
 
+let simple_declare ~poly name sigma body =
+  let cinfo = Declare.CInfo.make ~name ~typ:None () in
+  let info = Declare.Info.make ~poly () in
+  Declare.declare_definition ~info ~cinfo ~opaque:false ~body sigma
+
 let read_whole_file filename =
 	let ch = open_in filename in
 	let s = really_input_string ch (in_channel_length ch) in
@@ -28,7 +35,7 @@ let read_whole_file filename =
 }
 
 VERNAC COMMAND EXTEND Magmide CLASSIFIED AS SIDEFF
-| #[ poly = Attributes.polymorphic ] [ "Magmide" string(filename) "use" ident(name)] -> {
+| #[ poly = Attributes.polymorphic ] [ "Magmide" string(filename) "use" ident(name) ] -> {
 	(* Feedback.msg_debug(strbrk (Sys.getcwd())); *)
 	let filename = Filename.concat "../../test_code" filename in
 	(* Feedback.msg_debug(strbrk filename); *)
@@ -40,6 +47,28 @@ VERNAC COMMAND EXTEND Magmide CLASSIFIED AS SIDEFF
 	let env = Global.env () in let sigma = Evd.from_env env in
 	let r = declare_definition ~poly name env sigma expr in
 	Feedback.msg_notice (strbrk "Defined " ++ Printer.pr_global r ++ strbrk ".")
+} END
+
+VERNAC COMMAND EXTEND MagmideParse CLASSIFIED AS SIDEFF
+| #[ poly = Attributes.polymorphic ] [ "MagmideParse" string(code) "as" ident(name) ] -> {
+	(* let expr = Magmide_rust_bindings.Rust.parse(code) in *)
+
+	print_endline (show_r (Rust.parse(code)));
+	(* let _ = Rust.parse(code) in *)
+	(* let () = print_endline (show_r (Rust.parse(code))) in *)
+	(* let () = print_endline (show_r a) in *)
+	(* let b = Result.get_ok a in *)
+	(* let () = print_endline (show b) in *)
+
+	()
+
+(* 	let expr = hello b in *)
+(* 	(1* let expr = hello (Result.get_ok (Rust.parse(code))) in *1) *)
+(* 	let env = Global.env () in *)
+(* 	let sigma = Evd.from_env env in *)
+(* 	let r = declare_definition ~poly name env sigma expr in *)
+(* 	Feedback.msg_notice (strbrk "MagmideParse defined " ++ Printer.pr_global r ++ strbrk ".") *)
+
 } END
 
 VERNAC COMMAND EXTEND MagmideInspectExpr CLASSIFIED AS QUERY

@@ -29,7 +29,10 @@ pub fn parse_file(filename: &str) -> Result<AST, Error> {
 }
 
 fn parse<'a>(i: &'a str) -> Result<AST, Error> {
-    Ok(ast(i).map_err(|err| err.to_owned()).finish().map(|x| x.1)?)
+    let x = ast(i).map_err(|err| err.to_owned()).finish().map(|x| x.1)?;
+    println!("{:?}", x);
+    Ok(x)
+    // Ok(ast(i).map_err(|err| err.to_owned()).finish().map(|x| x.1)?)
 }
 
 fn number(i: &str) -> IResult<&str, AST> {
