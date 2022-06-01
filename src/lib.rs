@@ -1,56 +1,94 @@
+use self::{Instruction::*, Value::*};
 use anyhow::Error;
-use inkwell::{builder::Builder, context::Context, types::IntType, values::IntValue};
+use inkwell::{context::Context, types::IntType, values::IntValue};
 use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete,
     combinator::map,
-    sequence::{delimited, separated_pair},
+    multi::separated_list0,
+    sequence::{preceded, tuple},
     Finish, IResult,
 };
-use ocaml_interop::{impl_conv_ocaml_variant, ocaml_export, OCaml, OCamlInt, OCamlRef, ToOCaml};
-use std::{fs::read, path::Path, str::from_utf8};
+use ocaml_interop::{
+    impl_conv_ocaml_variant, ocaml_export, OCaml, OCamlInt, OCamlList, OCamlRef, ToOCaml,
+};
+use std::{collections::HashMap, fs::read, path::Path, str::from_utf8};
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Value {
+    Const(i32),
+    Ref(i32),
+}
 
 #[derive(Debug, PartialEq)]
-pub enum AST {
-    Add(Box<AST>, Box<AST>),
-    Number(i32),
+pub enum Instruction {
+    Return(Value),
+    Add(i32, Value, Value),
 }
 
 impl_conv_ocaml_variant! {
-    AST {
-        AST::Add(a: AST, b: AST),
-        AST::Number(n: OCamlInt),
+    Value {
+        Const(v: OCamlInt),
+        Ref(r: OCamlInt),
     }
 }
 
-pub fn parse_file(filename: &str) -> Result<AST, Error> {
+impl_conv_ocaml_variant! {
+    Instruction {
+        Return(v: Value),
+        Add( result: OCamlInt, op1: Value, op2: Value ),
+    }
+}
+
+pub fn parse_file(filename: &str) -> Result<Vec<Instruction>, Error> {
+    // parse(String::from_utf8(read(filename)?)?)
     parse(from_utf8(read(filename)?.as_slice())?)
 }
 
-fn parse<'a>(i: &'a str) -> Result<AST, Error> {
-    let x = ast(i).map_err(|err| err.to_owned()).finish().map(|x| x.1)?;
-    println!("{:?}", x);
-    Ok(x)
-    // Ok(ast(i).map_err(|err| err.to_owned()).finish().map(|x| x.1)?)
+fn parse(i: &str) -> Result<Vec<Instruction>, Error> {
+    // eg:
+    //   %0 = 1 + 1
+    //   %1 = %0 + 1
+    //   return %1
+    Ok(separated_list0(tag("\n"), instruction)(i)
+        .map_err(|err| err.to_owned())
+        .finish()
+        .map(|x| x.1)?)
 }
 
-fn number(i: &str) -> IResult<&str, AST> {
-    map(complete::i32, AST::Number)(i)
+fn constant(i: &str) -> IResult<&str, i32> {
+    // eg. 42
+    complete::i32(i)
 }
 
-fn add(i: &str) -> IResult<&str, AST> {
+fn reference(i: &str) -> IResult<&str, i32> {
+    // eg. %2
+    preceded(tag("%"), complete::i32)(i)
+}
+
+fn value(i: &str) -> IResult<&str, Value> {
+    alt((map(constant, Const), map(reference, Ref)))(i)
+}
+
+fn add(i: &str) -> IResult<&str, Instruction> {
+    // eg. %1 = 3 + %0
     map(
-        delimited(tag("("), separated_pair(ast, tag(" + "), ast), tag(")")),
-        |(a, b)| AST::Add(Box::new(a), Box::new(b)),
+        tuple((reference, tag(" = "), value, tag(" + "), value)),
+        |(result, _, op1, _, op2)| Add(result, op1, op2),
     )(i)
 }
 
-fn ast(i: &str) -> IResult<&str, AST> {
-    alt((number, add))(i)
+fn ret(i: &str) -> IResult<&str, Instruction> {
+    // eg. return 4
+    map(preceded(tag("return "), value), Return)(i)
 }
 
-pub fn render(ast: &AST, to: &str) {
+fn instruction(i: &str) -> IResult<&str, Instruction> {
+    alt((add, ret))(i)
+}
+
+pub fn render(instructions: &[Instruction], to: &str) {
     let context = Context::create();
     let module = context.create_module("lab");
     let builder = context.create_builder();
@@ -62,31 +100,45 @@ pub fn render(ast: &AST, to: &str) {
 
     builder.position_at_end(basic_block);
 
-    fn build<'ctx>(env: (&Builder<'ctx>, IntType<'ctx>), ast: &AST) -> IntValue<'ctx> {
-        match ast {
-            AST::Number(x) => env.1.const_int(*x as u64, false),
-            AST::Add(a, b) => env.0.build_int_add(build(env, a), build(env, b), "sum"),
+    let mut env = (HashMap::new(), i32_type);
+    fn val<'ctx>(env: &(HashMap<i32, IntValue<'ctx>>, IntType<'ctx>), v: Value) -> IntValue<'ctx> {
+        match v {
+            Const(i) => env.1.const_int(i as u64, false),
+            Ref(r) => *env.0.get(&r).unwrap(),
         }
     }
 
-    builder.build_return(Some(&build((&builder, i32_type), ast)));
+    for instruction in instructions {
+        match instruction {
+            Return(v) => {
+                builder.build_return(Some(&val(&env, *v)));
+                break;
+            }
+            Add(result, op1, op2) => {
+                let a = val(&env, *op1);
+                let b = val(&env, *op2);
+                env.0.insert(*result, builder.build_int_add(a, b, ""));
+            }
+        }
+    }
+
     module.write_bitcode_to_path(&Path::new(to));
 }
 
 ocaml_export! {
-    fn rust_parse(cr, expr: OCamlRef<String>) -> OCaml<Result<AST, String>> {
+    fn rust_parse(cr, expr: OCamlRef<String>) -> OCaml<Result<OCamlList<Instruction>, String>> {
         let expr: String = expr.to_rust(&cr);
         parse(expr.as_str()).map_err(|err| format!("{:#}", err)).to_ocaml(cr)
     }
 
-    fn rust_parse_file(cr, filename: OCamlRef<String>) -> OCaml<Result<AST, String>> {
+    fn rust_parse_file(cr, filename: OCamlRef<String>) -> OCaml<Result<OCamlList<Instruction>, String>> {
         let filename: String = filename.to_rust(&cr);
         parse_file(filename.as_str()).map_err(|err| format!("{:#}", err)).to_ocaml(cr)
     }
 
-    fn rust_render(cr, ast: OCamlRef<AST>, to: OCamlRef<String>) {
+    fn rust_render(cr, prog: OCamlRef<OCamlList<Instruction>>, to: OCamlRef<String>) {
         let to: String = to.to_rust(&cr);
-        render(&ast.to_rust(&cr), to.as_str());
+        render(prog.to_rust::<Vec<Instruction>>(cr).as_slice(), to.as_str());
         OCaml::unit()
     }
 }
@@ -109,26 +161,34 @@ mod tests {
         };
     }
 
-    fn num(n: i32) -> AST {
-        AST::Number(n)
-    }
-    fn add(a: AST, b: AST) -> AST {
-        AST::Add(Box::new(a), Box::new(b))
-    }
-
-    test_parse!(four, "4", Ok(num(4)));
-    test_parse!(plus, "(2 + 3)", Ok(add(num(2), num(3))));
+    test_parse!(noop, "", Ok(vec![]));
+    test_parse!(four, "return 4", Ok(vec![Return(Const(4))]));
+    test_parse!(
+        plus,
+        "%0 = 2 + 3\nreturn %0",
+        Ok(vec![Add(0, Const(2), Const(3)), Return(Ref(0))])
+    );
     test_parse!(
         nest_plus,
-        "(0 + ((1 + (2 + 3)) + 4))",
-        Ok(add(num(0), add(add(num(1), add(num(2), num(3))), num(4))))
+        "%0 = 2 + 3
+%1 = 1 + %0
+%2 = %1 + 4
+%3 = 0 + %2
+return %3",
+        Ok(vec![
+            Add(0, Const(2), Const(3)),
+            Add(1, Const(1), Ref(0)),
+            Add(2, Ref(1), Const(4)),
+            Add(3, Const(0), Ref(2)),
+            Return(Ref(3)),
+        ])
     );
 
     #[test]
     fn from_file() {
-        assert_eq!(err_to_string(fs::write("test.mg", b"(1 + 2)")), Ok(()));
+        assert_eq!(err_to_string(fs::write("test.mg", b"return 0")), Ok(()));
         let result = err_to_string(parse_file("test.mg"));
         assert_eq!(err_to_string(fs::remove_file("test.mg")), Ok(()));
-        assert_eq!(result, Ok(add(num(1), num(2))));
+        assert_eq!(result, Ok(vec![Return(Const(0))]));
     }
 }
