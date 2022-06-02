@@ -23,7 +23,13 @@ Logic Magmide      +-----> Host Magmide
               and verifies
 ```
 
-The easiest way to understand this is to think of Logic Magmide as the type system of Host Magmide. Logic Magmide is "imaginary" and only exists at compile time, and constrains/defines the behavior of Host Magmide. Logic Magmide just happens to itself be a Turing complete dependently typed functional programming language!
+The easiest way to understand this is to think of Logic Magmide as the type system of Host Magmide. Logic Magmide is "imaginary" and only exists at compile time, and constrains/defines the behavior of Host Magmide. Logic Magmide just happens to itself be a dependently typed functional programming language!
+
+This architecture makes it possible to max out all the important aspects of the language:
+
+- **Max out logical power** by making the full power of dependent type theory available to all components at all stages. Without this the design wouldn't be able to handle lots of interesting/useful/necessary problems, and couldn't be adopted by many teams. It wouldn't be able to act as a true *foundation* for verified computing.
+- **Max out computational power** by self-hosting in a bare metal language. If the language were interpreted or garbage collected then it would always perform worse than is strictly possible. It would be silly for metaprogramming to be done in a different language than the intended target languages. If we're going to formalize bare metal computation, we might as well use it to build the tool itself!
+- **Max out expressive power** by allowing deep metaprogramming capability. Metaprogramming is basically a cheat code for language design, since it gives a language access to an infinite range of possible features without having to explicitly support them. It's the single best primitive to add in terms of implementation overhead versus expressiveness.
 
 Host Magmide must be runnable on the various development machines that could be used by engineers, so it needs to be highly abstract and capable of being assembled or "rendered" to many different specific architectures/environments. This means it must be similar to LLVM in terms of abstractness.
 

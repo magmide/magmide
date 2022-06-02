@@ -18,11 +18,11 @@ What would it look like if it was both possible and tractable for working softwa
 
 Separation logic isn't a tool, but a paradigm for making logical assertions about mutable and destructible state. The Rust ownership system was directly inspired by separation logic, which shows us that it really can be used to unlock revolutionary levels of productivity and excitement. Separation logic makes it possible to verify things about practical imperative code, rather than simply outlawing mutation and side effects as is done in functional languages.
 
-However Rust only exposes a simplified subset of separation logic, rather than exposing the full power of the paradigm. [The Iris separation logic](https://people.mpi-sws.org/~dreyer/papers/iris-ground-up/paper.pdf) was recently created by a team of academics to fully verify the correctness of the Rust type system and several core implementations that use `unsafe`. Iris is a fully powered separation logic, making it uniquely capable of verifying the kind of complex, concurrent, arbitrarily flexible assertions that could be implied by practical Rust code, even those that use `unsafe`. Iris could be used to do the same for any other practical and realistic language.
+However Rust only exposes a simplified subset of separation logic, rather than exposing the full power of the paradigm. [The Iris separation logic](https://people.mpi-sws.org/~dreyer/papers/iris-ground-up/paper.pdf) was recently created by a team of academics to fully verify the correctness of the Rust type system and several core implementations that use `unsafe`. Iris is a fully powered separation logic, making it uniquely capable of verifying the kind of complex, concurrent, arbitrarily flexible assertions that could be implied by practical Rust code, even those that use `unsafe`. Iris could do the same for any other practical and realistic language.
 
-Isn't that amazing?! A system that can prove completely and eternally that a use of `unsafe` isn't actually unsafe??!! You'd think the entire Rust and systems programming community would be over the moon!!?
+Isn't that amazing?!? A system that can prove completely and eternally that a use of `unsafe` isn't actually unsafe??!! You'd think the entire Rust and systems programming community would be over the moon!
 
-But as always happens with academia, it's only being used to write papers rather than creating tools to apply it to real software. All the existing uses of Iris perform the proofs "on the side" using transcribed syntax tree versions of the target code rather than directly reading the original source. And although the papers are more approachable than most academic papers, they're still academic papers, and so basically no working engineers have even heard of any of this.
+But as is common with academic projects, it's only being used to write papers rather than build real software systems. All the existing uses of Iris perform the proofs "on the side", analyzing [Coq notation transcriptions](https://coq.inria.fr/refman/user-extensions/syntax-extensions.html) rather than directly reading the original source. And although the papers are more approachable than most academic papers, they're still academic papers, and so basically no working engineers have even heard of any of this.
 
 This is why I'm building Magmide, which is intended to be to both Coq and LLVM what Rust has been to C. There are quite a few proof languages capable of proving logical assertions in code, but none exist that are specifically designed to be used by working engineers to build real imperative programs. None have placed a full separation logic, particularly one as powerful as Iris, at the heart of their design, but instead are overly dogmatic about the pure functional paradigm. None make it possible to type-check, prove assertions about, and compile practical programs all using one unified tool. And all existing proof languages are hopelessly mired in the obtuse and unapproachable fog of [research debt](https://distill.pub/2017/research-debt/) created by the culture of academia. Even if formal verification is already capable of producing [provably safe and secure code](https://www.quantamagazine.org/formal-verification-creates-hacker-proof-code-20160920/), it isn't good enough if only professors have the time to gain the necessary expertise. We need to pull all this amazing knowledge out of the ivory tower and finally put it to work to make computing truly safe and robust.
 
@@ -30,43 +30,68 @@ I strongly believe a world with mainstream formal verification would not only se
 
 What kinds of ambitious software projects have been conceived but not pursued because getting them working would simply be too difficult? With machine checkable proofs in many more hands could we finally build *truly secure* operating systems, trustless networks, or electronic voting methods? How many people could be making previously unimagined contributions to computer science, mathematics, and even other logical fields such as economics and philosophy if only they had approachable tools to do so? I speculate about some possibilities at the end of this readme.
 
-Read [`posts/design-of-magmide.md`](./posts/design-of-magmide.md) or [`posts/comparisons-with-other-projects.md`](./posts/comparisons-with-other-projects.md) to more deeply understand how Magmide is designed and how it's different than other projects.
+To achieve this goal I've chosen an architecture I call the "split Logic/Host" architecture, where the two domains of software thinking are separated into two sub-languages:
 
-This is a huge goal, and a language capable of achieving it must have all these qualities:
+- Logic Magmide, the dependently typed lambda calculus of constructions. This is where "imaginary" types are defined and proofs are conducted.
+- Host Magmide, the imperative language that actually runs on real machines.
+
+These two components have a symbiotic relationship with one another: Logic Magmide is used to define and make assertions about Host Magmide, and Host Magmide computationally represents and implements both Logic Magmide and Host Magmide itself.
+
+```
+             represents and
+               implements
+      +------------+------------+
+      |            |            |
+      |            |            |
+      v            |            |
+Logic Magmide      +-----> Host Magmide
+      |                         ^
+      |                         |
+      |                         |
+      +-------------------------+
+            logically defines
+              and verifies
+```
+
+The easiest way to understand this is to think of Logic Magmide as the type system of Host Magmide. Logic Magmide is "imaginary" and only exists at compile time, and constrains/defines the behavior of Host Magmide. Logic Magmide just happens to itself be a dependently typed functional programming language! This design takes the concept of [self-hosting](https://en.wikipedia.org/wiki/Self-hosting_(compilers)) to its logical extreme.
+
+I'm convinced this general architecture is the only one that can achieve Magmide's extremely ambitious goal. It feels like an optimal point in the design space, since I can't imagine another architecture that would allow all of the language components (proof checker, code compiler, target code being compiled) the possibility to be both bare metal and fully verified. I would of course love to be persuaded some other simpler architecture would also work, but so far that hasn't happened.
+
+But it's not good enough for the architecture to *allow* a great language design. Everything else about the design has to be chosen correctly as well. I claim that in order for the language to achieve its goal, it has to meet all these descriptions:
 
 ## Capable of arbitrary logic
 
-In order to really deliver the kind of truly transformative correctness guarantees that will inspire working engineers to learn and use a difficult new language, it doesn't make sense to stop short and only give them an "easy mode" verification tool. It should be possible to formalize and attempt to prove any proposition humanity is capable of representing logically, not only those that a fully automated tool like an [SMT solver](https://liquid.kosmikus.org/01-intro.html) can figure out. A language with full logical expressiveness and manual proofs can still use convenient automation as well, but the opposite isn't true.
+In order to really deliver the kind of truly transformative correctness guarantees that will inspire working engineers to learn and use a difficult new language, it doesn't make sense to stop short and only give them an "easy mode" verification tool. It should be possible to formalize and attempt to prove any proposition humanity is capable of representing logically, not only those that a fully automated tool like an [SMT solver](https://liquid.kosmikus.org/01-intro.html) can figure out. **A language with full logical expressiveness and manual proofs can still use convenient automation as well**, but the opposite isn't true.
 
-To achieve this goal, the language will be fully **dependently typed** and use the [Calculus of Constructions](https://en.wikipedia.org/wiki/Calculus_of_constructions) much like [Coq](https://en.wikipedia.org/wiki/Coq). I find [Adam Chlipala's "Why Coq?"](http://adam.chlipala.net/cpdt/html/Cpdt.Intro.html) arguments convincing in regard to this choice. Coq will also be used to bootstrap the first version of the compiler, allowing it to be self-hosting and even self-verifying using a minimally small trusted theory base. Read more about the design and bootstrapping plan in [`posts/design-of-magmide.md`](./posts/design-of-magmide.md). The [metacoq](https://github.com/MetaCoq/metacoq) and ["Coq Coq Correct!"](https://metacoq.github.io/coqcoqcorrect) projects have already done the work of formalizing and verifying Coq using Coq, so they will be very helpful.
+To meet this description, the language will be fully dependently typed and use the [Calculus of Constructions](https://en.wikipedia.org/wiki/Calculus_of_constructions) much like [Coq](https://en.wikipedia.org/wiki/Coq). I find [Adam Chlipala's "Why Coq?"](http://adam.chlipala.net/cpdt/html/Cpdt.Intro.html) arguments convincing in regard to this choice. Coq will also be used to bootstrap the first version of the compiler, allowing it to be self-hosting and even self-verifying using a minimally small trusted theory base. Read more about the design and bootstrapping plan in [`posts/design-of-magmide.md`](./posts/design-of-magmide.md). The [metacoq](https://github.com/MetaCoq/metacoq) and ["Coq Coq Correct!"](https://metacoq.github.io/coqcoqcorrect) projects have already done the work of formalizing and verifying Coq using Coq, so they will be very helpful.
 
 It's absolutely possible for mainstream engineers to learn and use these powerful logical concepts. The core ideas of formal verification (dependent types, proof objects, higher order logic, separation logic) aren't actually that complicated. They just haven't ever been properly explained because of [research debt](https://distill.pub/2017/research-debt/), and they weren't even all that practical before separation logic and Iris. I've been working on better explanations in the (extremely rough and early) [`posts/intro-verification-logic-in-magmide.md`](./posts/intro-verification-logic-in-magmide.md) and [`posts/coq-for-engineers.md`](./posts/coq-for-engineers.md).
 
 ## Capable of bare metal performance
 
-Software needs to perform well! Not all software has the same requirements, but often performance is intrinsically tied to correct execution. Very often the software that most importantly needs to be correct also most importantly needs to perform well. If the language is capable of truly bare metal performance, it can still choose to create easy abstractions that sacrifice performance where that makes sense.
+Software needs to perform well! Not all software has the same requirements, but often performance is intrinsically tied to correct execution. Very often the software that most importantly needs to be correct also most importantly needs to perform well. **If the language is capable of truly bare metal performance, it can still choose to create easy abstractions that sacrifice performance where that makes sense.**
 
-To achieve this goal, the language will include in its core libraries a formalization of the basic principles of von Neumann computation, allowing users to specify the axiomatic assumptions of any software execution environment, from concrete instruction set architectures, to any **abstract assembly language** such as LLVM capable of compiling to many targets, and even up to operating system userlands or bytecode environments such as WebAssembly. Making it possible to specify software at this level of fidelity helps ensure it is aligned with reality and isn't making unrealistic assumptions.
+To meet this description, the language will include in its core libraries a formalization of the basic principles of von Neumann computation, allowing users to specify the axiomatic assumptions of any software execution environment, from concrete instruction set architectures, to any abstract assembly language such as LLVM capable of compiling to many targets, and even up to operating system userlands or bytecode environments such as WebAssembly. Making it possible to specify software at this level of fidelity helps ensure it is aligned with reality and isn't making unrealistic assumptions.
 
 Because of separation logic and Iris, it is finally possible to verify code at this extremely granular level.
 
 ## Gradually verifiable
 
-Just because it's *possible* to fully verify all code, doesn't mean it should be *required*. It simply isn't practical to try to completely rewrite a legacy system in order to verify it. Successful languages with goals of increased rigor such as Rust and Typescript strategically use concessions in the language such as `unsafe` and `any` to allow more rigorous code to coexist with legacy code as it's incrementally replaced. The only problem is that these concessions introduce genuine soundness gaps into the language, and it's often difficult or impossible to really understand how exposed your program is to these safety gaps.
+Just because it's *possible* to fully verify all code, doesn't mean it should be *required*. It simply isn't practical to try to completely rewrite a legacy system in order to verify it. **We must be able to write code without needing to prove it's perfectly correct**, otherwise iteration and incremental adoption are impossible. Existing languages with goals of increased rigor such as Rust and Typescript strategically use concessions in the language such as `unsafe` and `any` to allow more rigorous code to coexist with legacy code as it's incrementally replaced. The only problem is that these concessions introduce genuine soundness gaps into the language, and it's often difficult or impossible to really understand how exposed your program is to these safety gaps.
 
-We can get both practical incremental adoption and complete understanding of the current safety of our program by leveraging work done in the [Iron obligation management logic](https://iris-project.org/pdfs/2019-popl-iron-final.pdf) built using Iris. We can use a concept of **trackable effects** to allow some safety conditions to be *optional*, so a project can successfully compile code without proving everything about it is safe, making fast iteration and incremental adoption possible.
+We can get both practical incremental adoption and complete understanding of the current safety of our program by leveraging work done in the [Iron obligation management logic](https://iris-project.org/pdfs/2019-popl-iron-final.pdf) built using Iris. We can use a concept of trackable effects to allow some safety conditions to be *optional*.
 
 Trackable effects will work by requiring a piece of some "correctness token" to be forever given up in order to perform a dangerous operation without justifying its safety with a proof. This would infect the violating code block with an effect type that will bubble up through any parent blocks. Defining effects in this way makes them completely composable *resources* rather than *wrappers*, meaning that they're more flexible and powerful than existing effect systems. Systems like algebraic effects or effect monads could be implemented using this resource paradigm, but the opposite isn't true.
 
 If the trackable effect system is defined in a sufficiently generic way then custom trackable effects could be created, allowing different projects to introduce new kinds of safety and correctness tracking, such as ensuring asynchronous code doesn't block the executor, or a web app doesn't render raw untrusted input, or a server doesn't leak secrets.
 
-Even if a project chooses to ignore some effects, they'll always know those effects are there, which means that other possible users of the project will know as well. Project teams could choose to fail compilation if their program isn't memory safe or could panic, while others could tolerate some possible effects or write proofs to assert they only happen in certain well-defined circumstances. It would even be possible to create code that provably sandboxes an effect by ensuring it can't be detected at any higher level if contained within the sandbox. With all these systems in place, we can finally have a genuinely secure software ecosystem!
+Even if a project chooses to ignore some effects, they'll always know those effects are there, which means other possible users of the project will know as well. Project teams could choose to fail compilation if their program isn't memory safe or could panic, while others could tolerate some possible effects or write proofs to assert they only happen in certain well-defined circumstances. It would even be possible to create code that provably sandboxes an effect by ensuring it can't be detected at any higher level if contained within the sandbox. With all these systems in place, we can finally have a genuinely secure software ecosystem!
 
 ## Fully reusable
 
 We can't write all software in assembly language! Including first-class support for powerful metaprogramming, alongside a [query-based compiler](https://ollef.github.io/blog/posts/query-based-compilers.html), will allow users of this language to build verified abstractions that "combine upward" into higher levels, while still allowing the possibility for those higher levels to "drop down" back into the lower levels. Being a proof assistant, these escape hatches don't have to be unsafe, as higher level code can provide proofs to the lower level to justify its actions.
 
-This ability to create fully verifiable higher level abstractions means we can create a "verification pyramid", with excruciatingly verified software forming a foundation for a spectrum of software that decreases in importance and rigor. Not all software has the same constraints, and it would be dumb to to verify a recipe app as rigorously as a cryptography function. But even a recipe app would benefit from its foundations removing the need to worry about whole classes of safety and soundness conditions.
+This ability to create fully verifiable higher level abstractions means we can create a "verification pyramid", with excruciatingly verified software forming a foundation for a spectrum of software that decreases in importance and rigor. **Not all software has the same constraints, and it would be dumb to to verify a recipe app as rigorously as a cryptography function.** But even a recipe app would benefit from its foundations removing the need to worry about whole classes of safety and soundness conditions.
 
 Magmide *itself* doesn't have to achieve mainstream success to massively improve the quality of all downstream software, but merely some sub-language. Many engineers have never heard of LLVM, but they still implicitly rely on it every day. Magmide would seek to do the same. We don't have to make formal verification fully mainstream, we just have to make it available for the handful of people willing to do the work. If a full theorem prover is sitting right below the high-level language you're currently working in, you don't have to bother with it most of the time, but you still have the option to do so when it makes sense.
 
@@ -80,15 +105,13 @@ You can find rough notes about the current design thinking for the metaprogrammi
 
 My experience using languages like Coq has been extremely painful, and the interface is "more knife than handle". I've been astounded how willing academics seem to be to use extremely clunky workflows and syntaxes just to avoid having to build better tools.
 
-To achieve this goal, this project will learn heavily from `cargo` and other excellent projects. It should be possible to verify, interactively prove, query, compile, and run any Magmide code with a single tool.
-
-An important design choice that will likely make the tool easier to understand and use is the "Logic/Host split" [(discussed deeply in `posts/design-of-magmide.md`)](./posts/design-of-magmide.md) that clearly separates "imaginary" pure functional code from the "real" imperative computational code.
+To meet this description, this project will learn heavily from `cargo` and other excellent projects. **It should be possible to verify, interactively prove, query, compile, and run any Magmide code with a single tool.** The split Logic/Host architecture will likely make it easier to understand and use Magmide.
 
 ## Taught effectively
 
-Working engineers are resource constrained and don't have years of free time to wade through arcane and disconnected academic papers. Academics aren't incentivized to properly explain and expose their amazing work, and a massive amount of [research debt](https://distill.pub/2017/research-debt/) has accrued in many fields, including formal verification.
+**Working engineers are resource constrained and don't have years of free time to wade through arcane and disconnected academic papers.** Academics aren't incentivized to properly explain and expose their amazing work, and a massive amount of [research debt](https://distill.pub/2017/research-debt/) has accrued in many fields, including formal verification.
 
-To achieve this goal, this project will enshrine the following values in regard to teaching materials:
+To meet this description, this project will enshrine the following values in regard to teaching materials:
 
 - Speak to a person who wants to get something done and not a review committee evaluating academic merit.
 - Put concrete examples front and center.
@@ -96,17 +119,49 @@ To achieve this goal, this project will enshrine the following values in regard 
 - Prefer graspable human words to represent ideas, never use opaque and unsearchable non-ascii symbols, and only use symbolic notations when it's both truly useful and properly explained.
 - Prioritize the hard work of finding clear and distilled explanations.
 
-# Design pillars
+---
 
-How do we design something capable of meeting all the above design constraints? By choosing three pillar features that nicely interlock with each other and then "maxing them out" to the most powerful versions of themselves, we can build a tool capable of achieving our goal with the smallest amount of effort possible. These pillars hold up the entire design:
+Read [`posts/design-of-magmide.md`](./posts/design-of-magmide.md) or [`posts/comparisons-with-other-projects.md`](./posts/comparisons-with-other-projects.md) to more deeply understand the intended design and how it's different than other projects.
 
-- **Maxed out in logical power** by using the strongest type theory we can find. Without this the design wouldn't be able to handle lots of interesting/useful/necessary problems, and couldn't be adopted by many teams. It wouldn't be able to act as a true *foundation* for verified computing. It's important to note that this one design feature enables all the other features involving formal logic, such as the ability to formalize bare metal computation at a high level of abstractness and the use of trackable effects.
-- **Maxed out in computational power** by self-hosting in a bare metal language. If the language were interpreted or garbage collected then it would always perform worse than is strictly possible. It would be silly for metaprogramming to be done in a different language than the intended target languages. If we're going to formalize bare metal computation, we might as well use it to build the tool itself!
-- **Maxed out in expressive power** by making it deeply metaprogrammable from the beginning. Metaprogramming is basically a cheat code for language design, since it gives a language access to an infinite range of possible features without having to explicitly support them. It's the single best primitive to add in terms of implementation overhead versus expressiveness. Making the compiler query-based maxes out metaprogrammatic capability, since every bit of work done in the core compiler can be exposed for reuse.
+Building such a language is a massively ambitious goal. It might even be too ambitious! But we have to also consider the opposite: perhaps previous projects haven't been ambitious enough, and that's why formal verification is still niche! Software has been broken for too long, and we won't have truly solved the problem until it's at least *possible* for all software to be verified.
 
-I claim that none of these major features could be removed or weakened and still allow the project to achieve its goals. If these features weren't the strongest versions of themselves we would be leaving power on the table that we wouldn't have to, and we'd just be wasting time before some other better design shows up in a few years. All these design features are tractable, so we shouldn't stop short.
+<!--
+the important bottleneck to the broader adoption and application of formal methods isn't the outstanding difficult problems, it is the "day one" problems of usability and reusability.
+it's a massive waste for all the existing formal methods research to occur in languages and tools that will never achieve widespread adoption. it won't matter if researchers are able to discover solutions to outstanding difficult problems if their solutions can't be practically used.
+magmide doesn't intend to solve any difficult problems, but merely to package a bunch of existing solutions into something that can already be used.
+formal methods techniques are already powerful enough to solve huge swathes of extremely common and expensive software problems. with existing theory we could build provably correct languages and compilers, provably correct standard libraries, operating systems with provably secure capability systems and permissions, provably secure code sandboxes, etc.
+yes many problems or systems are too fuzzy or fast-moving to make correctness specifications worth the effort. but wouldn't it be much better if those systems were *built using* correct and secure infrastucture? software is exponential, so both its failure and its robustness is exponential as well. if a small amount of infrastructural software were
 
-Building such a language is a massively ambitious goal. It might even be too ambitious! But we have to also consider the opposite: perhaps previous projects haven't been ambitious enough, and that's why formal verification is still niche! Software has been broken for too long, and we won't have truly solved the problem until it's possible and tractable for *all* software to be verified.
+yes certainly we will still have to correctly state our specifications and theorems, but auditing specifications and theorems that don't have to worry about performance or other implementation details ought to be easier to do correctly than auditing entire functional systems. if that isn't true, then if the system in question is actually important enough that its security and robustness matters, then its design should be rethought to make it easier to specify and prove correct.
+and importantly, we already design "specifications" when we design the types for a program. you can make a mistake when you specify the types of your program (you make a field a signed integer when it's important it's unsigned). but mistakes like this tend to be caught, since the assumptions of types relate to many other assumptions (such as those you make when you're actually operating on the incorrectly typed value). the more pieces of your system that have types, and the more strict those types are, and the more all the types relate to each, the more those bad assumptions and mistakes will tend to be revealed and fixed.
+
+this matters! we need to at least *begin* the process of solidifying the *foundations* of our software infrastructure. systems software is the first domain where formal methods are desperately needed to close up the obvious problems. we'll certainly iterate and improve over time, but there's no excuse for us to wait around
+
+
+
+
+
+
+
+
+Here's the reason I haven't enabled donations for this project: I don't want to take any amount of money until I'm confident I can actually give something in return.
+The ambition of this project means it's pretty "all or nothing". I either want to be
+
+
+Should we bother trying to make a proof language designed for engineers? Shouldn't we build one focused on mathematicians and researchers so they'll finally formalize their important results, and then those results can be used?
+
+No. It seems clear to me that by targeting the needs of practicing engineers, the project will cover the needs of academic researchers at the same time.
+
+If you create a tool that is both a proof language and an abstract assembly language, primarily intended for approachable usage by engineers, then you'll necessarily create a theorem prover that's enjoyable and ergonomic to use, that supports easy sharing and reuse of proof labor across the whole ecosystem. That design doesn't in any way preclude building in the goodies and supporting the workflows that pure mathematicians like (using/supporting homotopy type theory, allowing concise notation using a flexible metaprogramming system, rendering proofs as latex/pdf/html/whatever documents). Such a tool would attract pure mathematicians, but a beautiful theorem prover without any special capability to reason about or compile bare metal code wouldn't attract engineers.
+
+The verification use cases engineers care about are more specific and more difficult to support than those pure mathematicians care about (we already have usable theorem provers, but not ones that are that useful for working with bare metal code). If we nail the use cases engineers care about, we'll get the use cases pure mathematicians care about basically for free.
+
+The Logic/Host split seems especially important in enabling practical verification of bare metal code. It seems to me to be an optimal fixed point in the design space, since I can't imagine another architecture that would allow all of the language components (proof checker, code compiler, target code being compiled) the possibility to be both bare metal and fully verified. At this point I'm convinced this design *uniquely* enables all those goals to be fulfilled simultaneously. I would of course be thrilled to be persuaded that some other simpler architecture would also work, but that hasn't happened yet.
+-->
+
+
+
+
 
 <!--
 # Project values
@@ -138,13 +193,13 @@ Mostly because this idea exists in an "incentive no man's land".
 
 Academics aren't incentivized to create something like this, because doing so is just "applied" research which tends not to be as prestigious. You don't get to write many groundbreaking papers by taking a bunch of existing ideas and putting them together nicely.
 
-Software engineers aren't incentivized to create something like this, because a programming language is a pure public good and there aren't any truly viable business models that can support it while still remaining open. Even amazing public good ideas like the [interplanetary filesystem](https://en.wikipedia.org/wiki/InterPlanetary_File_System) could be productized by applying the protocol to markets of networked computers, but a programming language can't really pull off that kind of maneuver.
+Software engineers aren't incentivized to create something like this, because a programming language is a pure public good and there aren't any truly viable business models that can support it while still remaining open. Even amazing public good ideas like the [interplanetary filesystem](https://en.wikipedia.org/wiki/InterPlanetary_File_System) can be productized by applying the protocol to markets of networked computers, but a programming language can't really pull off that kind of maneuver.
 
 Although the software startup ecosystem does routinely build pure public goods such as databases and web frameworks, those projects tend to have an obvious and relatively short path to being useful in revenue-generating SaaS companies. The problems they solve are clear and visible enough that well-funded engineers can both recognize them and justify the time to fix them. In contrast the path to usefulness for a project like Magmide is absolutely not short, and despite promising immense benefits to both our industry and society as a whole, most engineers capable of building it can't clearly see those benefits behind the impenetrable fog of research debt.
 
 <!-- The problem of not properly funding pure public goods is much bigger than just this project. We do a bad job of this in every industry and so our society has to tolerate a lot of missed opportunity and negative externalities. The costs of broken software are more often borne by society than the companies at fault since insurance and limited-liability structures and PR shenanigans and expensive lawyers can all help a company wriggle out of fully internalizing the cost of their mistakes. Profit-motivated actors are extremely short-sighted and don't have to care if they leave society better off, they just have to get marketshare. -->
 
-We only got Rust because Mozilla has been investing in dedicated research for a long time, and it still doesn't seem to have really paid off for them in the way you might hope.
+We only got Rust because Mozilla has been investing in dedicated research for a long time, and it still doesn't seem to have really financially paid off for them in the way you might hope.
 
 ## Will working engineers actually use it?
 
