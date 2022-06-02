@@ -21,7 +21,7 @@ pub enum Value {
     Ref(i32),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Instruction {
     Return(Value),
     Add(i32, Value, Value),
@@ -129,6 +129,11 @@ ocaml_export! {
     fn rust_parse(cr, expr: OCamlRef<String>) -> OCaml<Result<OCamlList<Instruction>, String>> {
         let expr: String = expr.to_rust(&cr);
         parse(expr.as_str()).map_err(|err| format!("{:#}", err)).to_ocaml(cr)
+    }
+
+    fn rust_parse_one(cr, expr: OCamlRef<String>) -> OCaml<Result<Instruction, String>> {
+        let expr: String = expr.to_rust(&cr);
+        parse(expr.as_str()).map(|v| *v.first().unwrap()).map_err(|err| format!("{:#}", err)).to_ocaml(cr)
     }
 
     fn rust_parse_file(cr, filename: OCamlRef<String>) -> OCaml<Result<OCamlList<Instruction>, String>> {

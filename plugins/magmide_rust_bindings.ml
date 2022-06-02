@@ -13,6 +13,7 @@ type instruction =
 
 module Rust = struct
   external parse : string -> (instruction list, string) Result.t = "rust_parse"
+  external parse_one : string -> (instruction, string) Result.t = "rust_parse_one"
   external render : instruction list -> string -> unit = "rust_render"
 end
 
@@ -26,6 +27,21 @@ open Constrexpr
 let ref s = CAst.make (CRef (Libnames.qualid_of_string s, None))
 
 let arg x = (CAst.make x, None)
+
+let num n = arg (CPrim (Number (NumTok.Signed.of_string (Int.to_string n))))
+
+let mkNum s n = CApp (ref s, [num n])
+
+let hello_val (v : value) : constr_expr_r CAst.t = CAst.make (match v with
+        | Const n -> mkNum "Const" n
+        | Ref r -> mkNum "Ref" r
+)
+
+let hello (i : instruction) : constr_expr_r CAst.t = CAst.make (match i with
+        | Return v -> CApp (ref "Return", [hello_val v, None])
+        | Add (r, op1, op2) -> CApp (ref "Add", [num r; hello_val op1, None; hello_val op2, None])
+)
+
 (*
 let rec hello (a : ast) : constr_expr_r CAst.t = CAst.make (match a with
   | Add (a, b) -> CApp (ref "Add", [hello a, None; hello b, None])
@@ -58,8 +74,7 @@ let%test_unit "parse return ref" =
   [%test_eq: (instruction list, string) Result.t ] (Rust.parse "return %4") (Ok [Return (Ref 4)])
 let%test_unit "parse add" =
   [%test_eq: (instruction list, string) Result.t ] (Rust.parse "%0 = 1 + 1") (Ok [Add (0, Const(1), Const(1))])
-(* 
 let%test_unit "parse prog" =
   [%test_eq: (instruction list, string) Result.t ]
     (Rust.parse "%0 = 1 + 1\n%1 = %0 + %0\nreturn %1")
-    (Ok [Add (0, (Const 1), (Const 1)); Add (1, Ref(0), Ref(0)); Return (Const 4)]) *)
+    (Ok [Add (0, (Const 1), (Const 1)); Add (1, Ref(0), Ref(0)); Return (Ref 1)])
