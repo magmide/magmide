@@ -9,9 +9,9 @@ DECLARE PLUGIN "magmide_plugin"
 open Pp
 open Stdarg
 
-open Magmide_rust_bindings
+(* open Magmide_rust_bindings *)
 
-let scoop = Magmide_rust_bindings.Rust.parse
+(* let scoop = Magmide_rust_bindings.Rust.parse *)
 
 let declare_definition ~poly name env sigma expr =
 	let (sigma, body) = Constrintern.interp_constr_evars env sigma expr in
@@ -49,27 +49,23 @@ VERNAC COMMAND EXTEND Magmide CLASSIFIED AS SIDEFF
 	Feedback.msg_notice (strbrk "Defined " ++ Printer.pr_global r ++ strbrk ".")
 } END
 
-VERNAC COMMAND EXTEND MagmideParse CLASSIFIED AS SIDEFF
-| #[ poly = Attributes.polymorphic ] [ "MagmideParse" string(code) "as" ident(name) ] -> {
-	(* let expr = Magmide_rust_bindings.Rust.parse(code) in *)
-
-	print_endline (show_r (Rust.parse(code)));
-	(* let _ = Rust.parse(code) in *)
-	(* let () = print_endline (show_r (Rust.parse(code))) in *)
-	(* let () = print_endline (show_r a) in *)
-	(* let b = Result.get_ok a in *)
-	(* let () = print_endline (show b) in *)
-
-	()
-
-(* 	let expr = hello b in *)
-(* 	(1* let expr = hello (Result.get_ok (Rust.parse(code))) in *1) *)
-(* 	let env = Global.env () in *)
-(* 	let sigma = Evd.from_env env in *)
-(* 	let r = declare_definition ~poly name env sigma expr in *)
-(* 	Feedback.msg_notice (strbrk "MagmideParse defined " ++ Printer.pr_global r ++ strbrk ".") *)
-
-} END
+(* VERNAC COMMAND EXTEND MagmideParse CLASSIFIED AS SIDEFF *)
+(* | #[ poly = Attributes.polymorphic ] [ "MagmideParse" string(code) "as" ident(name) ] -> { *)
+(* 	(1* let expr = Magmide_rust_bindings.Rust.parse(code) in *1) *)
+(* 	print_endline (show_r (Rust.parse(code))); *)
+(* 	(1* let _ = Rust.parse(code) in *1) *)
+(* 	(1* let () = print_endline (show_r (Rust.parse(code))) in *1) *)
+(* 	(1* let () = print_endline (show_r a) in *1) *)
+(* 	(1* let b = Result.get_ok a in *1) *)
+(* 	(1* let () = print_endline (show b) in *1) *)
+(* 	() *)
+(* (1* 	let expr = hello b in *1) *)
+(* (1* 	(2* let expr = hello (Result.get_ok (Rust.parse(code))) in *2) *1) *)
+(* (1* 	let env = Global.env () in *1) *)
+(* (1* 	let sigma = Evd.from_env env in *1) *)
+(* (1* 	let r = declare_definition ~poly name env sigma expr in *1) *)
+(* (1* 	Feedback.msg_notice (strbrk "MagmideParse defined " ++ Printer.pr_global r ++ strbrk ".") *1) *)
+(* } END *)
 
 VERNAC COMMAND EXTEND MagmideInspectExpr CLASSIFIED AS QUERY
 | [ "MagmideInspectExpr" constr(expr) ] -> {

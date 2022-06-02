@@ -16,10 +16,17 @@ pkgs.mkShell {
     llvmPackages_13.llvm
     (runCommand "lli-13" {} "mkdir -p $out/bin && ln -s ${llvmPackages_13.llvm}/bin/lli $out/bin/lli-13")
     ocaml
+    ocamlformat
+    opam
     rustc
   ] ++ (with ocamlPackages; [
     findlib
     alcotest
+    merlin
+    ocaml-lsp
+    ppx_assert
+    ppx_inline_test
+    sexplib
     zarith
   ]);
 
