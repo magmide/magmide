@@ -154,6 +154,18 @@ thm four_is_even: even(4); my_prf$
   ++crushit
 ```
 
+## Heavy use of computational reflection to improve proof performance
+
+[Computational reflection](https://gmalecha.github.io/reflections/2017/speeding-up-proofs-with-computational-reflection) is a technique that can dramatically speeds up proof discovery or proof checking by running *verified* functions *at proof checking time* to check some values meet some condition or discover remaining verification conditions or both.
+
+Computational reflection is only possible if the proof language can both verify facts about a runnable function and call that runnable function at proof checking time. Coq is an example of a language that can do so, but Coq itself is still quite slow. However because Magmide will use the split Logic/Host architecture, it has the opportunity to use verified *bare metal* functions for computational reflection, which can be *dramatically* faster than Coq.
+
+## Incremental compilation as widely as possible
+
+[Incremental compilation](https://blog.rust-lang.org/2016/09/08/incremental.html) is a critical technique to ensure most compilation/type checking runs are reasonably fast. This is a very common technique in normal programming languages, but it [doesn't seem to have been implemented widely in proof assistants](https://proofassistants.stackexchange.com/questions/335/what-is-the-state-of-recompilation-avoidance-in-proof-assistants).
+
+In proof assistants that heavily use automated tactics one of the most expensive parts of proof checking is actually running the automated tactics to discover proofs, since those tactics often have to walk a very large search space before they successfully find the right proof terms. Although bare metal tactics/metaprogramming and the computational reflection discussed in the above section will mitigate some of this cost, it still makes sense to avoid rerunning tactics or rechecking proofs if none of their dependencies have changed.
+
 ## Builtin syntax for tuple-like and record-like types
 
 In Coq all types are just inductive types, and those that only have one constructor are essentially equivalent to tuple or record types in other languages. This means that *all* data accesses have to ultimately desugar to `match` statements.
