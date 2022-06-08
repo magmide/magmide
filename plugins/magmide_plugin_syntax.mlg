@@ -1,4 +1,4 @@
-(* https://project.inria.fr/coqexchange/-small-tutorial-for-ocaml-plugins-to-extend-the-coq-system/ *)
+(* https://project.inria.fr/coqexchange/a-small-tutorial-for-ocaml-plugins-to-extend-the-coq-system/ *)
 (* http://gallium.inria.fr/blog/your-first-coq-plugin/ *)
 (* https://github.com/coq/coq/tree/a59c356a45180dd56b1ec86c8725a257bffe71fa/doc/plugin_tutorial *)
 (* https://coq.github.io/doc/master/api/coq-core/index.html *)
