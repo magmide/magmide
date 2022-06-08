@@ -12,12 +12,12 @@ open Magmide_rust_bindings
 
 VERNAC COMMAND EXTEND Magmide CLASSIFIED AS SIDEFF
 | #[ poly = Attributes.polymorphic ] [ "Magmide" string(filename) "as" ident(name) ] -> {
-	magmide ~poly Rust.magmide filename name
+	declare_magmide ~poly Rust.parse_file_and_emit filename name
 } END
 
 VERNAC COMMAND EXTEND MagmideNoEmit CLASSIFIED AS SIDEFF
 | #[ poly = Attributes.polymorphic ] [ "MagmideNoEmit" string(filename) "as" ident(name) ] -> {
-	magmide ~poly Rust.parse_file filename name
+	declare_magmide ~poly Rust.parse_file filename name
 } END
 
 VERNAC COMMAND EXTEND MagmideInspectExpr CLASSIFIED AS QUERY

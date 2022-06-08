@@ -13,5 +13,10 @@
     (run ln -sf ../../../../Cargo.lock ../Cargo.lock)
     (run cargo build)
     (system
-     "cp ../target/debug/libmagmide.so ./dllmagmide_rust.so 2> /dev/null || cp ../target/debug/libmagmide.dylib ./dllmagmide_rust.so")
-    (run cp ../target/debug/libmagmide.a ./libmagmide_rust.a)))))
+     "cp ../target/debug/libmagmide.so ./dllmagmide_rust.so 2> /dev/null || cp ../target/debug/libmagmide.dylib ./dllmagmide_rust.so"
+		)
+    (run cp ../target/debug/libmagmide.a ./libmagmide_rust.a)
+   )
+  )
+ )
+)

@@ -1,4 +1,4 @@
-Declare ML Module "magmide.plugin".
+Declare ML Module "magmide_plugin".
 Require Import String.
 Open Scope string_scope.
 

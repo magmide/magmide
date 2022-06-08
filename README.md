@@ -337,8 +337,8 @@ If you would like to get up to speed with formal verification and Coq enough to 
 
 Here's a broad map of all the mad scribblings in this repo:
 
-- `old` contains exploratory Coq code, much of which is unfinished. This is where I've been playing with designs for the foundational computational theory.
-- `src`, `plugins`, and `theory` contains Rust, Ocaml, and Coq code representing the current skeleton of the [initial bootstrapping toolchain](./posts/design-of-magmide.md#project-plan).
+- `theory` contains exploratory Coq code, much of which is unfinished. This is where I've been playing with designs for the foundational computational theory.
+- `src`, `plugins`, and `test_theory` contains Rust, Ocaml, and Coq code representing the current skeleton of the [initial bootstrapping toolchain](./posts/design-of-magmide.md#project-plan).
 - `posts` has a lot of speculative writing, mostly to help me nail down the goals and design of the project.
 - `notes` has papers on relevant topics and notes I've made purely for my own learning.
 - `notes.md` is a scratchpad for raw ideas, usually ripped right from my brain with very little editing.

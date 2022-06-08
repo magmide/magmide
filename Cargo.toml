@@ -3,14 +3,14 @@ name = "magmide"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "magmide"
-path = "src/bin.rs"
-
 [lib]
 name = "magmide"
 path = "src/lib.rs"
 crate-type = ["staticlib", "cdylib"]
+
+[build]
+# https://doc.rust-lang.org/cargo/reference/config.html
+rustflags = ["-l", "LLVM-13", "-C", "link-args=-Wl,-undefined,dynamic_lookup"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
