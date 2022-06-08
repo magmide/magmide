@@ -20,7 +20,6 @@ pkgs.mkShell {
     rustc
   ] ++ (with ocamlPackages; [
     findlib
-    alcotest
     ocaml-lsp
     ppx_assert
     ppx_inline_test
