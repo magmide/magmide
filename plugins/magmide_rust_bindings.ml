@@ -21,10 +21,9 @@ end
 open Constrexpr
 
 let ref s = CRef (Libnames.qualid_of_string s, None)
-
+let mkRef s = CAst.make (ref s)
 let num n = (CAst.make (CPrim (Number (NumTok.Signed.of_string (Int.to_string n)))), None)
-
-let mkNum s n = CApp (CAst.make (ref s), [num n])
+let mkNum s n = CApp (mkRef s, [num n])
 
 let coq_of_value (v : value) : constr_expr_r CAst.t = CAst.make (match v with
         | Const n -> mkNum "Const" n
@@ -32,12 +31,12 @@ let coq_of_value (v : value) : constr_expr_r CAst.t = CAst.make (match v with
 )
 
 let coq_of_instruction (i : instruction) : constr_expr_r CAst.t = CAst.make (match i with
-        | Return v -> CApp (CAst.make (ref "Return"), [coq_of_value v, None])
-        | Add (r, op1, op2) -> CApp (CAst.make (ref "Add"), [num r; coq_of_value op1, None; coq_of_value op2, None])
+        | Return v -> CApp (mkRef "Return", [coq_of_value v, None])
+        | Add (r, op1, op2) -> CApp (mkRef "Add", [num r; coq_of_value op1, None; coq_of_value op2, None])
 )
 
 let rec coq_of_instructions (is : instruction list) : constr_expr_r CAst.t = CAst.make (match is with
-        | x :: xs -> CApp (CAst.make (ref "cons"), [coq_of_instruction x, None; coq_of_instructions xs, None])
+        | x :: xs -> CApp (mkRef "cons", [coq_of_instruction x, None; coq_of_instructions xs, None])
         | [] -> ref "nil"
 )
 
