@@ -20,11 +20,6 @@ let declare_definition ~poly name env sigma expr =
 	let info = Declare.Info.make ~scope ~kind  ~udecl ~poly () in
 	Declare.declare_definition ~info ~cinfo ~opaque:false ~body sigma
 
-let read_whole_file filename =
-	let ch = open_in filename in
-	let s = really_input_string ch (in_channel_length ch) in
-	close_in ch;
-	s
 }
 
 VERNAC COMMAND EXTEND Magmide CLASSIFIED AS SIDEFF
