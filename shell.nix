@@ -21,7 +21,6 @@ pkgs.mkShell {
   ] ++ (with ocamlPackages; [
     findlib
     alcotest
-    merlin
     ocaml-lsp
     ppx_assert
     ppx_inline_test
