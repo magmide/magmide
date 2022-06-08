@@ -123,16 +123,11 @@ pub fn render<P: AsRef<Path>>(instructions: &[Instruction], to: P) {
     }
 
     module.write_bitcode_to_path(to.as_ref());
-    println!("done: {:?}", to.as_ref());
 }
 
 pub fn magmide(filename: &str) -> Result<Vec<Instruction>, Error> {
     let prog = parse_file(filename)?;
-    println!("hi");
-    println!("path: {:?}", Path::new(filename).with_extension("bc"));
-    println!("prog: {:?}", &prog);
     render(&prog, Path::new(filename).with_extension("bc"));
-    println!("there");
     Ok(prog)
 }
 
