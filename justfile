@@ -10,3 +10,7 @@ lab:
 	cargo run
 	lli-13 lab.bc
 	echo $?
+
+test:
+	cargo test
+	dune runtest
