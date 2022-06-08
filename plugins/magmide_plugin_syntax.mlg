@@ -36,6 +36,15 @@ VERNAC COMMAND EXTEND Magmide CLASSIFIED AS SIDEFF
 	Feedback.msg_notice (strbrk "Magmide defined " ++ Printer.pr_global r ++ strbrk ".")
 } END
 
+VERNAC COMMAND EXTEND MagmideNoEmit CLASSIFIED AS SIDEFF
+| #[ poly = Attributes.polymorphic ] [ "Magmide" string(filename) "as" ident(name) ] -> {
+	let expr = hellos (Result.get_ok (Rust.parse(filename))) in
+	let env = Global.env () in
+	let sigma = Evd.from_env env in
+	let r = declare_definition ~poly name env sigma expr in
+	Feedback.msg_notice (strbrk "Magmide defined " ++ Printer.pr_global r ++ strbrk ".")
+} END
+
 VERNAC COMMAND EXTEND MagmideInspectExpr CLASSIFIED AS QUERY
 | [ "MagmideInspectExpr" constr(expr) ] -> {
 	Feedback.msg_debug (strbrk (Magmide_constrexpr.dbg_constrexpr expr))
