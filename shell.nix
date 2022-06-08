@@ -9,7 +9,6 @@ pkgs.mkShell {
     cargo
     coq
     dune_3
-    inotify-tools
     just
     libffi
     libiconv
@@ -28,7 +27,9 @@ pkgs.mkShell {
     ppx_inline_test
     sexplib
     zarith
-  ]);
+  ]) ++ lib.optionals (lib.strings.hasSuffix "linux" builtins.currentSystem) [
+    inotify-tools # not supported on darwin
+  ];
 
   RUSTFLAGS = "-l LLVM-13";
 }
