@@ -5,28 +5,9 @@
 
 DECLARE PLUGIN "magmide_plugin"
 {
-(* open Ltac_plugin *)
 open Pp
 open Stdarg
-
 open Magmide_rust_bindings
-
-let declare_definition ~poly name env sigma expr =
-	let (sigma, body) = Constrintern.interp_constr_evars env sigma expr in
-	let udecl = UState.default_univ_decl in
-	let scope = Locality.Global Locality.ImportDefaultBehavior in
-	let kind = Decls.(IsDefinition Definition) in
-	let cinfo = Declare.CInfo.make ~name ~typ:None () in
-	let info = Declare.Info.make ~scope ~kind  ~udecl ~poly () in
-	Declare.declare_definition ~info ~cinfo ~opaque:false ~body sigma
-
-let magmide ~poly fn filename name =
-	let expr = coq_of_instructions (Result.get_ok (fn filename)) in
-	let env = Global.env () in
-	let sigma = Evd.from_env env in
-	let r = declare_definition ~poly name env sigma expr in
-	Feedback.msg_notice (strbrk "Magmide defined " ++ Printer.pr_global r ++ strbrk ".")
-
 }
 
 VERNAC COMMAND EXTEND Magmide CLASSIFIED AS SIDEFF

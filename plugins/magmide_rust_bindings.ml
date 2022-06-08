@@ -40,6 +40,24 @@ let rec coq_of_instructions (is : instruction list) : constr_expr_r CAst.t = CAs
         | [] -> ref "nil"
 )
 
+let declare_definition ~poly name env sigma expr =
+	let (sigma, body) = Constrintern.interp_constr_evars env sigma expr in
+	let udecl = UState.default_univ_decl in
+	let scope = Locality.Global Locality.ImportDefaultBehavior in
+	let kind = Decls.(IsDefinition Definition) in
+	let cinfo = Declare.CInfo.make ~name ~typ:None () in
+	let info = Declare.Info.make ~scope ~kind  ~udecl ~poly () in
+	Declare.declare_definition ~info ~cinfo ~opaque:false ~body sigma
+
+open Pp
+
+let magmide ~poly fn filename name =
+	let expr = coq_of_instructions (Result.ok_or_failwith (fn filename)) in
+	let env = Global.env () in
+	let sigma = Evd.from_env env in
+	let r = declare_definition ~poly name env sigma expr in
+	Feedback.msg_notice (strbrk "Magmide defined " ++ Printer.pr_global r ++ strbrk ".")
+
 let%test_unit "parse noop" =
   [%test_eq: (instruction list, string) Result.t ] (Rust.parse "") (Ok [])
 let%test_unit "parse return" =
