@@ -27,7 +27,6 @@ let rec dbg_constrexpr e = CAst.with_val (fun (e) -> match e with
 	(* | CAppExpl of (qualid * instance_expr option) * constr_expr list *)
 	| CAppExpl _ -> "AppExpl"
 	(* | CApp of constr_expr * (constr_expr * explicitation CAst.t option) list *)
-	(* | CApp (e, l) -> "(App " ^ dbg_constrexpr e ^ ")" *)
 	| CApp (e, l) -> "(App " ^ dbg_constrexpr e ^ " " ^ String.concat " " (List.map dbg_explicated l) ^ ")"
 	(* | CProj of explicit_flag * (qualid * instance_expr option) * (constr_expr * explicitation CAst.t option) list * constr_expr *)
 	| CProj _ -> "Proj"
