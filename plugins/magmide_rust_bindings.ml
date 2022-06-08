@@ -26,18 +26,18 @@ let num n = (CAst.make (CPrim (Number (NumTok.Signed.of_string (Int.to_string n)
 
 let mkNum s n = CApp (CAst.make (ref s), [num n])
 
-let hello_val (v : value) : constr_expr_r CAst.t = CAst.make (match v with
+let coq_of_value (v : value) : constr_expr_r CAst.t = CAst.make (match v with
         | Const n -> mkNum "Const" n
         | Ref r -> mkNum "Ref" r
 )
 
-let hello (i : instruction) : constr_expr_r CAst.t = CAst.make (match i with
-        | Return v -> CApp (CAst.make (ref "Return"), [hello_val v, None])
-        | Add (r, op1, op2) -> CApp (CAst.make (ref "Add"), [num r; hello_val op1, None; hello_val op2, None])
+let coq_of_instruction (i : instruction) : constr_expr_r CAst.t = CAst.make (match i with
+        | Return v -> CApp (CAst.make (ref "Return"), [coq_of_value v, None])
+        | Add (r, op1, op2) -> CApp (CAst.make (ref "Add"), [num r; coq_of_value op1, None; coq_of_value op2, None])
 )
 
-let rec hellos (is : instruction list) : constr_expr_r CAst.t = CAst.make (match is with
-        | x :: xs -> CApp (CAst.make (ref "cons"), [hello x, None; hellos xs, None])
+let rec coq_of_instructions (is : instruction list) : constr_expr_r CAst.t = CAst.make (match is with
+        | x :: xs -> CApp (CAst.make (ref "cons"), [coq_of_instruction x, None; coq_of_instructions xs, None])
         | [] -> ref "nil"
 )
 

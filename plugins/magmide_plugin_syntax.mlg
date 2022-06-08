@@ -29,7 +29,7 @@ let read_whole_file filename =
 
 VERNAC COMMAND EXTEND Magmide CLASSIFIED AS SIDEFF
 | #[ poly = Attributes.polymorphic ] [ "Magmide" string(filename) "as" ident(name) ] -> {
-	let expr = hellos (Result.get_ok (Rust.magmide(filename))) in
+	let expr = coq_of_instructions (Result.get_ok (Rust.magmide(filename))) in
 	let env = Global.env () in
 	let sigma = Evd.from_env env in
 	let r = declare_definition ~poly name env sigma expr in
@@ -38,7 +38,7 @@ VERNAC COMMAND EXTEND Magmide CLASSIFIED AS SIDEFF
 
 VERNAC COMMAND EXTEND MagmideNoEmit CLASSIFIED AS SIDEFF
 | #[ poly = Attributes.polymorphic ] [ "Magmide" string(filename) "as" ident(name) ] -> {
-	let expr = hellos (Result.get_ok (Rust.parse(filename))) in
+	let expr = coq_of_instructions (Result.get_ok (Rust.parse(filename))) in
 	let env = Global.env () in
 	let sigma = Evd.from_env env in
 	let r = declare_definition ~poly name env sigma expr in
