@@ -29,7 +29,6 @@ let rec dbg_constrexpr e = CAst.with_val (fun (e) -> match e with
 	(* | CApp of constr_expr * (constr_expr * explicitation CAst.t option) list *)
 	(* | CApp (e, l) -> "(App " ^ dbg_constrexpr e ^ ")" *)
 	| CApp (e, l) -> "(App " ^ dbg_constrexpr e ^ " " ^ String.concat " " (List.map dbg_explicated l) ^ ")"
-	(* | CApp (e, l) -> "(App " ^ dbg_constrexpr e ^ " " ^ String.concat " " (List.map (fun x -> dbg_constrexpr (fst x)) l) ^ ")" *)
 	(* | CProj of explicit_flag * (qualid * instance_expr option) * (constr_expr * explicitation CAst.t option) list * constr_expr *)
 	| CProj _ -> "Proj"
 	(* | CRecord of (qualid * constr_expr) list *)
@@ -65,7 +64,6 @@ let rec dbg_constrexpr e = CAst.with_val (fun (e) -> match e with
 and dbg_explicated x = match x with
         | (e, None) -> "(" ^ dbg_constrexpr e ^ ", No explicitation)"
         | (e, Some x) -> "(" ^ dbg_constrexpr e ^ ", Some explicitation)"
-        (* | (e, Some x) -> "(" ^ dbg_constrexpr e ^ ", Some " ^ CAst.with_val (fun (e) -> e) x ^ ")" *)
 
 
 
