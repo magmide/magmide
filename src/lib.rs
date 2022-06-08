@@ -42,7 +42,6 @@ impl_conv_ocaml_variant! {
 }
 
 pub fn parse_file(filename: &str) -> Result<Vec<Instruction>, Error> {
-    // parse(String::from_utf8(read(filename)?)?)
     parse(from_utf8(read(filename)?.as_slice())?)
 }
 
