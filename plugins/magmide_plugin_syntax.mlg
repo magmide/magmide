@@ -37,7 +37,7 @@ VERNAC COMMAND EXTEND Magmide CLASSIFIED AS SIDEFF
 } END
 
 VERNAC COMMAND EXTEND MagmideNoEmit CLASSIFIED AS SIDEFF
-| #[ poly = Attributes.polymorphic ] [ "Magmide" string(filename) "as" ident(name) ] -> {
+| #[ poly = Attributes.polymorphic ] [ "MagmideNoEmit" string(filename) "as" ident(name) ] -> {
 	let expr = coq_of_instructions (Result.get_ok (Rust.parse(filename))) in
 	let env = Global.env () in
 	let sigma = Evd.from_env env in
