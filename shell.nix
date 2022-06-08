@@ -30,5 +30,5 @@ pkgs.mkShell {
     inotify-tools # not supported on darwin
   ];
 
-  RUSTFLAGS = "-l LLVM-13";
+  RUSTFLAGS = "-l LLVM-13 -C link-args=-Wl,-undefined,dynamic_lookup";
 }
