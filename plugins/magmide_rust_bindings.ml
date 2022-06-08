@@ -13,8 +13,7 @@ type instruction =
 
 module Rust = struct
   external parse : string -> (instruction list, string) Result.t = "rust_parse"
-  external parse_one : string -> (instruction, string) Result.t = "rust_parse_one"
-  external render : instruction list -> string -> unit = "rust_render"
+  external parse_file : string -> (instruction list, string) Result.t = "rust_parse_file"
   external magmide : string -> (instruction list, string) Result.t = "rust_magmide"
 end
 

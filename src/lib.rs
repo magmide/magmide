@@ -137,27 +137,15 @@ ocaml_export! {
         parse(expr.as_str()).map_err(|err| format!("{:#}", err)).to_ocaml(cr)
     }
 
-    fn rust_parse_one(cr, expr: OCamlRef<String>) -> OCaml<Result<Instruction, String>> {
-        let expr: String = expr.to_rust(&cr);
-        parse(expr.as_str()).map(|v| *v.first().unwrap()).map_err(|err| format!("{:#}", err)).to_ocaml(cr)
-    }
-
     fn rust_parse_file(cr, filename: OCamlRef<String>) -> OCaml<Result<OCamlList<Instruction>, String>> {
         let filename: String = filename.to_rust(&cr);
         parse_file(filename.as_str()).map_err(|err| format!("{:#}", err)).to_ocaml(cr)
-    }
-
-    fn rust_render(cr, prog: OCamlRef<OCamlList<Instruction>>, to: OCamlRef<String>) {
-        let to: String = to.to_rust(&cr);
-        render(prog.to_rust::<Vec<Instruction>>(cr).as_slice(), to.as_str());
-        OCaml::unit()
     }
 
     fn rust_magmide(cr, filename: OCamlRef<String>) -> OCaml<Result<OCamlList<Instruction>, String>> {
         let filename: String = filename.to_rust(&cr);
         magmide(filename.as_str()).map_err(|err| format!("{:#}", err)).to_ocaml(cr)
     }
-
 }
 
 #[cfg(test)]

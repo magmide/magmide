@@ -17,7 +17,7 @@ VERNAC COMMAND EXTEND Magmide CLASSIFIED AS SIDEFF
 
 VERNAC COMMAND EXTEND MagmideNoEmit CLASSIFIED AS SIDEFF
 | #[ poly = Attributes.polymorphic ] [ "MagmideNoEmit" string(filename) "as" ident(name) ] -> {
-	magmide ~poly Rust.parse filename name
+	magmide ~poly Rust.parse_file filename name
 } END
 
 VERNAC COMMAND EXTEND MagmideInspectExpr CLASSIFIED AS QUERY
