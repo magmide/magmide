@@ -11,8 +11,6 @@ open Stdarg
 
 open Magmide_rust_bindings
 
-(* let scoop = Magmide_rust_bindings.Rust.parse *)
-
 let declare_definition ~poly name env sigma expr =
 	let (sigma, body) = Constrintern.interp_constr_evars env sigma expr in
 	let udecl = UState.default_univ_decl in
@@ -22,11 +20,6 @@ let declare_definition ~poly name env sigma expr =
 	let info = Declare.Info.make ~scope ~kind  ~udecl ~poly () in
 	Declare.declare_definition ~info ~cinfo ~opaque:false ~body sigma
 
-let simple_declare ~poly name sigma body =
-  let cinfo = Declare.CInfo.make ~name ~typ:None () in
-  let info = Declare.Info.make ~poly () in
-  Declare.declare_definition ~info ~cinfo ~opaque:false ~body sigma
-
 let read_whole_file filename =
 	let ch = open_in filename in
 	let s = really_input_string ch (in_channel_length ch) in
@@ -35,51 +28,15 @@ let read_whole_file filename =
 }
 
 VERNAC COMMAND EXTEND Magmide CLASSIFIED AS SIDEFF
-| #[ poly = Attributes.polymorphic ] [ "Magmide" string(filename) "use" ident(name) ] -> {
-	(* Feedback.msg_debug(strbrk (Sys.getcwd())); *)
-	let filename = Filename.concat "../../test_code" filename in
-	(* Feedback.msg_debug(strbrk filename); *)
-	(* Feedback.msg_debug(bool (Sys.file_exists filename)); *)
-	let file_token = String.trim (read_whole_file filename) in
-	(* Feedback.msg_debug(strbrk file_token); *)
-	let expr = Constrexpr_ops.mkIdentC (Names.Id.of_string file_token) in
-
-	let env = Global.env () in let sigma = Evd.from_env env in
-	let r = declare_definition ~poly name env sigma expr in
-	Feedback.msg_notice (strbrk "Defined " ++ Printer.pr_global r ++ strbrk ".")
-} END
-
-VERNAC COMMAND EXTEND MagmideParse CLASSIFIED AS SIDEFF
-| #[ poly = Attributes.polymorphic ] [ "MagmideParse" string(code) "as" ident(name) ] -> {
-	(* let expr = Magmide_rust_bindings.Rust.parse(code) in *)
-	(* print_endline (show_r (Rust.parse(code))); *)
-	(* let _ = Rust.parse(code) in *)
-	(* let () = print_endline (show_r (Rust.parse(code))) in *)
-	(* let () = print_endline (show_r a) in *)
-	(* let b = Result.get_ok a in *)
-	(* let () = print_endline (show b) in *)
-	(* () *)
-	(* let expr = hello b in *)
-	let expr = hello (Result.get_ok (Rust.parse_one(code))) in
+| #[ poly = Attributes.polymorphic ] [ "Magmide" string(filename) "as" ident(name) ] -> {
+	let expr = hellos (Result.get_ok (Rust.magmide(filename))) in
 	let env = Global.env () in
 	let sigma = Evd.from_env env in
 	let r = declare_definition ~poly name env sigma expr in
-	Feedback.msg_notice (strbrk "MagmideParse defined " ++ Printer.pr_global r ++ strbrk ".")
+	Feedback.msg_notice (strbrk "Magmide defined " ++ Printer.pr_global r ++ strbrk ".")
 } END
 
 VERNAC COMMAND EXTEND MagmideInspectExpr CLASSIFIED AS QUERY
 | [ "MagmideInspectExpr" constr(expr) ] -> {
 	Feedback.msg_debug (strbrk (Magmide_constrexpr.dbg_constrexpr expr))
 } END
-
-(* VERNAC COMMAND EXTEND Intern CLASSIFIED AS QUERY
-| [ "Intern" constr(e) ] -> {
-	let env = Global.env () in (* use this; never use empty *)
-	let sigma = Evd.from_env env in (* use this; never use empty *)
-	let debug sigma = Termops.pr_evar_map ~with_univs:true None env sigma in
-	Feedback.msg_notice (strbrk "State before intern: " ++ debug sigma);
-	let (sigma, t) = Constrintern.interp_constr_evars env sigma e in
-	Feedback.msg_notice (strbrk "State after intern: " ++ debug sigma);
-	let print t = Printer.pr_econstr_env env sigma t in
-	Feedback.msg_notice (strbrk "Interned: " ++ print t)
-} END *)

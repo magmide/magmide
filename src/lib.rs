@@ -88,7 +88,7 @@ fn instruction(i: &str) -> IResult<&str, Instruction> {
     alt((add, ret))(i)
 }
 
-pub fn render(instructions: &[Instruction], to: &str) {
+pub fn render<P: AsRef<Path>>(instructions: &[Instruction], to: P) {
     let context = Context::create();
     let module = context.create_module("lab");
     let builder = context.create_builder();
@@ -122,7 +122,18 @@ pub fn render(instructions: &[Instruction], to: &str) {
         }
     }
 
-    module.write_bitcode_to_path(&Path::new(to));
+    module.write_bitcode_to_path(to.as_ref());
+    println!("done: {:?}", to.as_ref());
+}
+
+pub fn magmide(filename: &str) -> Result<Vec<Instruction>, Error> {
+    let prog = parse_file(filename)?;
+    println!("hi");
+    println!("path: {:?}", Path::new(filename).with_extension("bc"));
+    println!("prog: {:?}", &prog);
+    render(&prog, Path::new(filename).with_extension("bc"));
+    println!("there");
+    Ok(prog)
 }
 
 ocaml_export! {
@@ -146,6 +157,12 @@ ocaml_export! {
         render(prog.to_rust::<Vec<Instruction>>(cr).as_slice(), to.as_str());
         OCaml::unit()
     }
+
+    fn rust_magmide(cr, filename: OCamlRef<String>) -> OCaml<Result<OCamlList<Instruction>, String>> {
+        let filename: String = filename.to_rust(&cr);
+        magmide(filename.as_str()).map_err(|err| format!("{:#}", err)).to_ocaml(cr)
+    }
+
 }
 
 #[cfg(test)]
