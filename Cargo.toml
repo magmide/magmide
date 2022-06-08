@@ -10,7 +10,11 @@ path = "src/bin.rs"
 [lib]
 name = "magmide"
 path = "src/lib.rs"
+crate-type = ["staticlib", "cdylib"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
+anyhow = "1.0.57"
 inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm13-0"] }
+nom = "7.1.1"
+ocaml-interop = "0.8.8"

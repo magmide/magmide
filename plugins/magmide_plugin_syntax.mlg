@@ -5,54 +5,22 @@
 
 DECLARE PLUGIN "magmide_plugin"
 {
-(* open Ltac_plugin *)
 open Pp
 open Stdarg
-
-let declare_definition ~poly name env sigma expr =
-	let (sigma, body) = Constrintern.interp_constr_evars env sigma expr in
-	let udecl = UState.default_univ_decl in
-	let scope = Locality.Global Locality.ImportDefaultBehavior in
-	let kind = Decls.(IsDefinition Definition) in
-	let cinfo = Declare.CInfo.make ~name ~typ:None () in
-	let info = Declare.Info.make ~scope ~kind  ~udecl ~poly () in
-	Declare.declare_definition ~info ~cinfo ~opaque:false ~body sigma
-
-let read_whole_file filename =
-	let ch = open_in filename in
-	let s = really_input_string ch (in_channel_length ch) in
-	close_in ch;
-	s
+open Magmide_rust_bindings
 }
 
 VERNAC COMMAND EXTEND Magmide CLASSIFIED AS SIDEFF
-| #[ poly = Attributes.polymorphic ] [ "Magmide" string(filename) "use" ident(name)] -> {
-	(* Feedback.msg_debug(strbrk (Sys.getcwd())); *)
-	let filename = Filename.concat "../../test_code" filename in
-	(* Feedback.msg_debug(strbrk filename); *)
-	(* Feedback.msg_debug(bool (Sys.file_exists filename)); *)
-	let file_token = String.trim (read_whole_file filename) in
-	(* Feedback.msg_debug(strbrk file_token); *)
-	let expr = Constrexpr_ops.mkIdentC (Names.Id.of_string file_token) in
+| #[ poly = Attributes.polymorphic ] [ "Magmide" string(filename) "as" ident(name) ] -> {
+	magmide ~poly Rust.magmide filename name
+} END
 
-	let env = Global.env () in let sigma = Evd.from_env env in
-	let r = declare_definition ~poly name env sigma expr in
-	Feedback.msg_notice (strbrk "Defined " ++ Printer.pr_global r ++ strbrk ".")
+VERNAC COMMAND EXTEND MagmideNoEmit CLASSIFIED AS SIDEFF
+| #[ poly = Attributes.polymorphic ] [ "MagmideNoEmit" string(filename) "as" ident(name) ] -> {
+	magmide ~poly Rust.parse_file filename name
 } END
 
 VERNAC COMMAND EXTEND MagmideInspectExpr CLASSIFIED AS QUERY
 | [ "MagmideInspectExpr" constr(expr) ] -> {
 	Feedback.msg_debug (strbrk (Magmide_constrexpr.dbg_constrexpr expr))
 } END
-
-(* VERNAC COMMAND EXTEND Intern CLASSIFIED AS QUERY
-| [ "Intern" constr(e) ] -> {
-	let env = Global.env () in (* use this; never use empty *)
-	let sigma = Evd.from_env env in (* use this; never use empty *)
-	let debug sigma = Termops.pr_evar_map ~with_univs:true None env sigma in
-	Feedback.msg_notice (strbrk "State before intern: " ++ debug sigma);
-	let (sigma, t) = Constrintern.interp_constr_evars env sigma e in
-	Feedback.msg_notice (strbrk "State after intern: " ++ debug sigma);
-	let print t = Printer.pr_econstr_env env sigma t in
-	Feedback.msg_notice (strbrk "Interned: " ++ print t)
-} END *)

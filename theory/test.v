@@ -1,18 +1,22 @@
-Declare ML Module "magmide_plugin".
+Declare ML Module "magmide.plugin".
 Require Import String.
 Open Scope string_scope.
 
-Inductive Instruction :=
-	| InstExit
-	| InstMov (src: nat) (dest: nat)
-	| InstAdd (val: nat) (dest: nat)
+Inductive Value :=
+	| Const (n: nat)
+	| Ref (r: nat)
 .
 
-Magmide "something.mg" use yo.
-Theorem yo_true: yo = true.
-Proof. reflexivity. Qed.
+Inductive Instruction :=
+	| Return (v: Value)
+	| Add (r: nat) (op1: Value) (op2: Value)
+.
+
+Magmide "test_code/something.mg" as four.
+Check four.
+Print four.
 
 MagmideInspectExpr (true).
 MagmideInspectExpr (0).
 MagmideInspectExpr ("yo").
-MagmideInspectExpr (InstMov 0 1).
+MagmideInspectExpr (cons true nil).

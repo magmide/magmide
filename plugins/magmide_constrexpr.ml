@@ -12,7 +12,7 @@ let dbg_prim_token tok = match tok with
 	| Number numtok -> NumTok.Signed.sprint numtok
 	| String str -> str
 
-let dbg_constrexpr e = CAst.with_val (fun (e) -> match e with
+let rec dbg_constrexpr e = CAst.with_val (fun (e) -> match e with
 	| CRef (qualident, instance_expr_option) -> "Ref("^ dbg_qualid qualident ^", "^ dbg_option instance_expr_option dbg_unknown ^")"
 	(* | CFix of lident * fix_expr list *)
 	| CFix _ -> "Fix"
@@ -27,7 +27,7 @@ let dbg_constrexpr e = CAst.with_val (fun (e) -> match e with
 	(* | CAppExpl of (qualid * instance_expr option) * constr_expr list *)
 	| CAppExpl _ -> "AppExpl"
 	(* | CApp of constr_expr * (constr_expr * explicitation CAst.t option) list *)
-	| CApp (e, l) -> "App"
+	| CApp (e, l) -> "(App " ^ dbg_constrexpr e ^ " " ^ String.concat " " (List.map dbg_explicated l) ^ ")"
 	(* | CProj of explicit_flag * (qualid * instance_expr option) * (constr_expr * explicitation CAst.t option) list * constr_expr *)
 	| CProj _ -> "Proj"
 	(* | CRecord of (qualid * constr_expr) list *)
@@ -59,6 +59,10 @@ let dbg_constrexpr e = CAst.with_val (fun (e) -> match e with
 	(* | CArray of instance_expr option * constr_expr array * constr_expr * constr_expr *)
 	| CArray _ -> "Array"
 ) e
+
+and dbg_explicated x = match x with
+        | (e, None) -> "(" ^ dbg_constrexpr e ^ ", No explicitation)"
+        | (e, Some x) -> "(" ^ dbg_constrexpr e ^ ", Some explicitation)"
 
 
 
