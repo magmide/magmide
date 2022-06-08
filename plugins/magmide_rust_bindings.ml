@@ -22,9 +22,7 @@ open Constrexpr
 
 let ref s = CRef (Libnames.qualid_of_string s, None)
 
-let arg x = (CAst.make x, None)
-
-let num n = arg (CPrim (Number (NumTok.Signed.of_string (Int.to_string n))))
+let num n = (CAst.make (CPrim (Number (NumTok.Signed.of_string (Int.to_string n)))), None)
 
 let mkNum s n = CApp (CAst.make (ref s), [num n])
 
@@ -42,8 +40,6 @@ let rec hellos (is : instruction list) : constr_expr_r CAst.t = CAst.make (match
         | x :: xs -> CApp (CAst.make (ref "cons"), [hello x, None; hellos xs, None])
         | [] -> ref "nil"
 )
-
-let foo: (instruction list, string) Result.t = Rust.parse ""
 
 let%test_unit "parse noop" =
   [%test_eq: (instruction list, string) Result.t ] (Rust.parse "") (Ok [])
