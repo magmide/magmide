@@ -265,7 +265,7 @@ prf;
 
 Subset types are often a more natural way of thinking about data, and packaging assertions about data into the type of the data itself frees us from a few annoyances such as having to declare proof inputs as separate arguments to functions or at different levels of a definition.
 
-Although in a dependent type theory a subset type is absolutely a strictly different type than a normal constructed value, we can make life easier by making it easy to define and quickly pull values in and out of subset types. I call these cheap representations of subset types "asserted types".
+Although in a dependent type theory a subset type is absolutely a strictly different type than a normal constructed value, we can make life easier by providing syntax to define and quickly pull values in and out of subset types. I call these cheap representations of subset types "asserted types".
 
 ```
 // using & is syntactically cheap
@@ -288,6 +288,8 @@ This same syntax makes sense to declare trait requirements on types as well:
 def my_function<T & Orderable>(t: T):
   ...
 ```
+
+Asserted types are simply a broader variant of [liquid types](https://goto.ucsd.edu/~rjhala/liquid/liquid_types.pdf), so it should be possible to infer annotations and invariants in many situations, as is done in ["Flux: Liquid Types for Rust"](https://arxiv.org/abs/2207.04034).
 
 ## Cargo-like tooling
 

@@ -107,6 +107,8 @@ My experience using languages like Coq has been extremely painful, and the inter
 
 To meet this description, this project will learn heavily from `cargo` and other excellent projects. **It should be possible to verify, interactively prove, query, compile, and run any Magmide code with a single tool.** The split Logic/Host architecture will likely make it easier to understand and use Magmide.
 
+It will also fully embrace ergonomic type inference, and use techniques such as those from ["Flux: Liquid Types for Rust"](https://arxiv.org/abs/2207.04034) to allow even many *proof* conditions to be inferred.
+
 ## Taught effectively
 
 **Working engineers are resource constrained and don't have years of free time to wade through arcane and disconnected academic papers.** Academics aren't incentivized to properly explain and expose their amazing work, and a massive amount of [research debt](https://distill.pub/2017/research-debt/) has accrued in many fields, including formal verification.
