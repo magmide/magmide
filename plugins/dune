@@ -24,7 +24,6 @@
 )
 
 ; This will let Dune know about Coq's .mlg grammar files.
-
 (coq.pp
  (modules magmide_plugin_syntax)
 )
