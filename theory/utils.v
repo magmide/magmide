@@ -88,6 +88,22 @@ Hint Constructors All: core.
 Theorem All_undo_cons (P: Prop) (l: list Prop): All (P :: l) -> P.
 Proof. inversion 1; auto. Qed.
 
+Theorem All_And (P: Prop) (l: list Prop):
+	P /\ All l <-> All (P :: l).
+Proof.
+	split.
+	- intros [??]; auto.
+	- inversion 1; auto.
+Qed.
+
+Theorem All_flatten_head (A B: Prop) (l: list Prop):
+	All ((A /\ B) :: l) <-> All (A :: B :: l).
+Proof.
+	split.
+	- inversion 1; naive_solver.
+	- inversion 1 as [|??? H']; inversion H'; auto.
+Qed.
+
 Theorem All_permutation (A B: list Prop):
 	Permutation A B -> All A -> All B.
 Proof.
