@@ -120,6 +120,12 @@ However very low level software often needs to directly contend with the possibi
 
 Do we have to tolerate ubiquitous `panic` trackable effects on all our code, even when we can prove that in the absence of hardware failure the code will always operate correctly? Not if we introduce a separate idea of a *corruption* panic, a `panic` operator that requires a proof that, *assuming the hardware axioms*, the `panic` is impossible. Normal panics infect their enclosing code with a trackable effect, whereas corruption panics don't but require a proof of *logical* impossibility.
 
+## Assumption Panics
+
+Similarly to corruption panics, it should be possible to prove some panics will only occur if some *logical* assumption isn't true. This is different than corruption panics since those deal with *hardware* assumptions.
+
+This is a reasonable thing to include because programs will sometimes want to take advantage of some conjectured theorem and aren't capable or don't have the resources to prove it true. If a program author is willing to risk the possibility of a panic if some conjecture isn't true then they should be able to do so, and have those panics signaled differently than other panics.
+
 ## No `Set` type
 
 `Set` is just `Type{0}`, so I personally don't see a reason to bother with `Set`. It makes learning more complex, and in the situations where someone might demand their objects to live at the lowest universe level (I can't come up with any convincing places where this is truly necessary, please reach out if you can think of one), they can simply use some syntax equivalent of `Type{0}`.
