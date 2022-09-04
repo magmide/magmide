@@ -1,25 +1,29 @@
 (library
- ; This is the name you will use in Coq's `Declare ML Module`, and the name of the main OCaml module of your plugin.
- (name magmide_plugin)
- (public_name magmide.plugin)
- (synopsis
-  "Magmide Coq Plugin. Parses .mg files and loads them as a Magmide AST object in Coq.")
- ; Coq requires the `-rectypes` flag; CoqPP generated code requires to disable warning 27 often.
- (flags :standard -rectypes -w -27)
- (foreign_archives ../src/magmide_rust)
- (c_library_flags -lpthread -lc -lm -lLLVM-13)
- ; ML Libraries we want to link with, your choice here.
- (libraries
-  ; needed for vernac extend
-  coq-core.vernac
-  ; needed for tactic extend
-  coq-core.plugins.ltac
-  sexplib)
- (preprocess
-  (pps ppx_compare ppx_inline_test ppx_assert ppx_sexp_conv))
- (inline_tests))
+	; This is the name you will use in Coq's `Declare ML Module`, and the name of the main OCaml module of your plugin.
+	(name magmide_plugin)
+	(public_name magmide.plugin)
+	(synopsis "Magmide Coq Plugin. Parses .mg files and loads them as a Magmide AST object in Coq.")
+
+	; Coq requires the `-rectypes` flag; CoqPP generated code requires to disable warning 27 often.
+	(flags :standard -rectypes -w -27)
+	(foreign_archives ../src/magmide_rust)
+	(c_library_flags -lpthread -lc -lm -lLLVM-13)
+
+	; ML Libraries we want to link with, your choice here.
+	(libraries
+		; needed for vernac extend
+		coq-core.vernac
+		; needed for tactic extend
+		coq-core.plugins.ltac
+		sexplib
+	)
+	(preprocess
+		(pps ppx_compare ppx_inline_test ppx_assert ppx_sexp_conv)
+	)
+	(inline_tests)
+)
 
 ; This will let Dune know about Coq's .mlg grammar files.
-
 (coq.pp
- (modules magmide_plugin_syntax))
+ (modules magmide_plugin_syntax)
+)

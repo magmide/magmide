@@ -9,6 +9,9 @@
 	(depends
 		(ocaml (= 4.13.1))
 		(coq (= 8.15.0))
+		(coq-stdpp (= dev.2022-08-03.0.b99e79cf))
+		(coq-iris (= dev.2022-08-09.4.abefed6c))
+
 		(sexplib (= 0.15.0))
 		(ppxlib (= 0.26.0))
 		(ppx_compare (= 0.15.0))

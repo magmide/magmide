@@ -1,22 +1,23 @@
 (rule
- (targets libmagmide_rust.a dllmagmide_rust.so)
- (deps
-  (sandbox always)
-  ../Cargo.lock
-  ../Cargo.toml
-  (source_tree .))
- (action
-  (no-infer
-   (progn
-    (run mkdir -p ../../../../../target)
-    (run ln -s ../../../../target ../target)
-    (run ln -sf ../../../../Cargo.lock ../Cargo.lock)
-    (run cargo build)
-    (system
-     "cp ../target/debug/libmagmide.so ./dllmagmide_rust.so 2> /dev/null || cp ../target/debug/libmagmide.dylib ./dllmagmide_rust.so"
+	(targets libmagmide_rust.a dllmagmide_rust.so)
+	(deps
+		(sandbox always)
+		../Cargo.lock
+		../Cargo.toml
+		(source_tree .)
+	)
+	(action
+		(no-infer
+			(progn
+				(run mkdir -p ../../../../../target)
+				(run ln -s ../../../../target ../target)
+				(run ln -sf ../../../../Cargo.lock ../Cargo.lock)
+				(run cargo build)
+				(system
+					"cp ../target/debug/libmagmide.so ./dllmagmide_rust.so 2> /dev/null || cp ../target/debug/libmagmide.dylib ./dllmagmide_rust.so"
+				)
+				(run cp ../target/debug/libmagmide.a ./libmagmide_rust.a)
+			)
 		)
-    (run cp ../target/debug/libmagmide.a ./libmagmide_rust.a)
-   )
-  )
- )
+	)
 )

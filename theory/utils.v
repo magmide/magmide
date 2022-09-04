@@ -12,8 +12,7 @@ Notation impossible := (False_rect _ _).
 Notation this item := (exist _ item _).
 Notation use item := (proj1_sig item).
 
-From Coq.Wellfounded Require Import Inclusion.
-From Coq.Wellfounded Require Import Inverse_Image.
+From Coq.Wellfounded Require Import Inclusion Inverse_Image.
 
 Section wf_transfer.
 	Variable A B: Type.
@@ -78,6 +77,73 @@ Notation Reduce x := (if x then Yes else No).
 
 Theorem append_single_cons {T: Type}: forall (t: T) l, t :: l = [t] ++ l.
 Proof. induction l; auto. Qed.
+
+
+Inductive All: list Prop -> Prop :=
+	| All_nil: All []
+	| All_cons: forall (P: Prop) (l: list Prop), P -> All l -> All (P :: l)
+.
+Hint Constructors All: core.
+
+Theorem All_undo_cons (P: Prop) (l: list Prop): All (P :: l) -> P.
+Proof. inversion 1; auto. Qed.
+
+Theorem All_And (P: Prop) (l: list Prop):
+	P /\ All l <-> All (P :: l).
+Proof.
+	split.
+	- intros [??]; auto.
+	- inversion 1; auto.
+Qed.
+
+Theorem All_flatten_head (A B: Prop) (l: list Prop):
+	All ((A /\ B) :: l) <-> All (A :: B :: l).
+Proof.
+	split.
+	- inversion 1; naive_solver.
+	- inversion 1 as [|??? H']; inversion H'; auto.
+Qed.
+
+Theorem All_permutation (A B: list Prop):
+	Permutation A B -> All A -> All B.
+Proof.
+	intros Hpermutation HA; induction Hpermutation as []; try inversion HA; auto.
+	inversion HA as [|??? Hl]; inversion Hl; auto.
+Qed.
+
+Global Instance Proper_Permutation_All: Proper (Permutation ==> flip impl) All.
+Proof.
+	intros ??[]?; eauto using All_permutation, Permutation_sym.
+	inversion H as [| ??? Hl']; inversion Hl'; auto.
+Qed.
+
+Theorem All_permutation_cleaner (A B: list Prop):
+	Permutation A B -> All A -> All B.
+Proof. intros ?H; rewrite <-H; auto. Qed.
+
+Theorem All_In_middle (P: Prop) (before after: list Prop):
+	All (before ++ [P] ++ after) -> P.
+Proof.
+	intros H;
+	assert (Hpermutation: Permutation (before ++ [P] ++ after) ([P] ++ (before ++ after)))
+		by eauto using Permutation_app_swap_app;
+	rewrite Hpermutation in H;
+	assert (Hswap: ([P] ++ before ++ after) = (P :: (before ++ after))) by eauto;
+	rewrite Hswap in H;
+	eapply All_undo_cons; eauto.
+Qed.
+
+Theorem All_In (P: Prop) (l: list Prop):
+	In P l -> All l -> P.
+Proof.
+	intros Hin Hall;
+	apply in_split in Hin as [before [after]]; subst;
+	rewrite cons_middle in Hall;
+	eapply All_In_middle; eauto.
+Qed.
+
+
+
 
 Theorem valid_index_not_None {T} (l: list T) index:
 	index < (length l) -> (lookup index l) <> None.
