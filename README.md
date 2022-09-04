@@ -208,7 +208,7 @@ And of course, social engineering and hardware tampering are never going away, n
 
 This is nuanced, but the answer is still yes!
 
-First let's get something out of the way: software is *literally nothing more* than a mathematical/logical machine. It is one of the very few things in the world that can actually be perfect. Of course this perfection is in regard to an axiomatic model of a real machine rather than the true machine itself. But isn't it better to have an implementation that's provably correct according to a model rather than what we have now, an implementation that's obviously flawed according to that same model? Formal verification is really just the next level of type checking, and type checking is still incredibly useful despite also only relating to a model.
+First let's get something out of the way: software is *literally nothing more* than a mathematical/logical machine. It is one of the very few things in the world that can actually be perfect. Of course this perfection is in regard to an axiomatic model of a real machine rather than the true machine itself. But isn't it better to have an implementation that's provably correct according to a model rather than what we have now, an implementation that's obviously flawed according to a model? Formal verification is really just the next level of type checking, and type checking is still incredibly useful despite also only relating to a model.
 
 If you don't think a logical model can be accurate enough to model a real machine in sufficient detail, please check out these papers discussing [separation logic](http://www0.cs.ucl.ac.uk/staff/p.ohearn/papers/Marktoberdorf11LectureNotes.pdf), extremely high fidelity formalizations of the [x86](http://nickbenton.name/hlsl.pdf) and [arm](https://www.cl.cam.ac.uk/~mom22/arm-hoare-logic.pdf) instruction sets, and [Iris](https://people.mpi-sws.org/~dreyer/papers/iris-ground-up/paper.pdf). Academics have been busy doing amazing stuff, even if they haven't been sharing it very well.
 
@@ -252,12 +252,15 @@ I'm not an expert logician, and I'm happy to be corrected by more knowledgeable 
 
 ## Isn't formal verification impractical in practice?
 
-Historically systems have been very impractical yes, with two commonly cited issues:
+Historically systems have been very impractical yes, with three commonly cited issues:
 
 - Extreme difficulty of composing proofs.
+- Overly long and burdensome correctness annotations.
 - Combinatorial explosion of proof terms or constraints, leading to unacceptable proof checking time.
 
 I'm not terribly worried about composability, since separation logic systems such as Iris have demonstrated how much improvement the right abstractions can give. And I'm betting design features such as [asserted types](./posts/design-of-magmide.md#builtin-asserted-types), [inferred annotations](https://arxiv.org/abs/2207.04034), and [inferred proof holes](./posts/design-of-magmide.md#inferred-proof-holes) would make composing verified functions much more ergonomic. Ergonomics and abstractions can be improved over time, especially for specific classes of problems. We shouldn't throw out the entire idea of verification just because previous systems have had poor ergonomics.
+
+I'm also extremely excited about the recent ["Flux: Liquid Types for Rust"](https://arxiv.org/abs/2207.04034) project, which demonstrated it's possible to ergonomically infer proof annotations. Essentially (mostly) all a programmer must do is add correctness conditions to *types* (just like [asserted types](./posts/design-of-magmide.md#builtin-asserted-types)) and (basically) all the other program annotations can be inferred. Flux then sends all those conditions to a solver and doesn't allow manual proofs for more complex conditions, but Magmide would allow manual proofs, meaning the correctness conditions could be arbitrarily interesting.
 
 As for questions like combinatorial explosion of verification conditions, it's absolutely true that all the computational work necessary to verify software can indeed be very expensive, especially if the proof system in question is fully automated and just generates a massive list of constraints to solve.
 
