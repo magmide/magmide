@@ -16,7 +16,7 @@ what does it mean for something to hold for k steps?
   The type UPred(M) consists of predicates over step-indices and resources (from M) which
   are down-closed with respect to the step-index and up-closed with respect to the resource:
 
-  UPred(M) := {P ∈ P(N, M) | ∀(n, a) ∈ P. ∀m, b. m ≤ n ⇒ a ;included b ⇒ (m, b) ∈ P}
+  UPred(M) := {P ∈ Prop(N, M) | ∀(n, a) ∈ P. ∀m, b. m ≤ n ⇒ a ;included b ⇒ (m, b) ∈ P}
 
 so if some (n, a) is "proven", then so is any (m, b) where both m is `<=` (earlier than or same?) n and b is `>=` (includes or same) a
 so you can take a valid (n, a) and make it either closer in number of steps or involving a larger piece of resource algebra state?
@@ -59,6 +59,9 @@ front of wp e
 
 
 
+the prefix `TC` is "typeclass" and comes from stdpp. it seems they've redefined a bunch of the basic operators in coq (eq, and, or, forall, etc) as typeclasses?
+
+
 
 
 `bi` == bunched implications, which is just the logical ideas of separation logic (* operator as resource composition, -* like a "resource function" that can take resources and transform them, etc)
@@ -68,9 +71,15 @@ front of wp e
 `coPset` == set of positive binary numbers. `co` is for the idea of "cofiniteness"? a subset is `co`finite if it's `co`mplement is finite.
 it looks like `coPset`s are used as the "masks"? the sets that hold ghost variable/invariant names?
 
+`E` is generally used for masks
+
 `Canonical` is just a command for making some typeclass instance available to coq's type inference, so it can be found automatically
 
 `Structure` is the same as `Record`!!!!
+
+`lb` == lower bound
+
+`%I` means to resolve in `bi_scope`
 
 Leibniz equality is the kind where two things are equal if all propositions that are true for one are true for the other
 
@@ -97,14 +106,6 @@ Notation "P ={ E }=∗ Q" := (P -∗ |={E}=> Q) : stdpp_scope.
 ```
 
 In general the `▷=>^ n` syntax indicates a number of steps `n` accompanying the mask update?
-
-
-the only purpose of "later" is to prevent the kinds of infinite loops that can make a logic invalid (able to prove False). it's used to define propositions like weakest preconditions that must somehow bake the idea of "the program takes a step" into their meaning
-
-ordered families of equivalences (ofe's) are just a "convenient" (if you can call them that) way of encoding "steps" into the system. ofe's make the equivalence of some pieces of data dependent on a step index, so pieces of data might be equivalent at some indexes but not others.
-but most of the time the step indexes don't matter! most actual *data types* aren't recursive or hold some concept of computational steps in them, so the "equivalences" hold for *all* step indexes!
-
-a "cmra" or "camera" is the fully general version of a resource algebra that actually uses the idea of step-indexed equality.
 
 
 `wsat` is world satisfaction
@@ -135,6 +136,15 @@ and `fupd` is fancy update
 
 
 It seems the suffix `G` is used to mean "in global"
+
+
+the only purpose of "later" is to prevent the kinds of infinite loops that can make a logic invalid (able to prove False). it's used to define propositions like weakest preconditions that must somehow bake the idea of "the program takes a step" into their meaning
+
+ordered families of equivalences (ofe's) are just a "convenient" (if you can call them that) way of encoding "steps" into the system. ofe's make the equivalence of some pieces of data dependent on a step index, so pieces of data might be equivalent at some indexes but not others.
+but most of the time the step indexes don't matter! most actual *data types* aren't recursive or hold some concept of computational steps in them, so the "equivalences" hold for *all* step indexes!
+
+a "cmra" or "camera" is the fully general version of a resource algebra that actually uses the idea of step-indexed equality.
+
 
 
 just copying a chunk of `docs/resource_algebras.md`:

@@ -3,7 +3,9 @@ Set Implicit Arguments. Set Asymmetric Patterns.
 
 From stdpp Require Import base options fin vector.
 Import ListNotations.
-Require Import theory.utils.
+(*Require Import theory.utils.*)
+
+Notation Mask := coPset.
 
 Section Sized.
 	Context {size: nat}.
@@ -20,9 +22,9 @@ Section Sized.
 		| Instruction_Move (src: Operand) (dest: register)
 		| Instruction_Add (val: Operand) (dest: register)
 
-		(*| Instruction_Jump (to: nat)*)
-		(*| Instruction_BranchEq (a: Operand) (b: Operand) (to: nat)*)
-		(*| Instruction_BranchNeq (a: Operand) (b: Operand) (to: nat)*)
+		| Instruction_Jump (to: nat)
+		| Instruction_BranchEq (a: Operand) (b: Operand) (to: nat)
+		| Instruction_BranchNeq (a: Operand) (b: Operand) (to: nat)
 
 		(*| Instruction_Store (src: Operand) (dest: Operand)*)
 		(*| Instruction_Load (src: Operand) (dest: register)*)
@@ -32,7 +34,8 @@ Section Sized.
 
 	Record MachineState := machine_state {
 		instruction_pointer: nat;
-		registers: (vec nat size);
+		(*registers: (vec nat size);*)
+		registers: (gmap nat nat);
 		program: list Instruction
 	}.
 
@@ -68,6 +71,7 @@ Section Sized.
 				(incr cur)
 				(update cur dest (eval_operand cur src))
 			)
+		(*$s==v ∗ $d==? ∗ <later>($s==v ∗ $d==? -∗ Q d v) <entails> wp Move $r $d {Q d v}*)
 
 		| Step_Add: forall cur val dest,
 			(current_instruction cur) = Some (Instruction_Add val dest)
@@ -76,39 +80,136 @@ Section Sized.
 				(update cur dest ((eval_operand cur val) + (get cur dest)))
 			)
 
-		(*| Step_Jump: forall cur to,
-			(current_instruction cur) = Some (InstJump to)
-			-> Step cur (machine_state to cur.(registers))*)
+		| Step_Jump: forall cur to,
+			(current_instruction cur) = Some (Instruction_Jump to)
+			-> Step cur (make_next cur to cur.(registers))
 
-		(*| Step_BranchEq: forall cur a b to,
-			(current_instruction cur) = Some (InstBranchEq a b to)
-			-> IF (a = b)
-				then Step cur (machine_state to cur.(registers))
-				else Step cur (machine_state (incr cur) cur.(registers))*)
+		| Step_BranchEq_Yes: forall cur a b to,
+			(current_instruction cur) = Some (Instruction_BranchEq a b to)
+			-> a = b
+			-> Step cur (make_next cur to cur.(registers))
 
-		(*| Step_BranchNeq: forall cur a b to,
-			(current_instruction cur) = Some (InstBranchNeq a b to)
-			-> IF (a = b)
-				then Step cur (machine_state (incr cur) cur.(registers))
-				else Step cur (machine_state to cur.(registers))*)
+		| Step_BranchEq_No: forall cur a b to,
+			(current_instruction cur) = Some (Instruction_BranchEq a b to)
+			-> ~(a = b)
+			-> Step cur (make_next cur (incr cur) cur.(registers))
+
+		| Step_BranchNeq_Yes: forall cur a b to,
+			(current_instruction cur) = Some (Instruction_BranchNeq a b to)
+			-> ~(a = b)
+			-> Step cur (make_next cur to cur.(registers))
+
+		| Step_BranchNeq_No: forall cur a b to,
+			(current_instruction cur) = Some (Instruction_BranchNeq a b to)
+			-> a = b
+			-> Step cur (make_next cur (incr cur) cur.(registers))
 	.
 	Hint Constructors Step: core.
 
-	(*theorem that exit never takes a step*)
+	(*theorems about individual instructions, such as that exit never takes a step*)
 
-	Inductive Trace: list MachineState -> Prop :=
-		| Trace_start: forall start,
-			Trace [start]
-
-		| Trace_step: forall past cur next,
-			Trace (cur :: past)
-			-> Step cur next
-			-> Trace (next :: (cur :: past))
-	.
-	Hint Constructors Trace: core.
+	(*use the Chain prop to think about traces*)
 
 	(*theorem that any trace with Exit at the top never continues*)
 
 	(*theorems lifting list operators for Trace*)
 
+	Class magmideGS (Σ: gFunctors) := MagmideG {
+		(*magmideGS_invGS :> invGS_gen HasNoLc Σ;*)
+	  (*magmideGS_gen_heapG :> gen_heapGS nat nat Σ;*)
+	  magmideGS_ghost_mapG :> ghost_mapGS nat nat Σ;
+	}.
+	Global Opaque magmide_invGS.
+	Global Arguments MagmideG {Σ}.
+
+	(*gen_heap_interp σ.(heap)*)
+	(*leads to*)
+	(*ghost_map_auth (gen_heap_name hG) 1 σ.(heap)*)
+	(*leads to*)
+	(*Record state : Type := {
+	  heap: gmap loc (option val);
+	}.*)
+
+	Definition state_interpretation state := gen_heap_interp state.(heap) (*∗ steps_auth step_cnt*).
+
+
+
+
+	Definition wp_pre
+		`{!magmideGS Σ}
+		(wp: Mask -d> MachineState -d> (MachineState -d> iPropO Σ) -d> iPropO Σ)
+	: Mask -d> MachineState -d> (MachineState -d> iPropO Σ) -d> iPropO Σ := fun mask cur Post =>
+		match current_instruction cur with
+		| None => |={mask}=> Post cur
+		| Some Instruction_Exit => |={mask}=> Post cur
+		| Some instruction => state_interpretation cur
+			-∗ |={mask,∅}=> (
+				CanStep cur
+				∗ (forall next, Step cur next -∗ |={∅,mask}=> ▷ (
+					state_interpretation next
+					∗ wp mask next Post
+				))
+			)
+		end%I.
+
+	Local Instance wp_pre_contractive `{!magmideGS Σ}: Contractive wp_pre.
+	Proof.
+		rewrite /wp_pre /= ⇒ n wp wp' Hwp E e1 Φ.
+		do 25 (f_contractive || f_equiv).
+		induction num_laters_per_step as [|k IH]; simpl.
+		- repeat (f_contractive || f_equiv); apply Hwp.
+		- by rewrite -IH.
+	Qed.
+
+	(*probably have to define our own Wp typeclass :( *)
+	Class Wp :=
+		wp: Mask -> MachineState -> (MachineState -> iPropO Σ) -> iPropO Σ.
+	Global Arguments wp {_ _ _ _ _} _ _ _%E _%I.
+	Global Instance: Params (@wp) 8 := {}.
+
+	Local Definition wp_def `{!magmideGS Σ}: Wp := fixpoint wp_pre.
+	Local Definition wp_aux: seal (@wp_def). Proof. by eexists. Qed.
+	Definition wp' := wp_aux.(unseal).
+	Global Arguments wp' {hlc Λ Σ _}.
+	Global Existing Instance wp'.
+	Local Lemma wp_unseal `{!magmideGS Σ}: wp = @wp_def hlc Λ Σ _.
+	Proof. rewrite -wp_aux.(seal_eq) //. Qed.
+
 End Sized.
+
+
+(*
+
+define the wp recursively, referring to a state interpretation (that includes a reference to Step?) and using later and update modalities to link step indexing to steps in the program
+
+then prove a bunch of consequences of the wp, such as a wp for each individual instruction or specialized versions of operators like * and -*
+
+then do things like prove the wp is non expansive?
+	TCEq (to_val e) None ->
+	Proper (pointwise_relation _ (dist_later n) ==> dist n) (wp (PROP:=iProp Σ) s E e).
+
+that it preserves equivalences?
+	Proper (pointwise_relation _ (≡) ==> (≡)) (wp (PROP:=iProp Σ) s E e).
+
+
+
+
+
+then higher level concepts, such as being able to form wps for blocks of code instead of individual instructions
+
+
+
+
+
+I want to get to the point where I can:
+
+- verify a simple straight line program that does something like adding four numbers
+
+- verify a program with a branch implemented loop
+
+- add input and output signals similar to the kinds of simple signals in a chip like a 6502, and use them to verify something like a hello world program
+
+
+then is it time to start figuring out and building systems for trackable effects?
+
+*)
