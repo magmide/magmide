@@ -122,9 +122,9 @@ Section Sized.
 	Global Opaque magmide_invGS.
 	Global Arguments MagmideG {Σ}.
 
-	(*gen_heap_interp σ.(heap)*)
+	(*gen_heap_interp state.(heap)*)
 	(*leads to*)
-	(*ghost_map_auth (gen_heap_name hG) 1 σ.(heap)*)
+	(*ghost_map_auth (gen_heap_name hG) 1 state.(heap)*)
 	(*leads to*)
 	(*Record state : Type := {
 	  heap: gmap loc (option val);
