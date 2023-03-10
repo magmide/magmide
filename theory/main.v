@@ -17,6 +17,17 @@ Section Sized.
 		| Register (r: register)
 	.
 
+
+	(*
+		It seems pretty obvious I need to break instructions into "sequential" and "terminator" versions (kinda like llvm), and then have two layers of assertions, each with their own "later" concept:
+			- a layer for reasoning purely about sequential "segments" of instructions (the body of a basic block)
+			- a layer for reasoning about graphs of labeled blocks. this layer is basically where we can encode some concept of recursion, and where we use the lob induction iris provides to make it possible to reason about loops and such
+
+		we have one layer of weakest preconditions (or just preconditions like in the low level code papers?) that moves sequential statements along
+		then we have a "block" structure that contains a list of sequential instructions and a single terminator instruction
+		then we have an "execute block" function that takes a machine state (that doesn't include an instruction pointer for now?) and transforms it according to the sequential segment and then returns the transformed state and an optional next label, with None meaning execution is finished
+	*)
+
 	Inductive Instruction :=
 		| Instruction_Exit
 		| Instruction_Move (src: Operand) (dest: register)
