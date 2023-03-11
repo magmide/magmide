@@ -1,11 +1,70 @@
 Add LoadPath "/home/blaine/lab/cpdtlib" as Cpdt.
 Set Implicit Arguments. Set Asymmetric Patterns.
 
-From stdpp Require Import base options fin vector.
+From stdpp Require Import base options strings stringmap.
 Import ListNotations.
 (*Require Import theory.utils.*)
 
-Notation Mask := coPset.
+
+Record MachineState: Type := {
+	(*global_identifiers: (stringmap nat);*)
+	local_identifiers: (stringmap nat);
+}.
+
+Inductive Operand: Type :=
+  | Literal (n: nat)
+  | Identifier (s: string)
+.
+
+Inductive Instruction: Type :=
+	| Add (dest: string) (op1 op2: Operand)
+.
+
+Inductive TerminatorInstruction: Type :=
+	| Branch (label: string)
+	| BranchIf (condition: Operand) (if_label else_label: string)
+.
+
+Record BasicBlock: Type := {
+	sequential: list Instruction;
+	terminator: TerminatorInstruction;
+}.
+
+
+Module tests.
+	Definition one_add_program := [
+		(Add "one_add" (Identifier "arg") (Literal 5));
+	].
+	Theorem test__one_add_program arg:
+		{{ %arg==arg }} one_add_program {{ %one_add==arg + 5 }}.
+	Proof.
+
+	Qed.
+
+
+	Definition two_add_program := [
+		(Add "two_add" (Identifier "arg") (Literal 1));
+		(Add "two_add" (Identifier "arg") (Literal 1));
+	].
+	Theorem test__two_add_program arg:
+		{{ %arg==arg }} two_add_program {{ %two_add==arg + 2 }}.
+	Proof.
+
+	Qed.
+End tests.
+
+
+
+
+From iris.algebra Require Export ofe.
+Global Instance MachineState_inhabited : Inhabited MachineState :=
+  populate {| local_identifiers := inhabitant |}.
+
+(*Canonical Structure MachineStateO := leibnizO MachineState.*)
+
+
+
+(*Notation Mask := coPset.*)
 
 Section Sized.
 	Context {size: nat}.

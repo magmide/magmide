@@ -68,7 +68,7 @@ Section All.
 		eapply All_In_middle; eauto.
 	Qed.
 End All.
-Hint Constructors All: core.
+#[export] Hint Constructors All: core.
 
 (* Compatible links assertions that must have some notion of compatibility between all items. *)
 Section Compatible.
@@ -91,7 +91,7 @@ Section Compatible.
 		inversion HF; eauto.
 	Qed.
 
-	Theorem Compatible_swap t1 t2 l:
+	(*Theorem Compatible_swap t1 t2 l:
 		Compatible (t1 :: t2 :: l) -> Compatible (t2 :: t1 :: l).
 	Proof.
 intros H.
@@ -99,12 +99,8 @@ inversion H as [| ???].
 subst.
 
 -
-
-
 subst.
 constructor.
-
-
 	Qed.
 
 	Global Instance Proper_Permutation_Compatible: Proper (Permutation ==> flip impl) Compatible.
@@ -140,13 +136,10 @@ induction HP as []; try inversion HC; auto.
 
 intros Hpermutation HA; induction Hpermutation as []; try inversion HA; auto.
 inversion HA as [|??? Hl]; inversion Hl; auto.
-
-
-
-	Qed.
+	Qed.*)
 
 End Compatible.
-Hint Constructors Compatible: core.
+#[export] Hint Constructors Compatible: core.
 
 
 Section test_Compatible_neq.
@@ -170,6 +163,19 @@ Section Chain.
 			-> Chain (next :: (cur :: past))
 	.
 	Hint Constructors Chain: core.
+
+	Inductive Chained: T -> T -> Prop :=
+		| Chained_start_finish: forall start mid finish,
+			Chain (finish :: (mid ++ [start]))
+			-> Chained start finish
+	.
+
+	Theorem Chain_to_Chained l:
+		Chain l
+		-> Chained start finish.
+	Proof.
+
+	Qed.
 
 
 End Chain.
