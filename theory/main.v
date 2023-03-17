@@ -4,21 +4,72 @@ Set Implicit Arguments. Set Asymmetric Patterns.
 From stdpp Require Import base options strings stringmap.
 Import ListNotations.
 (*Require Import theory.utils.*)
+Require Import String.
 
+Notation MachineState := (stringmap nat).
 
-Record MachineState: Type := {
-	(*global_identifiers: (stringmap nat);*)
+(*Record MachineState: Type := machine_state {
+	global_identifiers: (stringmap nat);
 	local_identifiers: (stringmap nat);
-}.
+}.*)
 
 Inductive Operand: Type :=
-  | Literal (n: nat)
-  | Identifier (s: string)
+	| Literal (n: nat)
+	| Identifier (s: string)
+.
+
+Definition evaluate_operand (operand: Operand) (state: MachineState): option nat :=
+	match operand with
+	| Literal n => Some n
+	(*| Identifier s => lookup s state.(local_identifiers)*)
+	| Identifier s => lookup s state
+	end
 .
 
 Inductive Instruction: Type :=
-	| Add (dest: string) (op1 op2: Operand)
+	| Inst_Add (dest: string) (op1 op2: Operand)
 .
+
+Definition evaluate_instruction
+	(instruction: Instruction)
+	(state: MachineState)
+: option (string * nat) :=
+	match instruction with
+	| Inst_Add dest op1 op2 =>
+		match (evaluate_operand op1 state), (evaluate_operand op2 state) with
+		| (Some op1value), (Some op2value) => Some (dest, (op1value + op2value))
+		| _, _ => None
+		end
+	end
+.
+
+(*proofs that evaluate_instruction returns Some if wp is satisfied*)
+
+Definition step_instruction
+	(instruction: Instruction)
+	(state: MachineState)
+: option MachineState :=
+	match evaluate_instruction instruction state with
+	(*| Some (dest, value) => Some (insert dest value state.(local_identifiers))*)
+	| Some (dest, value) => Some (insert dest value state)
+	| None => None
+	end
+.
+(*proofs that step_instruction returns Some if wp is satisfied*)
+
+Fixpoint step_instructions
+	(instructions: list Instruction)
+	(state: MachineState)
+: option MachineState :=
+	match instructions with
+	| instruction :: rest_instructions => match step_instruction instruction state with
+		| Some next_state => step_instructions rest_instructions next_state
+		| None => None
+		end
+	| [] => Some state
+	end
+.
+(*proofs that step_instructions returns Some if "large" wp is satisfied*)
 
 Inductive TerminatorInstruction: Type :=
 	| Branch (label: string)
@@ -30,10 +81,27 @@ Record BasicBlock: Type := {
 	terminator: TerminatorInstruction;
 }.
 
+From iris.base_logic.lib Require Import gen_heap.
 
-Module tests.
+Class magmideGS Σ := MagmideGS {
+	(*magmideGS_invGS : invGS_gen HasLc Σ;*)
+	magmideGS_gen_heapGS :> gen_heapGS string nat Σ;
+	(*magmideGS_inv_heapGS :> inv_heapGS string nat Σ;*)
+}.
+
+
+Section magmide.
+	Context `{!magmideGS Σ}.
+
+	Definition state_interpretation (machine_state: MachineState): iProp Σ :=
+		gen_heap_interp machine_state.(local_identifiers).
+
+	Notation "'%' var_name '==' value" := (mapsto (L:=string) (V:=nat) var_name (DfracOwn 1) value)
+		(at level 20, format "'%' var_name '==' value"): bi_scope.
+
+
 	Definition one_add_program := [
-		(Add "one_add" (Identifier "arg") (Literal 5));
+		(Inst_Add "one_add" (Identifier "arg") (Literal 5))
 	].
 	Theorem test__one_add_program arg:
 		{{ %arg==arg }} one_add_program {{ %one_add==arg + 5 }}.
@@ -43,22 +111,25 @@ Module tests.
 
 
 	Definition two_add_program := [
-		(Add "two_add" (Identifier "arg") (Literal 1));
-		(Add "two_add" (Identifier "arg") (Literal 1));
+		(Inst_Add "two_add" (Identifier "arg") (Literal 1));
+		(Inst_Add "two_add" (Identifier "arg") (Literal 1))
 	].
 	Theorem test__two_add_program arg:
 		{{ %arg==arg }} two_add_program {{ %two_add==arg + 2 }}.
 	Proof.
 
 	Qed.
-End tests.
+
+End magmide.
+
+
 
 
 
 
 From iris.algebra Require Export ofe.
 Global Instance MachineState_inhabited : Inhabited MachineState :=
-  populate {| local_identifiers := inhabitant |}.
+	populate {| local_identifiers := inhabitant |}.
 
 (*Canonical Structure MachineStateO := leibnizO MachineState.*)
 
@@ -186,8 +257,8 @@ Section Sized.
 
 	Class magmideGS (Σ: gFunctors) := MagmideG {
 		(*magmideGS_invGS :> invGS_gen HasNoLc Σ;*)
-	  (*magmideGS_gen_heapG :> gen_heapGS nat nat Σ;*)
-	  magmideGS_ghost_mapG :> ghost_mapGS nat nat Σ;
+		(*magmideGS_gen_heapG :> gen_heapGS nat nat Σ;*)
+		magmideGS_ghost_mapG :> ghost_mapGS nat nat Σ;
 	}.
 	Global Opaque magmide_invGS.
 	Global Arguments MagmideG {Σ}.
@@ -197,7 +268,7 @@ Section Sized.
 	(*ghost_map_auth (gen_heap_name hG) 1 state.(heap)*)
 	(*leads to*)
 	(*Record state : Type := {
-	  heap: gmap loc (option val);
+		heap: gmap loc (option val);
 	}.*)
 
 	Definition state_interpretation state := gen_heap_interp state.(heap) (*∗ steps_auth step_cnt*).
