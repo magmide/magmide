@@ -50,9 +50,9 @@ Definition step_instruction
 	(state: MachineState)
 : option MachineState :=
 	match evaluate_instruction instruction state with
+	| None => None
 	(*| Some (dest, value) => Some (insert dest value state.(local_identifiers))*)
 	| Some (dest, value) => Some (insert dest value state)
-	| None => None
 	end
 .
 (*proofs that step_instruction returns Some if wp is satisfied*)
@@ -63,23 +63,45 @@ Fixpoint step_instructions
 : option MachineState :=
 	match instructions with
 	| instruction :: rest_instructions => match step_instruction instruction state with
-		| Some next_state => step_instructions rest_instructions next_state
 		| None => None
+		| Some next_state => step_instructions rest_instructions next_state
 		end
 	| [] => Some state
 	end
 .
-(*proofs that step_instructions returns Some if "large" wp is satisfied*)
+(*proofs that step_instructions returns Some if "steps" wp is satisfied*)
 
 Inductive TerminatorInstruction: Type :=
 	| Branch (label: string)
 	| BranchIf (condition: Operand) (if_label else_label: string)
 .
 
+Definition evaluate_terminator terminator state :=
+	match terminator with
+	| Branch label => Some label
+	| BranchIf condition if_label else_label => match evaluate_operand condition state with
+		| None => None
+		| Some condition_nat => Some (if Nat.eq_dec condition_nat 1 then if_label else else_label)
+		end
+	end
+.
+(*proofs that evaluate_terminator returns Some if terminator wp is satisfied*)
+
 Record BasicBlock: Type := {
 	sequential: list Instruction;
 	terminator: TerminatorInstruction;
 }.
+
+Definition step_block block state :=
+	match step_instructions block.(sequential) state with
+	| None => None
+	| Some stepped_state => match evaluate_terminator block.(terminator) stepped_state with
+		| None => None
+		| Some next_label => Some (next_label, stepped_state)
+		end
+	end
+.
+(*proofs that step_block returns Some if overall wp is satisfied*)
 
 From iris.base_logic.lib Require Import gen_heap.
 
