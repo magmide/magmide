@@ -93,6 +93,17 @@ Record BasicBlock: Type := {
 	terminator: TerminatorInstruction;
 }.
 
+Record ExecutableProgram: Type := {
+	starting_block: BasicBlock;
+	program: stringmap BasicBlock;
+}.
+
+Record ProgramState: Type := {
+	program: ExecutableProgram;
+	current_label: string;
+	current_index: nat;
+}.
+
 Definition step_block block state :=
 	match step_instructions block.(sequential) state with
 	| None => None
@@ -123,17 +134,16 @@ Section magmide.
 	Notation "'%' var_name '==' value" := (mapsto (L:=string) (V:=nat) var_name (DfracOwn 1) value)
 		(at level 20, format "'%' var_name '==' value"): bi_scope.
 
-	Notation "'spec!({' pre_condition '}' program '{' post_condition '})'" :=
+	Notation spec pre_condition program post_condition :=
 		([pre_condition; program; post_condition])
-		(at level 20, pre_condition, post_condition at level 200, only parsing)
-		: bi_scope.
+		(only parsing).
 
 	Definition one_add_program := [
 		(Inst_Add "one_add" (Identifier "arg") (Literal 5))
 	].
 	Open Scope bi_scope.
-	Theorem test__one_add_program arg val:
-		spec!({ %arg==val } one_add_program { %one_add==(val + 5) }).
+	Theorem test__one_add_program val:
+		spec (%"arg"==val) one_add_program (%"one_add"==(val + 5)).
 	Proof.
 
 	Qed.
