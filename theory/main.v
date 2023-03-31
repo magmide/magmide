@@ -25,6 +25,7 @@ Definition evaluate_operand (operand: Operand) (state: MachineState): option nat
 	| Identifier s => lookup s state
 	end
 .
+(*gen_heap_valid*)
 
 Inductive Instruction: Type :=
 	| Inst_Add (dest: string) (op1 op2: Operand)
@@ -116,17 +117,23 @@ Section magmide.
 	Context `{!magmideGS Σ}.
 
 	Definition state_interpretation (machine_state: MachineState): iProp Σ :=
-		gen_heap_interp machine_state.(local_identifiers).
+		(*gen_heap_interp machine_state.(local_identifiers).*)
+		gen_heap_interp machine_state.
 
 	Notation "'%' var_name '==' value" := (mapsto (L:=string) (V:=nat) var_name (DfracOwn 1) value)
 		(at level 20, format "'%' var_name '==' value"): bi_scope.
 
+	Notation "'spec!({' pre_condition '}' program '{' post_condition '})'" :=
+		([pre_condition; program; post_condition])
+		(at level 20, pre_condition, post_condition at level 200, only parsing)
+		: bi_scope.
 
 	Definition one_add_program := [
 		(Inst_Add "one_add" (Identifier "arg") (Literal 5))
 	].
-	Theorem test__one_add_program arg:
-		{{ %arg==arg }} one_add_program {{ %one_add==arg + 5 }}.
+	Open Scope bi_scope.
+	Theorem test__one_add_program arg val:
+		spec!({ %arg==val } one_add_program { %one_add==(val + 5) }).
 	Proof.
 
 	Qed.
