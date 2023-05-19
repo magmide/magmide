@@ -1,6 +1,15 @@
-```
-(*https://www.cs.cmu.edu/~fp/papers/mfps89.pdf*)
+https://www.cs.cmu.edu/~fp/papers/mfps89.pdf
+https://github.com/VictorTaelin/calculus-of-constructions
 
+https://softwarefoundations.cis.upenn.edu/lf-current/ProofObjects.html
+https://softwarefoundations.cis.upenn.edu/lf-current/Logic.html
+https://www.researchgate.net/figure/Sketch-of-type-checking-rules-in-Coq_fig17_221336389
+https://www.williamjbowman.com/tmp/wjb-sized-coq.pdf
+https://www.labri.fr/perso/casteran/CoqArt/Tsinghua/C5.pdf
+https://hal.science/hal-02380196/document
+https://coq.inria.fr/refman/language/cic.html
+
+```
 Inductive MyEq {T: Type}: T -> T -> Prop :=
   | EqSelf: forall t, MyEq t t.
 
