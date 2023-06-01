@@ -15,6 +15,8 @@ test:
 	cargo test
 	dune runtest
 
+dev:
+	cargo test -- --nocapture
 
 
 clean:
