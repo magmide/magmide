@@ -12,13 +12,32 @@ struct Module {
 	child_modules: Vec<Module>,
 }
 
+// TODO in general all of this path stuff should just reuse rustc functions, but I need something to play with for now
+
+fn make_path_absolute(current_absolute_path: &str, possibly_relative_path: &str) -> String {
+	if possibly_relative_path.starts_with("crate") {
+		possibly_relative_path.to_owned()
+	}
+	// // TODO need to handle multiple "super" using a while loop?
+	// else if possibly_relative_path.startswith("super") {
+	// 	let trimmed_current_absolute_path = current_absolute_path.split("::").skip_last().unwrap();
+	// 	// TODO can't just trim as many times as you want, have to count how many
+	// 	let reduced_relative_path = possibly_relative_path.trim_start_matches("super::");
+	// 	let reduced_relative_path = reduced_relative_path.trim_start_matches("super");
+	// 	format!("{trimmed_current_absolute_path}::{reduced_relative_path}", )
+	// }
+	else {
+		format!("{current_absolute_path}::{possibly_relative_path}")
+	}
+}
+
 type PathIndex = HashMap<String, ModuleItem>;
 type ModuleCtx = HashMap<String, String>;
 
 fn build_program_path_index(program: Program) -> PathIndex {
 	let mut program_path_index = HashMap::new();
 	for module in program.modules {
-		update_program_path_index_with_module(&mut program_path_index, "", module);
+		update_program_path_index_with_module(&mut program_path_index, "crate", module);
 	};
 	program_path_index
 }
@@ -53,7 +72,7 @@ fn build_module_ctx(parent_path: &str, module: &Module) -> ModuleCtx {
 		match item {
 			ModuleItem::Use(use_tree) => {
 				// TODO format the path onto use_tree.base_path here, including finding stem
-				add_use_tree_to_module_ctx("", &use_tree, &mut module_ctx);
+				add_use_tree_to_module_ctx("crate", &use_tree, &mut module_ctx);
 			},
 			// both of these we just add the resolved path
 			ModuleItem::Prop(PropDefinition { name, .. }) | ModuleItem::Theorem(TheoremDefinition { name, .. }) => {
@@ -66,7 +85,8 @@ fn build_module_ctx(parent_path: &str, module: &Module) -> ModuleCtx {
 
 fn add_use_tree_to_module_ctx(base_path_prefix: &str, use_tree: &UseTree, module_ctx: &mut ModuleCtx) {
 	let base_path = if use_tree.base_path == "self" { base_path_prefix.to_owned() } else {
-		let next_base_path = use_tree.base_path.trim_start_matches("::");
+		// TODO this is wrong, a root reference is only valid at the top of the use
+		let next_base_path = use_tree.base_path.trim_start_matches("crate::");
 		format!("{base_path_prefix}::{next_base_path}")
 	};
 
@@ -248,8 +268,8 @@ mod tests {
 		] });
 
 		let expected = HashMap::from([
-			("::main::trivial".into(), trivial_prop.clone()),
-			("::main::give_trivial".into(), give_trivial_thm.clone()),
+			("crate::main::trivial".into(), trivial_prop.clone()),
+			("crate::main::give_trivial".into(), give_trivial_thm.clone()),
 		]);
 		assert_eq!(program_path_index, expected);
 
@@ -265,20 +285,20 @@ mod tests {
 		] });
 
 		let expected = HashMap::from([
-			("::main::trivial".into(), trivial_prop.clone()),
-			("::main::give_trivial".into(), give_trivial_thm.clone()),
-			("::main::main_child::give_trivial".into(), give_trivial_thm.clone()),
+			("crate::main::trivial".into(), trivial_prop.clone()),
+			("crate::main::give_trivial".into(), give_trivial_thm.clone()),
+			("crate::main::main_child::give_trivial".into(), give_trivial_thm.clone()),
 
-			("::side::trivial".into(), trivial_prop.clone()),
-			("::side::give_trivial".into(), give_trivial_thm.clone()),
-			("::side::side_child::give_trivial".into(), give_trivial_thm.clone()),
+			("crate::side::trivial".into(), trivial_prop.clone()),
+			("crate::side::give_trivial".into(), give_trivial_thm.clone()),
+			("crate::side::side_child::give_trivial".into(), give_trivial_thm.clone()),
 		]);
 		assert_eq!(program_path_index, expected);
 	}
 
 	#[test]
 	fn test_build_module_ctx() {
-		let module_path = "";
+		let module_path = "crate";
 
 		let side_use = ModuleItem::Use(UseTree {
 			// TODO "bare" references like this are assumed to be "relative", so at the same level as the current module
@@ -289,16 +309,16 @@ mod tests {
 		let module = Module { name: "main".into(), items: vec![side_use, make_trivial_prop(), make_give_trivial_thm()], child_modules: vec![] };
 
 		let expected = HashMap::from([
-			("trivial".into(), "::main::trivial".into()),
-			("give_trivial".into(), "::main::give_trivial".into()),
-			("whatever".into(), "::side::whatever".into()),
-			("other".into(), "::side::other".into()),
+			("trivial".into(), "crate::main::trivial".into()),
+			("give_trivial".into(), "crate::main::give_trivial".into()),
+			("whatever".into(), "crate::side::whatever".into()),
+			("other".into(), "crate::side::other".into()),
 		]);
 		assert_eq!(build_module_ctx(module_path, &module), expected);
 
 
 		let side_use = ModuleItem::Use(UseTree {
-			base_path: "::side::child".into(),
+			base_path: "crate::side::child".into(),
 			cap: Some(UseTreeCap::InnerTrees(vec![
 				UseTree::basic("whatever"),
 				UseTree::basic_as("other", "different"),
@@ -308,35 +328,52 @@ mod tests {
 		let module = Module { name: "main".into(), items: vec![side_use, make_trivial_prop(), make_give_trivial_thm()], child_modules: vec![] };
 
 		let expected = HashMap::from([
-			("trivial".into(), "::main::trivial".into()),
-			("give_trivial".into(), "::main::give_trivial".into()),
-			("whatever".into(), "::side::child::whatever".into()),
-			("different".into(), "::side::child::other".into()),
-			("thing".into(), "::side::child::nested::thing".into()),
-			("a".into(), "::side::child::nested::thing::a".into()),
-			("b".into(), "::side::child::nested::thing::b".into()),
+			("trivial".into(), "crate::main::trivial".into()),
+			("give_trivial".into(), "crate::main::give_trivial".into()),
+			("whatever".into(), "crate::side::child::whatever".into()),
+			("different".into(), "crate::side::child::other".into()),
+			("thing".into(), "crate::side::child::nested::thing".into()),
+			("a".into(), "crate::side::child::nested::thing::a".into()),
+			("b".into(), "crate::side::child::nested::thing::b".into()),
 		]);
 		assert_eq!(build_module_ctx(module_path, &module), expected);
+	}
+
+	#[test]
+	fn test_make_path_absolute() {
+		for (current_absolute_path, possibly_relative_path, expected) in [
+			("crate", "crate::m", "crate::m"),
+			("crate", "m", "crate::m"),
+			("crate", "m::child", "crate::m::child"),
+			("crate", "crate::m::child", "crate::m::child"),
+
+			("crate::a::b::c", "crate::m", "crate::m"),
+			("crate::a::b::c", "crate::m::child", "crate::m::child"),
+			("crate::a::b::c", "m", "crate::a::b::c::m"),
+			("crate::a::b::c", "m::child", "crate::a::b::c::m::child"),
+		] {
+			assert_eq!(make_path_absolute(current_absolute_path, possibly_relative_path), expected);
+		}
 	}
 
 	// #[test]
 	// fn test_resolve_reference() {
 	// 	let program_path_index = HashMap::from([
-	// 		("::main::trivial".into(), make_trivial_prop()),
-	// 		("::main::give_trivial".into(), make_give_trivial_thm()),
+	// 		("crate::main::trivial".into(), make_trivial_prop()),
+	// 		("crate::main::give_trivial".into(), make_give_trivial_thm()),
 	// 	]);
 	// 	let ctx = HashMap::from([]);
-	// 	let current_path = "::main::";
+	// 	let current_path = "crate::main::";
 
 	// 	assert_eq!(
 	// 		resolve_reference(ctx, current_path, "trivial"),
-	// 		"::main::trivial"
+	// 		"crate::main::trivial"
 	// 	);
 
 	// 	let ctx = HashMap::from([
 	// 		("main"),
 	// 	]);
-	// 	let current_path = "::side::";
+	// 	let current_path = "crate::side::";
 	// }
 
 	// #[test]
