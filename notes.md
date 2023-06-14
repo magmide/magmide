@@ -1,3 +1,84 @@
+https://inria.hal.science/hal-01094195/preview/CIC.pdf
+notes on `match`
+`match t as x` could probably just be rewritten with a `let` beforehand?
+
+the `in I y1 . . . yp` is basically a destructuring of the *type* of the match target. it allows you to use the *index* values of the type in the body.
+a better syntax that makes this more clear would be `match t: I y1 ... yp { ...match arms... }`
+
+every arm can have a different type, which means the *type* of the entire match *is itself another `match`!*, but one that returns a type and not a value which has a type
+
+strictly speaking the `return P` isn't necessary, but it allows you to use the `in whatever` type you've destructured in other places
+
+A match type checks mostly based on its `return` clause.
+to type check a match, you have to:
+
+- check all constructors are accounted for
+- check that each arm's type aligns with the `return` clause, including when the `return` is a function in which case you run the concrete pattern through that function
+
+this is how "absurdity" is possible, when the `return` clause gives a *different* type for the *actual* input data than it does for the concrete constructor arms! this can only happen when the input data is impossible to construct, because otherwise the constructor arms would definitely handle it since by construction they cover every possibility.
+
+```
+Definition do_inversion (x y: N): Prop :=
+  match x, y with S _, z => False | _,_ => True end.
+
+Definition le_inversion n (H: le (S n) z): False :=
+  match H in le x y return do_inversion x y with
+  | lez x => True()
+  | leS x y p => True()
+  end.
+```
+
+there are also rules about which *sort* the match target and the `return` type are, and it *broadly* seems you just have to keep `Type` and `Prop` separate? that seems like a massive oversimplification, but...
+
+
+`fixpoint` definitions just have to make sense and syntactically terminate
+
+
+
+it seems that inductive types with indexed values are *usefully conceptually different than functions*
+syntactically they're similar, but it's almost like "primitive" functions that don't have a body, but instead are just "declared" to give a value of a certain type
+you could definitely frame these as something similar to a generic type, but there's even still a difference between that concept and an indexed type
+
+A universal asserted type constructor would really help
+basically you don't need `exists` or special case subset types like `vec` if you have a general purpose asserted type that's directly supported in the syntax
+
+you *don't need index values at all* for `Type` definitions if you have a universal asserted type system.
+this means you could do index values for `Prop` very differently, not treating them like functions that eventually return `Prop` but something more similar to generics
+
+```
+@(A: Type, R: (A, A) -> Prop)
+prop RT(A, A);
+  // | RTrefl: @(x), RT x x
+  | RTrefl(x): RT x x
+
+  // | RTR: @(x, y), R x y -> RT x y
+  // @() specifies names, types optional, () specifies types without names
+  | RTR@(x, y)(R x y): RT x y
+
+  // | RTtran: @(x, y, z), RT x y -> RT y z -> RT x z
+  | RTtran@(x, y, z)(RT x y, RT y z): RT x z
+
+prop le(N, N);
+  | lez: @(x) -> le(0, x)
+  | leS: @(x, y), le x y -> le(S x, S y)
+
+
+prop le[N, N];
+  | lez(x): [0, x]
+  | leS(x, y)&(le[x, y]): [S x, S y]
+
+or you could use <> instead of []
+```
+
+
+to demonstrate that an imaginary type "models" a real type, you have to provide:
+
+- a function that can always convert (the separation logic representation of) the real type to the imaginary type
+- a function that can convert an imaginary type into a real type with a proof that this function is a mirror image of the above function
+
+
+
+
 https://www.cs.cmu.edu/~fp/papers/mfps89.pdf
 https://github.com/VictorTaelin/calculus-of-constructions
 
