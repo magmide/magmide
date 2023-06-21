@@ -31,8 +31,11 @@ fn make_path_absolute(current_absolute_path: &str, possibly_relative_path: &str)
 	}
 }
 
-type PathIndex = HashMap<String, ModuleItem>;
-type ModuleCtx = HashMap<String, String>;
+// TODO at some point this will some kind of arena id
+type ModuleItemId = String;
+
+type PathIndex = HashMap<ModuleItemId, ModuleItem>;
+type ModuleCtx = HashMap<String, ModuleItemId>;
 
 fn build_program_path_index(program: Program) -> PathIndex {
 	let mut program_path_index = HashMap::new();
@@ -92,8 +95,8 @@ fn add_use_tree_to_module_ctx(base_path_prefix: &str, use_tree: &UseTree, module
 
 	match &use_tree.cap {
 		None => {
-			let base_path_stem = base_path.split("::").last().unwrap().to_owned();
-			module_ctx.insert(base_path_stem, base_path);
+			let base_path_last = base_path.split("::").last().unwrap().to_owned();
+			module_ctx.insert(base_path_last, base_path);
 		},
 		Some(cap) => match cap {
 			UseTreeCap::All => unimplemented!(),
@@ -113,8 +116,26 @@ fn add_use_tree_to_module_ctx(base_path_prefix: &str, use_tree: &UseTree, module
 #[derive(Debug, Clone, PartialEq)]
 enum TypeBody {
 	Unit,
-	// Tuple,
+	// Tuple(Vec<TypeReference>),
+	// Record(Vec<FieldDefinition>),
+	// Union(Vec<VariantDefinition>),
+	// AnonymousUnion(Vec<TypeReference>)
 }
+
+// TODO this will be something more complex at some point
+// type TypeReference = String;
+
+// #[derive(Debug)]
+// struct FieldDefinition {
+// 	name: String,
+// 	type: TypeReference,
+// }
+
+// #[derive(Debug)]
+// struct VariantDefinition {
+// 	name: String,
+// 	type_body: TypeBody,
+// }
 
 #[derive(Debug, Clone, PartialEq)]
 enum ModuleItem {
@@ -186,11 +207,11 @@ struct TheoremDefinition {
 #[derive(Debug, Clone, PartialEq)]
 enum Statement {
 	Bare(Term),
-	Return(Term),
 	Let {
 		name: String,
 		term: Term,
 	},
+	// Return(Term),
 	// InnerModuleItem(ModuleItem),
 }
 
@@ -203,40 +224,132 @@ enum Term {
 }
 
 
-// fn type_check_program(program: Vec<ModuleItem>) -> Option<()> {
-// 	let indexed = index_program(program)?;
 
-// 	for (program_item_name, program_item) in indexed.iter() {
-// 		match program_item {
-// 			ModuleItem::Prop(definition) => type_check_prop_definition(&indexed, definition),
-// 			ModuleItem::Theorem(definition) => type_check_theorem_definition(&indexed, definition),
-// 		}?;
-// 	};
+fn type_check_program(program: Program) {
+	for module in program.modules {
+		type_check_module(module);
+	}
+}
 
-// 	Some(())
-// }
+fn type_check_module(module: Module) {
+	for item in module.items {
+		type_check_module_item(item);
+	}
+	for child_module in module.child_modules {
+		type_check_module(child_module);
+	}
+}
 
-// fn type_check_prop_definition(indexed: &ProgramIndex, definition: &PropDefinition) -> Option<()> {
-// 	match definition.type_body {
-// 		Unit => Some(()),
-// 	}
-// }
-// fn type_check_theorem_definition(indexed: &ProgramIndex, definition: &TheoremDefinition) -> Option<()> {
-// 	match resolve_term_type(&indexed, &definition.return_type) == resolve_statements_type(&indexed, &definition.statements) {
-// 		true => Some(()),
-// 		false => None,
-// 	}
-// }
+fn type_check_module_item(item: ModuleItem) {
+	match item {
+		Use(use_tree) => type_check_use_tree(use_tree),
+		Prop(PropDefinition { name, type_body }) => {
+			// TODO check that the name hasn't already been used, or perhaps that's handled by earlier stages?
+			// maybe instead check if this definition has already been flagged, and skip checking if it has
 
+			// check that the definition only refers to things that exist and are valid
+			match type_body {
+				Unit => { /* nothing to check! perhaps warn to just use std library's "Trivial" prop though! */ },
+				// Tuple => ,
+				// Record,
+				// Union,
+			}
+		},
+		Theorem(TheoremDefinition { name, return_type, statements }) => {
+			// TODO check name isn't already used?
 
-// type FullPath = Vec<String>;
+			// check that return type matches type implied by statements
+			match infer_type_of_statements(statements) {
+				None => {
+					invalid_items.insert(make_path_absolute(name));
+				},
+				Some(inferred_type) => {
+					if !type_assignable(inferred_type, return_type) {
+						errors.push(format!("{inferred_type} not assignable to {return_type}"));
+					}
+				},
+			}
+		},
+	}
+}
 
-// fn resolve_term_type(indexed: &ProgramIndex, term: &Term) -> FullPath {
-// 	unimplemented!()
-// }
-// fn resolve_statements_type(indexed: &ProgramIndex, statements: &Vec<Statement>) -> FullPath {
-// 	unimplemented!()
-// }
+fn infer_type_of_statements(statements: Vec<Statement>) -> TypeReference {
+	// TODO have to build this from existing module_ctx
+	let mut local_ctx = HashMap::new();
+
+	let mut statements = statements.into_iter().peekable();
+	while let Some(statement) = statements.next()  {
+		match statement {
+			Term::Let { name, term } => {
+				let inferred_type = infer_type_of_term(term);
+
+				let existing_item = local_ctx.insert(name, inferred_type);
+				if existing_item.is_some() {
+					errors.push(format!("variable {name} is already defined"));
+				}
+			},
+
+			// this is proof checker, which means there's no such thing as mutation or effects,
+			// which means leaving a term bare can only mean this should be the resolved value of this line of statements
+			Term::Bare(term) => {
+				if statements.peek().is_some() {
+					errors.push(format!("unreachable code"));
+				}
+				return Some(infer_type_of_term(term, local_ctx));
+			},
+
+			// TODO return is a control flow concept that could still be interesting and useful in an immutable language, since a `let` could have a block or match or if or "functional for" (a function that is being called with a block) where return captures control flow
+			// this means a return can effect the inferred type of a line of statements *above* this one
+
+			// "control flow" in this context is *actually* just desugaring to a version of the function where things like a match have been moved up a level
+			// let a = match something { one => return 1, two => do_something_else() }; a + 2 // same as
+			// match something { one => 1, two => let a = do_something_else(); a + 2 }
+			// Term::Return(term)
+		}
+	}
+
+	errors.push(format!("statements never resolve to a value, which doesn't make sense in a proof checker"));
+	None
+}
+
+fn infer_type_of_term(term: Term, local_ctx: HashMap<String, TypeReference>) -> TypeReference {
+	match term {
+		Some(expr) => expr,
+		None => expr,
+	}
+}
+
+// TODO this is a proof checker, which probably means types are just terms right?
+// this is likely where we need to do reduction/canonicalization to check for equivalance
+fn type_assignable(observed_type: TypeReference, desired_type: TypeReference) -> bool {
+	unimplemented!()
+}
+
+fn type_check_use_tree(use_tree: UseTree) {
+	let UseTree { base_path, cap } = use_tree;
+	// check that base_path exists
+	if !module_ctx.has(base_path) {
+		errors.push(format!("{base_path} doesn't exist"));
+	}
+
+	// TODO check that all items exist and are importable
+	match cap {
+		None => { /* nothing to check if final segment name has already been checked for validity */ },
+		Some(cap) => match cap {
+			UseTreeCap::All => {
+				// TODO check base_path refers to something with importable members
+			},
+			UseTreeCap::AsName(as_name) => {
+				// TODO check that as_name hasn't already been used, or perhaps that's handled by earlier stages?
+			},
+			UseTreeCap::InnerTrees(inner_trees) => {
+				for inner_tree in inner_trees {
+					type_check_use_tree(inner_tree);
+				}
+			},
+		}
+	}
+}
 
 #[cfg(test)]
 mod tests {
@@ -256,6 +369,22 @@ mod tests {
 				Statement::Return(Term::Ident("trivial".into())),
 			],
 		})
+	}
+
+	// #[test]
+	// fn test_type_check_trivial_prop() {
+	// 	unimplemented!();
+	// }
+
+	#[test]
+	fn test_type_check_trivial() {
+		let program = Program { modules: vec![
+			Module { name: "main".into(), items: vec![make_trivial_prop(), make_give_trivial_thm()], child_modules: vec![] },
+		] };
+
+		let mut errors = vec![];
+		type_check_program(program, &mut errors);
+		assert_eq!(errors, vec![]);
 	}
 
 	#[test]

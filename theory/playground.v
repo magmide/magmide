@@ -1,107 +1,114 @@
-Inductive MyEq {T: Type}: T -> T -> Prop :=
-	| EqSelf: forall t, MyEq t t.
+Inductive Trivial: Prop :=
+	| TrivialCreate.
 
-Definition MyEq_inductive_manual
+Definition Trivial_manual: Trivial := TrivialCreate.
+
+Definition Trivial_inductive_manual (P: Prop) (p: P) (evidence: Trivial): P :=
+	match evidence with
+	| TrivialCreate => p
+	end.
+
+
+Inductive Eq {T: Type}: T -> T -> Prop :=
+	| EqCreate: forall t, Eq t t.
+
+Definition Eq_inductive_manual
 	(T: Type) (P: T -> T -> Prop)
 	(f: forall t: T, P t t) (l r: T)
-	(m: MyEq l r)
+	(evidence: Eq l r)
 : P l r :=
-	match m in (MyEq l r) return (P l r) with
-	| EqSelf t => f t
+	match evidence in (Eq l r) return (P l r) with
+	| EqCreate t => f t
 	end.
 
 
-Inductive MyAnd (P Q: Prop): Prop :=
-	| my_and (Ph: P) (Pq: Q): MyAnd P Q.
+Inductive And (P Q: Prop): Prop :=
+	| AndCreate (Ph: P) (Pq: Q): And P Q.
 
-Check my_and.
-
-Print and.
-Print MyAnd.
-
-Definition MyAnd_inductive_manual
-	(P Q R: Prop) (f: P -> Q -> R) (evidence: MyAnd P Q)
+Definition And_inductive_manual
+	(P Q R: Prop) (f: P -> Q -> R) (evidence: And P Q)
 : R :=
 	match evidence with
-	| my_and _ _ p q => f p q
+	| AndCreate _ _ p q => f p q
 	end.
 
 
-Definition MyAnd_left_manual (P Q: Prop) (evidence: MyAnd P Q): P :=
+Definition And_left_manual (P Q: Prop) (evidence: And P Q): P :=
 	match evidence with
-	| my_and _ _ p q => p
+	| AndCreate _ _ p q => p
 	end.
 
-Definition MyAnd_right_manual (P Q: Prop) (evidence: MyAnd P Q): P :=
+Definition And_right_manual (P Q: Prop) (evidence: And P Q): Q :=
 	match evidence with
-	| my_and _ _ p q => q
+	| AndCreate _ _ p q => q
 	end.
 
-Inductive MyOr (P Q: Prop): Prop :=
-	| my_or_left: P -> MyOr P Q
-	| my_or_right: Q -> MyOr P Q.
+Inductive Or (P Q: Prop): Prop :=
+	| OrLeft: P -> Or P Q
+	| OrRight: Q -> Or P Q.
 
-Definition MyOr_inductive_manual
-(P Q R: Prop) (f_left: P -> R) (f_right: Q -> R) (evidence: MyOr P Q)
+Definition Or_inductive_manual
+(P Q R: Prop) (f_left: P -> R) (f_right: Q -> R) (evidence: Or P Q)
 : R :=
 	match evidence with
-	| my_or_left _ _ l => f_left l
-	| my_or_right _ _ r => f_right r
+	| OrLeft _ _ l => f_left l
+	| OrRight _ _ r => f_right r
 	end.
 
 
-Inductive MyBool: Type :=
-	| my_true
-	| my_false.
+Inductive Bool: Type :=
+	| BoolTrue
+	| BoolFalse.
 
-Definition MyBool_inductive_manual
-	(P: MyBool -> Prop) (P_my_true: P my_true) (P_my_false: P my_false)
-: forall (b: MyBool), P b :=
+Definition Bool_inductive_manual
+	(P: Bool -> Prop) (P_BoolTrue: P BoolTrue) (P_BoolFalse: P BoolFalse)
+: forall (b: Bool), P b :=
 	fun b =>
 		match b with
-		| my_true => P_my_true
-		| my_false => P_my_false
+		| BoolTrue => P_BoolTrue
+		| BoolFalse => P_BoolFalse
 		end.
 
-Definition my_eq_manual: MyEq my_true my_true := EqSelf my_true.
+Definition Eq_manual: Eq BoolTrue BoolTrue := EqCreate BoolTrue.
 
-Fail Definition my_eq_manual_bad: MyEq my_true my_false := EqSelf my_true.
-Fail Definition my_eq_manual_bad: MyEq my_true my_false := EqSelf my_false.
-Fail Definition my_eq_manual_bad: MyEq my_false my_true := EqSelf my_true.
-Fail Definition my_eq_manual_bad: MyEq my_false my_true := EqSelf my_false.
+Fail Definition Eq_manual_bad: Eq BoolTrue BoolFalse := EqCreate BoolTrue.
+Fail Definition Eq_manual_bad: Eq BoolTrue BoolFalse := EqCreate BoolFalse.
+Fail Definition Eq_manual_bad: Eq BoolFalse BoolTrue := EqCreate BoolTrue.
+Fail Definition Eq_manual_bad: Eq BoolFalse BoolTrue := EqCreate BoolFalse.
 
-Inductive MyFalse: Prop := .
+Inductive Impossible: Prop := .
 
-Definition my_true_not_false_manual: (MyEq my_true my_false) -> MyFalse :=
-	fun wrong_eq => match wrong_eq with
-	| EqSelf t =>
-	end
-
-Definition MyNot (P: Prop) := P -> MyFalse.
-
-Definition my_not_false_manual: MyNot MyFalse :=
-	fun my_false => match my_false with end.
-
-Definition my_ex_falso_quodlibet: forall (P: Prop), MyFalse -> P :=
-	fun (P: Prop) (my_false: MyFalse) => match my_false return P with end.
-
-Definition my_true_not_false_manual: MyNot (MyEq my_true my_false) :=
+Definition BoolTrue_not_BoolFalse_manual: (Eq BoolTrue BoolFalse) -> Impossible :=
 	fun wrong_eq =>
-		match wrong_eq in (MyEq l r)
+		match wrong_eq with
+		| EqCreate t => match t with
+			| BoolTrue => TrivialCreate
+			| BoolFalse => TrivialCreate
+			end
+		end.
+
+Definition Not (P: Prop) := P -> Impossible.
+
+Definition not_impossible_manual: Not Impossible :=
+	fun impossible => match impossible with end.
+
+Definition ex_falso_quodlibet: forall (P: Prop), Impossible -> P :=
+	fun (P: Prop) (impossible: Impossible) => match impossible return P with end.
+
+Definition BoolTrue_not_BoolFalse_manual_full: Not (Eq BoolTrue BoolFalse) :=
+	fun wrong_eq =>
+		match wrong_eq in (Eq l r)
 		return
-			match l with
-			| my_true =>
-				match r with
-				| my_true => True
-				| my_false => MyFalse
-				end
-			| my_false => True
+			match l, r with
+			| BoolTrue, BoolTrue => Trivial
+			| BoolFalse, BoolFalse => Trivial
+			| _, _ => Impossible
 			end
 		with
-		| EqSelf t => match t as t with
-			| my_true => I
-			| my_false => I
+		| EqCreate t => match t with
+			| BoolTrue => TrivialCreate
+			| BoolFalse => TrivialCreate
 			end
 		end.
 
-Print my_true_not_false_manual.
+Print BoolTrue_not_BoolFalse_manual_full.
