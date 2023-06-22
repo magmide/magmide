@@ -1,6 +1,8 @@
 https://inria.hal.science/hal-01094195/preview/CIC.pdf
 notes on `match`
 `match t as x` could probably just be rewritten with a `let` beforehand?
+or do like rust!
+`match let x: I[y1, ... yp] = t {}`
 
 the `in I y1 . . . yp` is basically a destructuring of the *type* of the match target. it allows you to use the *index* values of the type in the body.
 a better syntax that makes this more clear would be `match t: I y1 ... yp { ...match arms... }`

@@ -1,3 +1,8 @@
+// https://matklad.github.io/2023/05/21/resilient-ll-parsing-tutorial.html
+// http://adam.chlipala.net/cpdt/html/Universes.html
+// https://github.com/rust-analyzer/rowan
+// https://github.com/salsa-rs/salsa
+
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -31,11 +36,11 @@ fn make_path_absolute(current_absolute_path: &str, possibly_relative_path: &str)
 	}
 }
 
-// TODO at some point this will some kind of arena id
-type ModuleItemId = String;
+// TODO at some point this will some kind of arena id or vec of them or something
+type Location = String;
 
-type PathIndex = HashMap<ModuleItemId, ModuleItem>;
-type ModuleCtx = HashMap<String, ModuleItemId>;
+type PathIndex = HashMap<Location, ModuleItem>;
+type ModuleCtx = HashMap<String, Location>;
 
 fn build_program_path_index(program: Program) -> PathIndex {
 	let mut program_path_index = HashMap::new();
@@ -122,6 +127,20 @@ enum TypeBody {
 	// AnonymousUnion(Vec<TypeReference>)
 }
 
+#[derive(Debug)]
+enum Pattern {
+	// for now only qualified *nominal* patterns are accepted? otherwise these constructor_names would be Option?
+	Unit { constructor_name: String },
+	Compound { constructor_name: String, inner_patterns: Vec<NamedPattern>, is_record: bool },
+	Union(Vec<Pattern>),
+}
+
+#[derive(Debug)]
+struct NamedPattern {
+	name: String,
+	pattern: Option<Pattern>,
+}
+
 // TODO this will be something more complex at some point
 // type TypeReference = String;
 
@@ -142,6 +161,7 @@ enum ModuleItem {
 	Use(UseTree),
 	Prop(PropDefinition),
 	Theorem(TheoremDefinition),
+	Log(Term),
 	// Model,
 	// Algorithm,
 	// Struct,
@@ -200,6 +220,7 @@ struct PropDefinition {
 #[derive(Debug, Clone, PartialEq)]
 struct TheoremDefinition {
 	name: String,
+	// parameters: Vec<NamedPattern>,
 	return_type: Term,
 	statements: Vec<Statement>,
 }
@@ -207,20 +228,45 @@ struct TheoremDefinition {
 #[derive(Debug, Clone, PartialEq)]
 enum Statement {
 	Bare(Term),
-	Let {
-		name: String,
-		term: Term,
-	},
+	Let { name: String, term: Term },
 	// Return(Term),
-	// InnerModuleItem(ModuleItem),
+	InnerModuleItem(ModuleItem),
 }
 
 #[derive(Debug, Clone, PartialEq)]
 enum Term {
 	Ident(String),
-	// Match
-	// Call
-	// Chain
+	Block { statements: Vec<Term> },
+	Match {
+		discriminant: Term,
+		// discriminant_pattern: Pattern,
+		return_type: Term,
+		arms: Vec<MatchArm>
+	},
+	Chain(ChainRoot, Vec<ChainItem>),
+	// IndexCall(Vec<Term>)
+	Func { parameters: Vec<NamedPattern>, return_type: Term, statements: Vec<Term> },
+}
+
+#[derive(Debug)]
+struct MatchArm {
+	pattern: Pattern,
+	statements: Vec<Term>,
+}
+
+#[derive(Debug)]
+enum ChainRoot {
+	Path(Path),
+	Call { path: Path, arguments: Vec<Term> },
+}
+
+#[derive(Debug)]
+enum ChainItem {
+	Access(String),
+	AccessCall { accessor: String, arguments: Vec<Term> },
+	FreeCall { path: Path, arguments: Vec<Term> },
+	// TODO tapping is only useful for debugging, and should be understood as provably not changing the current type
+	CatchCall { parameters: Either<NamedPattern, Vec<NamedPattern>>, statements: Vec<Term>, is_tap: bool },
 }
 
 
@@ -242,46 +288,52 @@ fn type_check_module(module: Module) {
 
 fn type_check_module_item(item: ModuleItem) {
 	match item {
-		Use(use_tree) => type_check_use_tree(use_tree),
-		Prop(PropDefinition { name, type_body }) => {
+		ModuleItem::Use(use_tree) => type_check_use_tree(use_tree),
+		ModuleItem::Prop(PropDefinition { name, type_body }) => {
 			// TODO check that the name hasn't already been used, or perhaps that's handled by earlier stages?
 			// maybe instead check if this definition has already been flagged, and skip checking if it has
 
 			// check that the definition only refers to things that exist and are valid
 			match type_body {
-				Unit => { /* nothing to check! perhaps warn to just use std library's "Trivial" prop though! */ },
+				Unit => { /* nothing to check! perhaps warn to just use std library's "Trivial" prop though */ },
 				// Tuple => ,
 				// Record,
 				// Union,
 			}
 		},
-		Theorem(TheoremDefinition { name, return_type, statements }) => {
+		ModuleItem::Theorem(TheoremDefinition { name, return_type, statements }) => {
 			// TODO check name isn't already used?
 
+			// TODO check function doesn't have infinite recursion
 			// check that return type matches type implied by statements
-			match infer_type_of_statements(statements) {
+			match type_check_statements(statements) {
 				None => {
 					invalid_items.insert(make_path_absolute(name));
 				},
 				Some(inferred_type) => {
 					if !type_assignable(inferred_type, return_type) {
-						errors.push(format!("{inferred_type} not assignable to {return_type}"));
+						invalid_items.push(item);
+						errors.push(not_assignable_error(inferred_type, return_type));
 					}
 				},
 			}
 		},
+
+		ModuleItem::Log(term) => {
+			// TODO make sure this can actually be performed but otherwise do nothing to the context
+		},
 	}
 }
 
-fn infer_type_of_statements(statements: Vec<Statement>) -> TypeReference {
+fn type_check_statements(statements: Vec<Statement>) -> TypeReference {
 	// TODO have to build this from existing module_ctx
 	let mut local_ctx = HashMap::new();
 
 	let mut statements = statements.into_iter().peekable();
 	while let Some(statement) = statements.next()  {
 		match statement {
-			Term::Let { name, term } => {
-				let inferred_type = infer_type_of_term(term);
+			Statement::Let { name, term } => {
+				let inferred_type = type_check_term(term);
 
 				let existing_item = local_ctx.insert(name, inferred_type);
 				if existing_item.is_some() {
@@ -289,13 +341,17 @@ fn infer_type_of_statements(statements: Vec<Statement>) -> TypeReference {
 				}
 			},
 
+			Statement::InnerModuleItem(module_item) => {
+				// TODO add this module item to the running local_ctx
+			},
+
 			// this is proof checker, which means there's no such thing as mutation or effects,
 			// which means leaving a term bare can only mean this should be the resolved value of this line of statements
-			Term::Bare(term) => {
+			Statement::Bare(term) => {
 				if statements.peek().is_some() {
 					errors.push(format!("unreachable code"));
 				}
-				return Some(infer_type_of_term(term, local_ctx));
+				return Some(type_check_term(term, local_ctx));
 			},
 
 			// TODO return is a control flow concept that could still be interesting and useful in an immutable language, since a `let` could have a block or match or if or "functional for" (a function that is being called with a block) where return captures control flow
@@ -312,17 +368,106 @@ fn infer_type_of_statements(statements: Vec<Statement>) -> TypeReference {
 	None
 }
 
-fn infer_type_of_term(term: Term, local_ctx: HashMap<String, TypeReference>) -> TypeReference {
+fn type_check_term(term: Term, local_ctx: HashMap<String, Term>) -> Term {
 	match term {
-		Some(expr) => expr,
-		None => expr,
+		Term::Ident(ident) => {
+			// TODO look up this ident in the local_ctx and figure out its type, being careful to avoid infinite recursion
+		},
+		Term::Block { statements } => {
+			type_check_statements(statements)
+		},
+		Term::Match { discriminant, return_type, arms } => {
+			let discriminant_type = unimplemented!();
+			for arm in arms {
+				check_pattern_compatible(discriminant_type, arm.pattern);
+				// all the magic is hiding in check_assignable, which has to do reduction and things in complex cases
+				check_assignable(type_check_statements(arm.statements), return_type)
+			}
+		},
+		Term::Chain(first, rest) => {
+			// TODO chain_ctx needs to be built from local_ctx
+			let mut chain_ctx = HashMap::new();
+			let mut current_type = type_check_chain_root(first, &mut chain_ctx);
+			// TODO type_check_chain_item will be fallible and stop iterating if it finds something that doesn't make sense
+			for chain_item in rest {
+				current_type = type_check_chain_item(chain_item, current_type, &mut chain_ctx);
+			}
+			current_type
+		},
+		Term::Func { parameters, return_type, statements } => {
+			type_check_named_patterns(parameters, local_ctx);
+			check_assignable(type_check_statements(statements), return_type)
+		},
 	}
 }
 
-// TODO this is a proof checker, which probably means types are just terms right?
-// this is likely where we need to do reduction/canonicalization to check for equivalance
-fn type_assignable(observed_type: TypeReference, desired_type: TypeReference) -> bool {
-	unimplemented!()
+fn type_check_named_patterns(named_patterns: Vec<NamedPattern>, pattern_names: &mut HashSet<String>) {
+	for named_pattern in named_patterns {
+		pattern_names.insert(named_pattern.name)?.get_mad_if_exists();
+		if let Some(pattern) = named_pattern.pattern {
+			type_check_pattern(pattern, pattern_names);
+		}
+	}
+}
+
+fn type_check_pattern(pattern: Pattern, pattern_names: &mut HashSet<String>) {
+	match expr {
+		Unit { constructor_name } => {
+			// TODO look up this constructor_name and see if it exists and is compatible with being a type
+		},
+		Compound { constructor_name, inner_patterns, is_record } => {
+			// TODO check constructor_name exists and matches with is_record
+			type_check_named_patterns(inner_patterns, pattern_names);
+		},
+		Union(patterns) => {
+			for pattern in patterns {
+				type_check_pattern(pattern, pattern_names);
+			}
+		},
+	}
+}
+
+fn type_check_chain_root(chain_root: ChainRoot, chain_ctx: &mut HashMap<String, Term>) -> Term {
+	match chain_root {
+		ChainRoot::Path(path) => {
+			// TODO look up this path in the context
+		},
+		ChainRoot::Call { path, arguments } => {
+			// TODO check the path exists, is callable, and its parameters match the arguments
+		},
+	}
+}
+
+fn type_check_chain_item(chain_item: ChainItem, current_type: Term, chain_ctx: &mut HashMap<String, Term>) -> Term {
+	match chain_item {
+		FreeCall { path, arguments, is_bare } => {
+			if let Some(_) = current_type && is_bare {
+				errors.push(format!("used a bare call in the middle of a chain"));
+				return
+			}
+		},
+		Access(accessor) => {
+			// TODO check this accessor exists on this type, give type of accessor
+		},
+		AccessCall { accessor, arguments } => {
+			// TODO check the accessor exists, is callable, and its parameters match the arguments
+		},
+		CatchCall { parameters, statements, is_tap } => {
+			match parameters {
+				Either::Left(parameter) => {
+					check_assignable(current_type, parameter)
+					// return if fail?
+				},
+				Either::Right(parameters) => {
+					// TODO type check current_type is a spreadable thing that matches the parameters
+				},
+			}
+			// TODO enrich the ctx with the parameters
+			let inferred_type = type_check_statements(statements);
+			// a tapping call is only good for debugging, and doesn't effect the type
+			if is_tap { current_type } else { inferred_type }
+		},
+	}
 }
 
 fn type_check_use_tree(use_tree: UseTree) {
@@ -332,7 +477,6 @@ fn type_check_use_tree(use_tree: UseTree) {
 		errors.push(format!("{base_path} doesn't exist"));
 	}
 
-	// TODO check that all items exist and are importable
 	match cap {
 		None => { /* nothing to check if final segment name has already been checked for validity */ },
 		Some(cap) => match cap {
@@ -350,6 +494,21 @@ fn type_check_use_tree(use_tree: UseTree) {
 		}
 	}
 }
+
+
+fn check_assignable(observed_type: Term, desired_type: Term) -> Term {
+	if !type_assignable(observed_type, desired_type) {
+		errors.push(format!("{observed_type} not assignable to {desired_type}"));
+	}
+	observed_type
+}
+
+// TODO this is a proof checker, which means types are just terms
+// this is where we need to do canonicalization and reduction and check for equivalance
+fn type_assignable(observed_type: Term, desired_type: Term) -> bool {
+	unimplemented!()
+}
+
 
 #[cfg(test)]
 mod tests {
