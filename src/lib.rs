@@ -3,114 +3,202 @@
 // https://github.com/rust-analyzer/rowan
 // https://github.com/salsa-rs/salsa
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-#[derive(Debug, Clone, PartialEq)]
-struct Program {
-	modules: Vec<Module>,
-}
+// a Ctx is a map of *mere Idents* (which for now will be strings but later will be intern ids) to CtxItems
+// a "Path" isn't a thing held by a Ctx, a Path is the *result of chained accessors*
+
+// when you build a Ctx, you only add the base Idents available at this point
+// the Ctx for all the items in a module includes all the other items in the module, the base names of the siblings of the module, and "crate" and "super"
+// within a block of statements, the Ctx inherits all the items from the parent scope (either a Module or another block of statements), and iteratively adds things to the Ctx as it goes
 
 #[derive(Debug, Clone, PartialEq)]
 struct Module {
 	name: String,
 	items: Vec<ModuleItem>,
-	child_modules: Vec<Module>,
 }
 
-// TODO in general all of this path stuff should just reuse rustc functions, but I need something to play with for now
 
-fn make_path_absolute(current_absolute_path: &str, possibly_relative_path: &str) -> String {
-	if possibly_relative_path.starts_with("crate") {
-		possibly_relative_path.to_owned()
+// TODO at some point this will be some kind of id to an interned string
+type Ident = String;
+// a simple identifier can refer either to some global item with a path like a type or function (types and functions defined inside a block of statements are similar to this, but don't have a "path" in the strict sense since they aren't accessible from the outside)
+// or a mere local variable
+type Ctx = HashMap<Ident, CtxItem>;
+
+#[derive(Debug)]
+struct Ctx {
+	values: HashMap<Ident, CtxItem>,
+	errors: Vec<String>,
+}
+
+impl Ctx {
+	fn from<const N: usize>(pairs: [(Ident, CtxItem); N]) -> Ctx {
+		Ctx { values: HashMap::from(pairs), errors: Vec::new() }
 	}
-	// // TODO need to handle multiple "super" using a while loop?
-	// else if possibly_relative_path.startswith("super") {
-	// 	let trimmed_current_absolute_path = current_absolute_path.split("::").skip_last().unwrap();
-	// 	// TODO can't just trim as many times as you want, have to count how many
-	// 	let reduced_relative_path = possibly_relative_path.trim_start_matches("super::");
-	// 	let reduced_relative_path = reduced_relative_path.trim_start_matches("super");
-	// 	format!("{trimmed_current_absolute_path}::{reduced_relative_path}", )
-	// }
-	else {
-		format!("{current_absolute_path}::{possibly_relative_path}")
+	// from_iter
+
+	fn checked_insert(&mut self, ident: Ident, ctx_item: CtxItem) {
+		if let Some(existing_item) = self.values.insert(ident, ctx_item) {
+			self.add_error(format!("name {ident} has already been used"));
+		}
+	}
+
+	fn add_error(&mut self, error: String) {
+		self.errors.push(error);
 	}
 }
 
-// TODO at some point this will some kind of arena id or vec of them or something
-type Location = String;
-
-type PathIndex = HashMap<Location, ModuleItem>;
-type ModuleCtx = HashMap<String, Location>;
-
-fn build_program_path_index(program: Program) -> PathIndex {
-	let mut program_path_index = HashMap::new();
-	for module in program.modules {
-		update_program_path_index_with_module(&mut program_path_index, "crate", module);
-	};
-	program_path_index
+#[derive(Debug)]
+enum CtxItem {
+	Module(Module),
+	Prop(PropDefinition),
+	Theorem(TheoremDefinition),
+	Local(Term),
 }
 
-fn update_program_path_index_with_module(
-	program_path_index: &mut PathIndex,
-	parent_path: &str,
-	module: Module,
-	// module_ctx: &mut HashMap<String, String>,
-) {
-	let module_name = module.name;
-	let path = format!("{parent_path}::{module_name}");
+
+fn type_check_program(modules: Vec<Module>) -> CheckResult<()> {
+	// TODO add all the prelude uses!
+	// `use crate::std` for example
+	let crate_module = Module { name: "crate".into(), items: modules.into_iter().map(|m| ModuleItem::Module(m)) };
+	// TODO this is where resolutions of all the imported crates would go!
+	let crate_ctx = Ctx::from([("crate", crate_module), ("super", crate_module)]);
+	type_check_module(crate_module.clone(), crate_ctx, &crate_module)
+}
+
+fn type_check_module(module: Module, parent_ctx: Ctx, crate_module: &Module) -> CheckResult<()> {
+	if module.name == "crate" || module.name == "super" || module.name == "self" {
+		errors.push(format!("can't name a module reserved word {module.name}"));
+	}
+	// TODO clone from parent?
+	let mut ctx = parent_ctx.clone();
+
+	// this first pass does nothing but build the ctx which checks for name collisions
 	for item in module.items {
-		if let Some(item_name) = item.give_name() {
-			// TODO handle conflict case
-			program_path_index.insert(format!("{path}::{item_name}"), item);
-
-			// TODO update module ctx as well
-		}
-	}
-
-	for child_module in module.child_modules {
-		update_program_path_index_with_module(program_path_index, &path, child_module);
-	}
-}
-
-fn build_module_ctx(parent_path: &str, module: &Module) -> ModuleCtx {
-	let mut module_ctx = HashMap::new();
-	let module_name = &module.name;
-	let module_path = format!("{parent_path}::{module_name}");
-	for item in &module.items {
 		match item {
-			ModuleItem::Use(use_tree) => {
-				// TODO format the path onto use_tree.base_path here, including finding stem
-				add_use_tree_to_module_ctx("crate", &use_tree, &mut module_ctx);
+			Use(use_tree) => {
+				// when checking a use_tree, it can only refer to what's available *before* all the other items in this module are defined
+				// but it of course adds things to the ctx
+				type_check_use_tree(use_tree, &parent_ctx, &mut ctx);
 			},
-			// both of these we just add the resolved path
-			ModuleItem::Prop(PropDefinition { name, .. }) | ModuleItem::Theorem(TheoremDefinition { name, .. }) => {
-				module_ctx.insert(name.into(), format!("{module_path}::{name}"));
+			Module(child_module) => {
+				ctx.checked_insert(child_module.name, CtxItem::Module(child_module))
+			},
+			Prop(prop_definition) => {
+				ctx.checked_insert(prop_definition.name, CtxItem::Prop(prop_definition));
+			},
+			Theorem(theorem_definition) => {
+				ctx.checked_insert(theorem_definition.name, CtxItem::Theorem(theorem_definition));
+			},
+			Log(term) => {
+				// logging can't effect the Ctx, but it *can* refer to anything in the file so checking must be deferred
 			},
 		}
 	}
-	module_ctx
+
+	let ctx = ctx;
+	for item in module.items {
+		match item {
+			Use(_) => { /* nothing to do, already checked this */ },
+			Module(child_module) => {
+				let child_ctx = HashMap::from([("crate": crate_module), ("super", module)]);
+				type_check_module(child_module, child_ctx, &crate_module);
+			},
+			Prop(prop_definition) => {
+				type_check_prop_definition(prop_definition, &ctx)
+			},
+			Theorem(theorem_definition) => {
+				type_check_theorem_definition(theorem_definition, &ctx)
+			},
+			Log(term) => {
+				type_check_term(term, &ctx);
+			},
+		}
+	}
 }
 
-fn add_use_tree_to_module_ctx(base_path_prefix: &str, use_tree: &UseTree, module_ctx: &mut ModuleCtx) {
-	let base_path = if use_tree.base_path == "self" { base_path_prefix.to_owned() } else {
-		// TODO this is wrong, a root reference is only valid at the top of the use
-		let next_base_path = use_tree.base_path.trim_start_matches("crate::");
-		format!("{base_path_prefix}::{next_base_path}")
-	};
+
+
+
+
+
+// fn build_program_path_index(program: Program) -> LocationIndex {
+// 	let mut program_path_index = HashMap::new();
+// 	for module in program.modules {
+// 		update_program_path_index_with_module(&mut program_path_index, "crate", module);
+// 	};
+// 	program_path_index
+// }
+
+// fn update_program_path_index_with_module(
+// 	program_path_index: &mut LocationIndex,
+// 	parent_path: &str,
+// 	module: Module,
+// 	// module_ctx: &mut HashMap<String, String>,
+// ) {
+// 	let module_name = module.name;
+// 	let path = format!("{parent_path}::{module_name}");
+// 	for item in module.items {
+// 		if let Some(item_name) = item.give_name() {
+// 			// TODO handle conflict case
+// 			program_path_index.insert(format!("{path}::{item_name}"), item);
+
+// 			// TODO update module ctx as well
+// 		}
+// 	}
+
+// 	for child_module in module.child_modules {
+// 		update_program_path_index_with_module(program_path_index, &path, child_module);
+// 	}
+// }
+
+// fn build_module_ctx(parent_path: &str, module: &Module) -> Ctx {
+// 	let mut module_ctx = HashMap::new();
+// 	let module_name = &module.name;
+// 	let module_path = format!("{parent_path}::{module_name}");
+// 	for item in &module.items {
+// 		match item {
+// 			ModuleItem::Use(use_tree) => {
+// 				// TODO format the path onto use_tree.base_path here, including finding stem
+// 				add_use_tree_to_module_ctx("crate", &use_tree, &mut module_ctx);
+// 			},
+// 			// both of these we just add the resolved path
+// 			ModuleItem::Prop(PropDefinition { name, .. }) | ModuleItem::Theorem(TheoremDefinition { name, .. }) => {
+// 				module_ctx.insert(name.into(), format!("{module_path}::{name}"));
+// 			},
+// 		}
+// 	}
+// 	module_ctx
+// }
+
+fn do_accessors(mut current_item: CtxItem, accessor_idents: Vec<Ident>) -> CheckResult<(Option<Ident>, CtxItem)> {
+	let mut current_item = current_item;
+	let mut current_ident = None;
+	for accessor_ident in accessor_idents {
+		current_item = current_item.check_pathable()?.checked_access(accessor_ident)?;
+		current_ident = Some(accessor_ident);
+	}
+	(current_ident, current_item)
+}
+
+fn type_check_use_tree(use_tree: UseTree, parent_ctx: &Ctx, ctx: &mut Ctx) -> CheckResult<()> {
+	let (base_ident, rest_idents) = use_tree.path_idents;
+	let (current_ident, current_item) = do_accessors(parent_ctx.checked_get(base_ident)?, rest_idents)?;
+	let current_ident = current_ident.unwrap_or(base_ident);
 
 	match &use_tree.cap {
 		None => {
-			let base_path_last = base_path.split("::").last().unwrap().to_owned();
-			module_ctx.insert(base_path_last, base_path);
+			ctx.checked_insert(current_ident, current_item);
 		},
 		Some(cap) => match cap {
-			UseTreeCap::All => unimplemented!(),
+			UseTreeCap::All => current_item.check_pathable()?.checked_insert_all(&mut ctx),
 			UseTreeCap::AsName(as_name) => {
-				module_ctx.insert(as_name.into(), base_path);
+				ctx.checked_insert(as_name, current_item);
 			},
 			UseTreeCap::InnerTrees(inner_trees) => {
 				for inner_tree in inner_trees {
-					add_use_tree_to_module_ctx(&base_path, &inner_tree, module_ctx);
+					// TODO don't short circuit on each of these, the internal errors are good enough
+					let _ = type_check_use_tree(inner_tree, &parent_ctx, &mut ctx);
 				}
 			},
 		},
@@ -159,13 +247,12 @@ struct NamedPattern {
 #[derive(Debug, Clone, PartialEq)]
 enum ModuleItem {
 	Use(UseTree),
+	Module(Module),
 	Prop(PropDefinition),
 	Theorem(TheoremDefinition),
 	Log(Term),
 	// Model,
-	// Algorithm,
-	// Struct,
-	// Fn,
+	// Procedure,
 }
 
 impl ModuleItem {
@@ -181,7 +268,7 @@ impl ModuleItem {
 
 #[derive(Debug, Clone, PartialEq)]
 struct UseTree {
-	base_path: String,
+	path_idents: (String, Vec<String>),
 	cap: Option<UseTreeCap>,
 }
 
@@ -243,6 +330,7 @@ enum Term {
 		return_type: Term,
 		arms: Vec<MatchArm>
 	},
+	Lone(ChainRoot),
 	Chain(ChainRoot, Vec<ChainItem>),
 	// IndexCall(Vec<Term>)
 	Func { parameters: Vec<NamedPattern>, return_type: Term, statements: Vec<Term> },
@@ -440,19 +528,19 @@ fn type_check_chain_root(chain_root: ChainRoot, chain_ctx: &mut HashMap<String, 
 
 fn type_check_chain_item(chain_item: ChainItem, current_type: Term, chain_ctx: &mut HashMap<String, Term>) -> Term {
 	match chain_item {
-		FreeCall { path, arguments, is_bare } => {
+		ChainItem::FreeCall { path, arguments, is_bare } => {
 			if let Some(_) = current_type && is_bare {
 				errors.push(format!("used a bare call in the middle of a chain"));
 				return
 			}
 		},
-		Access(accessor) => {
+		ChainItem::Access(accessor) => {
 			// TODO check this accessor exists on this type, give type of accessor
 		},
-		AccessCall { accessor, arguments } => {
+		ChainItem::AccessCall { accessor, arguments } => {
 			// TODO check the accessor exists, is callable, and its parameters match the arguments
 		},
-		CatchCall { parameters, statements, is_tap } => {
+		ChainItem::CatchCall { parameters, statements, is_tap } => {
 			match parameters {
 				Either::Left(parameter) => {
 					check_assignable(current_type, parameter)
@@ -514,6 +602,13 @@ fn type_assignable(observed_type: Term, desired_type: Term) -> bool {
 mod tests {
 	use super::*;
 
+	fn make_path(path: Path) -> Term {
+		Term::Lone(ChainRoot::Path("true"))
+	}
+	fn make_call(path: Path, arguments: Vec<Term>) -> Term {
+		Term::Lone(ChainRoot::Call { path: "invert", arguments: vec![make_true()] })
+	}
+
 	fn make_trivial_prop() -> ModuleItem {
 		ModuleItem::Prop(PropDefinition {
 			name: "trivial".into(),
@@ -530,10 +625,31 @@ mod tests {
 		})
 	}
 
-	// #[test]
-	// fn test_type_check_trivial_prop() {
-	// 	unimplemented!();
-	// }
+	#[test]
+	fn test_reduce_term(arg: Type) -> RetType {
+		// type bool = true | false
+		// use bool::*
+		// proc invert(b: bool): bool; match b; true; false, false; true
+		let program = Program { modules: vec![
+			Module { name: "main".into(), items: vec![make_bool_type(), make_invert_proc()], child_modules: vec![] },
+		] };
+
+		let term = make_call("invert", vec![make_path("true")]);
+		assert_eq!(reduce_term(term, local_ctx), make_path("crate::main::bool::false"));
+
+		let term = make_call("invert", vec![make_path("b")]);
+		// TODO enrich local_ctx with b: bool, so its some opaque thing
+		// match b; true; false, false; true
+		assert_eq!(reduce_term(term, local_ctx), make_match("b", vec![("true", "false"), ("false", "true")]));
+
+
+		// prop trivial
+		// thm trivial_proven: trivial = trivial
+
+		let term = make_path("trivial_proven");
+		assert_eq!(reduce_term(term, local_ctx), make_path("crate::main::trivial"));
+	}
+
 
 	#[test]
 	fn test_type_check_trivial() {
@@ -644,25 +760,25 @@ mod tests {
 		}
 	}
 
-	// #[test]
-	// fn test_resolve_reference() {
-	// 	let program_path_index = HashMap::from([
-	// 		("crate::main::trivial".into(), make_trivial_prop()),
-	// 		("crate::main::give_trivial".into(), make_give_trivial_thm()),
-	// 	]);
-	// 	let ctx = HashMap::from([]);
-	// 	let current_path = "crate::main::";
+	#[test]
+	fn test_resolve_reference() {
+		let program_path_index = HashMap::from([
+			("crate::main::trivial".into(), make_trivial_prop()),
+			("crate::main::give_trivial".into(), make_give_trivial_thm()),
+		]);
+		let ctx = HashMap::from([]);
+		let current_path = "crate::main::";
 
-	// 	assert_eq!(
-	// 		resolve_reference(ctx, current_path, "trivial"),
-	// 		"crate::main::trivial"
-	// 	);
+		assert_eq!(
+			resolve_reference(ctx, current_path, "trivial"),
+			"crate::main::trivial"
+		);
 
-	// 	let ctx = HashMap::from([
-	// 		("main"),
-	// 	]);
-	// 	let current_path = "crate::side::";
-	// }
+		let ctx = HashMap::from([
+			("main"),
+		]);
+		let current_path = "crate::side::";
+	}
 
 	// #[test]
 	// fn test_resolve_term_type() {
@@ -766,3 +882,32 @@ mod tests {
 // "algorithms" are functions which return things of kind Model, which may or may not have prop assertions on them
 
 // "functions" are concrete and computational, have completely different rules
+
+
+
+
+// TODO in general all of this path stuff should just reuse rustc functions, but I need something to play with for now
+
+fn make_path_absolute(current_absolute_path: &str, possibly_relative_path: &str) -> String {
+	if possibly_relative_path.starts_with("crate") {
+		possibly_relative_path.to_owned()
+	}
+	// // TODO need to handle multiple "super" using a while loop?
+	// else if possibly_relative_path.startswith("super") {
+	// 	let trimmed_current_absolute_path = current_absolute_path.split("::").skip_last().unwrap();
+	// 	// TODO can't just trim as many times as you want, have to count how many
+	// 	let reduced_relative_path = possibly_relative_path.trim_start_matches("super::");
+	// 	let reduced_relative_path = reduced_relative_path.trim_start_matches("super");
+	// 	format!("{trimmed_current_absolute_path}::{reduced_relative_path}", )
+	// }
+	else {
+		format!("{current_absolute_path}::{possibly_relative_path}")
+	}
+}
+
+
+
+// fn make_dir_module(dirname: String, modules: Vec<Module>) -> Module {
+// 	Module { name: dirname, items: modules.into_iter.map(|m| ModuleItem::Module(m)) }
+// }
+// TODO make a function that walks a directory and recursively calls make_dir_module
