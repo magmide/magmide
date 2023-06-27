@@ -23,22 +23,20 @@ struct Module {
 type Ident = String;
 // a simple identifier can refer either to some global item with a path like a type or function (types and functions defined inside a block of statements are similar to this, but don't have a "path" in the strict sense since they aren't accessible from the outside)
 // or a mere local variable
-type Ctx = HashMap<Ident, CtxItem>;
-
 #[derive(Debug)]
 struct Ctx {
-	values: HashMap<Ident, CtxItem>,
+	scope: HashMap<Ident, CtxItem>,
 	errors: Vec<String>,
 }
 
 impl Ctx {
 	fn from<const N: usize>(pairs: [(Ident, CtxItem); N]) -> Ctx {
-		Ctx { values: HashMap::from(pairs), errors: Vec::new() }
+		Ctx { scope: HashMap::from(pairs), errors: Vec::new() }
 	}
 	// from_iter
 
 	fn checked_insert(&mut self, ident: Ident, ctx_item: CtxItem) {
-		if let Some(existing_item) = self.values.insert(ident, ctx_item) {
+		if let Some(existing_item) = self.scope.insert(ident, ctx_item) {
 			self.add_error(format!("name {ident} has already been used"));
 		}
 	}
@@ -70,48 +68,86 @@ fn type_check_module(module: Module, parent_ctx: Ctx, crate_module: &Module) -> 
 	if module.name == "crate" || module.name == "super" || module.name == "self" {
 		errors.push(format!("can't name a module reserved word {module.name}"));
 	}
-	// TODO clone from parent?
+	// TODO clone from parent? this means errors needs to be a global Arc or something, so every cloned Ctx points to the same thing
 	let mut ctx = parent_ctx.clone();
 
 	// this first pass does nothing but build the ctx which checks for name collisions
 	for item in module.items {
-		match item {
-			Use(use_tree) => {
-				// when checking a use_tree, it can only refer to what's available *before* all the other items in this module are defined
-				// but it of course adds things to the ctx
-				type_check_use_tree(use_tree, &parent_ctx, &mut ctx);
-			},
-			Module(child_module) => {
-				ctx.checked_insert(child_module.name, CtxItem::Module(child_module))
-			},
-			Prop(prop_definition) => {
-				ctx.checked_insert(prop_definition.name, CtxItem::Prop(prop_definition));
-			},
-			Theorem(theorem_definition) => {
-				ctx.checked_insert(theorem_definition.name, CtxItem::Theorem(theorem_definition));
-			},
-			Log(term) => {
-				// logging can't effect the Ctx, but it *can* refer to anything in the file so checking must be deferred
-			},
-		}
+		name_pass_type_check_module_item(item, &parent_ctx, &mut ctx);
 	}
 
 	let ctx = ctx;
 	for item in module.items {
-		match item {
-			Use(_) => { /* nothing to do, already checked this */ },
-			Module(child_module) => {
-				let child_ctx = HashMap::from([("crate": crate_module), ("super", module)]);
-				type_check_module(child_module, child_ctx, &crate_module);
+		main_pass_type_check_module_item(item, &ctx, &crate_module, &module);
+	}
+}
+
+fn name_pass_type_check_module_item(module_item: ModuleItem, parent_ctx: &Ctx, ctx: &mut Ctx) {
+	match module_item {
+		Use(use_tree) => {
+			// when checking a use_tree, it can only refer to what's available *before* all the other items in this module are defined
+			// but it of course adds things to the ctx
+			type_check_use_tree_module_level(use_tree, &parent_ctx, &mut ctx);
+		},
+		Module(child_module) => {
+			ctx.checked_insert(child_module.name, CtxItem::Module(child_module))
+		},
+		Prop(prop_definition) => {
+			ctx.checked_insert(prop_definition.name, CtxItem::Prop(prop_definition));
+		},
+		Theorem(theorem_definition) => {
+			ctx.checked_insert(theorem_definition.name, CtxItem::Theorem(theorem_definition));
+		},
+		Log(term) => {
+			// logging can't effect the Ctx, but it *can* refer to anything in the file so checking must be deferred
+		},
+	}
+}
+
+fn main_pass_type_check_module_item(module_item: ModuleItem, ctx: &Ctx, crate_module: &Module, super_module: &Module) {
+	match module_item {
+		Use(_) => { /* nothing to do, already checked this */ },
+		Module(child_module) => {
+			let child_ctx = HashMap::from([("crate": crate_module), ("super", super_module)]);
+			type_check_module(child_module, child_ctx, &crate_module);
+		},
+		Prop(prop_definition) => {
+			type_check_prop_definition(prop_definition, &ctx)
+		},
+		Theorem(theorem_definition) => {
+			type_check_theorem_definition(theorem_definition, &ctx)
+		},
+		Log(term) => {
+			type_check_term(term, &ctx);
+		},
+	}
+}
+
+fn type_check_statements(statements: Vec<Statement>, parent_ctx: &Ctx, crate_module: &Module, super_module: &Module) -> CheckResult<()> {
+	let mut ctx = parent_ctx.clone();
+
+	for statement in statements {
+		match statement {
+			_ => { /* nothing to do for these on this pass */ },
+			InnerModuleItem(module_item) => {
+				name_pass_type_check_module_item(module_item, &parent_ctx, &ctx);
 			},
-			Prop(prop_definition) => {
-				type_check_prop_definition(prop_definition, &ctx)
-			},
-			Theorem(theorem_definition) => {
-				type_check_theorem_definition(theorem_definition, &ctx)
-			},
-			Log(term) => {
+		}
+	}
+
+	for statement in statements {
+		match statement {
+			Let { name, term } => {
 				type_check_term(term, &ctx);
+				// TODO mark this term as invalid?
+				ctx.checked_insert(name, CtxItem::Local(term));
+			},
+			Bare(term) => {
+				// this must be a return
+			},
+			// TODO this is problematic, since this ordering would imply inner module items can refer to lets?
+			InnerModuleItem(module_item) => {
+				main_pass_type_check_module_item(module_item, &ctx, &crate_module, &super_module);
 			},
 		}
 	}
@@ -119,63 +155,12 @@ fn type_check_module(module: Module, parent_ctx: Ctx, crate_module: &Module) -> 
 
 
 
-
-
-
-// fn build_program_path_index(program: Program) -> LocationIndex {
-// 	let mut program_path_index = HashMap::new();
-// 	for module in program.modules {
-// 		update_program_path_index_with_module(&mut program_path_index, "crate", module);
-// 	};
-// 	program_path_index
-// }
-
-// fn update_program_path_index_with_module(
-// 	program_path_index: &mut LocationIndex,
-// 	parent_path: &str,
-// 	module: Module,
-// 	// module_ctx: &mut HashMap<String, String>,
-// ) {
-// 	let module_name = module.name;
-// 	let path = format!("{parent_path}::{module_name}");
-// 	for item in module.items {
-// 		if let Some(item_name) = item.give_name() {
-// 			// TODO handle conflict case
-// 			program_path_index.insert(format!("{path}::{item_name}"), item);
-
-// 			// TODO update module ctx as well
-// 		}
-// 	}
-
-// 	for child_module in module.child_modules {
-// 		update_program_path_index_with_module(program_path_index, &path, child_module);
-// 	}
-// }
-
-// fn build_module_ctx(parent_path: &str, module: &Module) -> Ctx {
-// 	let mut module_ctx = HashMap::new();
-// 	let module_name = &module.name;
-// 	let module_path = format!("{parent_path}::{module_name}");
-// 	for item in &module.items {
-// 		match item {
-// 			ModuleItem::Use(use_tree) => {
-// 				// TODO format the path onto use_tree.base_path here, including finding stem
-// 				add_use_tree_to_module_ctx("crate", &use_tree, &mut module_ctx);
-// 			},
-// 			// both of these we just add the resolved path
-// 			ModuleItem::Prop(PropDefinition { name, .. }) | ModuleItem::Theorem(TheoremDefinition { name, .. }) => {
-// 				module_ctx.insert(name.into(), format!("{module_path}::{name}"));
-// 			},
-// 		}
-// 	}
-// 	module_ctx
-// }
-
-fn do_accessors(mut current_item: CtxItem, accessor_idents: Vec<Ident>) -> CheckResult<(Option<Ident>, CtxItem)> {
+fn do_accessors(ctx: &Ctx, mut current_item: CtxItem, accessor_idents: Vec<Ident>) -> CheckResult<(Option<Ident>, CtxItem)> {
 	let mut current_item = current_item;
 	let mut current_ident = None;
 	for accessor_ident in accessor_idents {
-		current_item = current_item.check_pathable()?.checked_access(accessor_ident)?;
+		// TODO handle super and crate
+		current_item = ctx.checked_access_path(current_item, accessor_ident)?;
 		current_ident = Some(accessor_ident);
 	}
 	(current_ident, current_item)
@@ -183,7 +168,7 @@ fn do_accessors(mut current_item: CtxItem, accessor_idents: Vec<Ident>) -> Check
 
 fn type_check_use_tree(use_tree: UseTree, parent_ctx: &Ctx, ctx: &mut Ctx) -> CheckResult<()> {
 	let (base_ident, rest_idents) = use_tree.path_idents;
-	let (current_ident, current_item) = do_accessors(parent_ctx.checked_get(base_ident)?, rest_idents)?;
+	let (current_ident, current_item) = do_accessors(&ctx, parent_ctx.checked_get(base_ident)?, rest_idents)?;
 	let current_ident = current_ident.unwrap_or(base_ident);
 
 	match &use_tree.cap {
@@ -191,7 +176,9 @@ fn type_check_use_tree(use_tree: UseTree, parent_ctx: &Ctx, ctx: &mut Ctx) -> Ch
 			ctx.checked_insert(current_ident, current_item);
 		},
 		Some(cap) => match cap {
-			UseTreeCap::All => current_item.check_pathable()?.checked_insert_all(&mut ctx),
+			// TODO in case you want to not have two levels of nesting
+			// UseTreeCap::Empty => ctx.checked_insert(current_ident, current_item),
+			UseTreeCap::All => ctx.checked_insert_all(current_item),
 			UseTreeCap::AsName(as_name) => {
 				ctx.checked_insert(as_name, current_item);
 			},
@@ -215,6 +202,18 @@ enum TypeBody {
 	// AnonymousUnion(Vec<TypeReference>)
 }
 
+// #[derive(Debug)]
+// struct FieldDefinition {
+// 	name: String,
+// 	type: TypeReference,
+// }
+
+// #[derive(Debug)]
+// struct VariantDefinition {
+// 	name: String,
+// 	type_body: TypeBody,
+// }
+
 #[derive(Debug)]
 enum Pattern {
 	// for now only qualified *nominal* patterns are accepted? otherwise these constructor_names would be Option?
@@ -228,21 +227,6 @@ struct NamedPattern {
 	name: String,
 	pattern: Option<Pattern>,
 }
-
-// TODO this will be something more complex at some point
-// type TypeReference = String;
-
-// #[derive(Debug)]
-// struct FieldDefinition {
-// 	name: String,
-// 	type: TypeReference,
-// }
-
-// #[derive(Debug)]
-// struct VariantDefinition {
-// 	name: String,
-// 	type_body: TypeBody,
-// }
 
 #[derive(Debug, Clone, PartialEq)]
 enum ModuleItem {
@@ -269,11 +253,12 @@ impl ModuleItem {
 #[derive(Debug, Clone, PartialEq)]
 struct UseTree {
 	path_idents: (String, Vec<String>),
-	cap: Option<UseTreeCap>,
+	cap: UseTreeCap,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 enum UseTreeCap {
+	Empty,
 	All,
 	AsName(String),
 	InnerTrees(Vec<UseTree>),
@@ -281,10 +266,10 @@ enum UseTreeCap {
 
 impl UseTree {
 	fn basic(base_path: &'static str) -> UseTree {
-		UseTree { base_path: base_path.into(), cap: None }
+		UseTree { base_path: base_path.into(), cap: UseTreeCap::Empty }
 	}
 	fn basic_as(base_path: &'static str, as_name: &'static str) -> UseTree {
-		UseTree { base_path: base_path.into(), cap: Some(UseTreeCap::AsName(as_name.into())) }
+		UseTree { base_path: base_path.into(), cap: UseTreeCap::AsName(as_name.into()) }
 	}
 }
 
@@ -307,7 +292,7 @@ struct PropDefinition {
 #[derive(Debug, Clone, PartialEq)]
 struct TheoremDefinition {
 	name: String,
-	// parameters: Vec<NamedPattern>,
+	// parameters: Vec<(NamedPattern, Option<Term>)>,
 	return_type: Term,
 	statements: Vec<Statement>,
 }
@@ -322,7 +307,8 @@ enum Statement {
 
 #[derive(Debug, Clone, PartialEq)]
 enum Term {
-	Ident(String),
+	Lone(String),
+	Chain(String, Vec<ChainItem>),
 	Block { statements: Vec<Term> },
 	Match {
 		discriminant: Term,
@@ -330,9 +316,6 @@ enum Term {
 		return_type: Term,
 		arms: Vec<MatchArm>
 	},
-	Lone(ChainRoot),
-	Chain(ChainRoot, Vec<ChainItem>),
-	// IndexCall(Vec<Term>)
 	Func { parameters: Vec<NamedPattern>, return_type: Term, statements: Vec<Term> },
 }
 
@@ -343,36 +326,18 @@ struct MatchArm {
 }
 
 #[derive(Debug)]
-enum ChainRoot {
-	Path(Path),
-	Call { path: Path, arguments: Vec<Term> },
-}
-
-#[derive(Debug)]
 enum ChainItem {
 	Access(String),
-	AccessCall { accessor: String, arguments: Vec<Term> },
-	FreeCall { path: Path, arguments: Vec<Term> },
-	// TODO tapping is only useful for debugging, and should be understood as provably not changing the current type
+	Call { arguments: Vec<Term> },
+	// IndexCall { arguments: Vec<Term> },
+	// TODO yikes? using a complex term to return a function that's called freestanding?
+	FreeCall { target: Term, arguments: Vec<Term> },
+	// tapping is only useful for debugging, and should be understood as provably not changing the current type
 	CatchCall { parameters: Either<NamedPattern, Vec<NamedPattern>>, statements: Vec<Term>, is_tap: bool },
+	ChainedMatch { return_type: Term, arms: Vec<MatchArm> },
 }
 
 
-
-fn type_check_program(program: Program) {
-	for module in program.modules {
-		type_check_module(module);
-	}
-}
-
-fn type_check_module(module: Module) {
-	for item in module.items {
-		type_check_module_item(item);
-	}
-	for child_module in module.child_modules {
-		type_check_module(child_module);
-	}
-}
 
 fn type_check_module_item(item: ModuleItem) {
 	match item {
@@ -456,10 +421,11 @@ fn type_check_statements(statements: Vec<Statement>) -> TypeReference {
 	None
 }
 
-fn type_check_term(term: Term, local_ctx: HashMap<String, Term>) -> Term {
+fn type_check_term(term: Term, ctx: &Ctx) -> Term {
 	match term {
 		Term::Ident(ident) => {
-			// TODO look up this ident in the local_ctx and figure out its type, being careful to avoid infinite recursion
+			// TODO why am I afraid this isn't correct or will recurse infinitely?
+			ctx.infer_term_type(ident)
 		},
 		Term::Block { statements } => {
 			type_check_statements(statements)
@@ -473,12 +439,10 @@ fn type_check_term(term: Term, local_ctx: HashMap<String, Term>) -> Term {
 			}
 		},
 		Term::Chain(first, rest) => {
-			// TODO chain_ctx needs to be built from local_ctx
-			let mut chain_ctx = HashMap::new();
-			let mut current_type = type_check_chain_root(first, &mut chain_ctx);
-			// TODO type_check_chain_item will be fallible and stop iterating if it finds something that doesn't make sense
+			let mut chain_ctx = ctx.clone();
+			let mut current_type = type_check_chain_root(first, &mut chain_ctx)?;
 			for chain_item in rest {
-				current_type = type_check_chain_item(chain_item, current_type, &mut chain_ctx);
+				current_type = type_check_chain_item(chain_item, current_type, &mut chain_ctx)?;
 			}
 			current_type
 		},
@@ -500,14 +464,14 @@ fn type_check_named_patterns(named_patterns: Vec<NamedPattern>, pattern_names: &
 
 fn type_check_pattern(pattern: Pattern, pattern_names: &mut HashSet<String>) {
 	match expr {
-		Unit { constructor_name } => {
+		Pattern::Unit { constructor_name } => {
 			// TODO look up this constructor_name and see if it exists and is compatible with being a type
 		},
-		Compound { constructor_name, inner_patterns, is_record } => {
+		Pattern::Compound { constructor_name, inner_patterns, is_record } => {
 			// TODO check constructor_name exists and matches with is_record
 			type_check_named_patterns(inner_patterns, pattern_names);
 		},
-		Union(patterns) => {
+		Pattern::Union(patterns) => {
 			for pattern in patterns {
 				type_check_pattern(pattern, pattern_names);
 			}
@@ -566,20 +530,18 @@ fn type_check_use_tree(use_tree: UseTree) {
 	}
 
 	match cap {
-		None => { /* nothing to check if final segment name has already been checked for validity */ },
-		Some(cap) => match cap {
-			UseTreeCap::All => {
-				// TODO check base_path refers to something with importable members
-			},
-			UseTreeCap::AsName(as_name) => {
-				// TODO check that as_name hasn't already been used, or perhaps that's handled by earlier stages?
-			},
-			UseTreeCap::InnerTrees(inner_trees) => {
-				for inner_tree in inner_trees {
-					type_check_use_tree(inner_tree);
-				}
-			},
-		}
+		UseTreeCap::Empty => { /* nothing to check if final segment name has already been checked for validity */ }
+		UseTreeCap::All => {
+			// TODO check base_path refers to something with importable members
+		},
+		UseTreeCap::AsName(as_name) => {
+			// TODO check that as_name hasn't already been used, or perhaps that's handled by earlier stages?
+		},
+		UseTreeCap::InnerTrees(inner_trees) => {
+			for inner_tree in inner_trees {
+				type_check_use_tree(inner_tree);
+			}
+		},
 	}
 }
 
@@ -708,7 +670,7 @@ mod tests {
 			// TODO "bare" references like this are assumed to be "relative", so at the same level as the current module
 			// TODO you could also do super and root
 			base_path: "side".into(),
-			cap: Some(UseTreeCap::inners(["whatever", "other"])),
+			cap: UseTreeCap::inners(["whatever", "other"]),
 		});
 		let module = Module { name: "main".into(), items: vec![side_use, make_trivial_prop(), make_give_trivial_thm()], child_modules: vec![] };
 
@@ -723,11 +685,11 @@ mod tests {
 
 		let side_use = ModuleItem::Use(UseTree {
 			base_path: "crate::side::child".into(),
-			cap: Some(UseTreeCap::InnerTrees(vec![
+			cap: UseTreeCap::InnerTrees(vec![
 				UseTree::basic("whatever"),
 				UseTree::basic_as("other", "different"),
-				UseTree { base_path: "nested::thing".into(), cap: Some(UseTreeCap::inners(["self", "a", "b"])) },
-			])),
+				UseTree { base_path: "nested::thing".into(), cap: UseTreeCap::inners(["self", "a", "b"]) },
+			]),
 		});
 		let module = Module { name: "main".into(), items: vec![side_use, make_trivial_prop(), make_give_trivial_thm()], child_modules: vec![] };
 
