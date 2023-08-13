@@ -1,3 +1,28 @@
+modified orphan rule:
+traits can have crate *automatic derive implementations* that will "kick in" when a type the trait author hasn't explicitly defined an implementation for "requests" one. this means such trait authors could merely define manual implementations for the primitive types. this automatic implementation can be superseded by an explicit implementation in the type crate
+what about derive arguments for third-party crates? honestly easy to still solve using the newtype pattern
+
+
+https://people.mpi-sws.org/~dreyer/papers/sandboxing/paper.pdf
+
+
+https://people.mpi-sws.org/~beta/papers/unicoq.pdf
+https://www.sciencedirect.com/science/article/pii/S089054010300138X?via%3Dihub
+https://golem.ph.utexas.edu/category/2021/08/you_could_have_invented_de_bru.html
+https://proofassistants.stackexchange.com/questions/900/when-should-i-use-de-bruijn-levels-instead-of-indices
+https://www.sciencedirect.com/science/article/pii/0167642395000216
+https://arxiv.org/pdf/1102.2405.pdf
+https://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.156.1170
+https://davidchristiansen.dk/tutorials/nbe/
+
+
+
+when defining the "handy" or base equality proposition (`==`), why not make it an `or` over strict definitional equality (`===`) and an existence proof over a more complex setoid equality? or simply not include it as a base at all and let operator chaining allow people to use more complex custom equality concepts themselves?
+maybe we should pull apart "definitional" or "shallow" equality from "computable" equality? is that useful?
+
+
+
+
 https://inria.hal.science/hal-01094195/preview/CIC.pdf
 notes on `match`
 `match t as x` could probably just be rewritten with a `let` beforehand?
