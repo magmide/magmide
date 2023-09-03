@@ -13,8 +13,8 @@ path = "src/lib.rs"
 # rustflags = ["-l", "LLVM-13", "-C", "link-args=-Wl,-undefined,dynamic_lookup"]
 
 # # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-# [dependencies]
+[dependencies]
+nom = "7"
 # anyhow = "1.0.57"
 # inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm13-0"] }
-# nom = "7.1.1"
 # ocaml-interop = "0.8.8"
