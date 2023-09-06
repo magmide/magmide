@@ -13,18 +13,29 @@ pub enum TypeBody {
 }
 
 #[derive(Debug, PartialEq)]
+pub struct TypeDefinition {
+	pub name: String,
+	pub body: TypeBody,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ProcedureDefinition {
+	pub name: String,
+	pub parameters: Vec<(String, String)>,
+	pub return_type: String,
+	pub statements: Vec<Term>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct DebugStatement {
+	pub term: Term,
+}
+
+#[derive(Debug, PartialEq)]
 pub enum ModuleItem {
-	TypeDefinition {
-		name: String,
-		body: TypeBody,
-	},
-	ProcedureDefinition {
-		name: String,
-		parameters: Vec<(String, String)>,
-		return_type: String,
-		statements: Vec<Term>,
-	},
-	Debug(Term),
+	Type(TypeDefinition),
+	Procedure(ProcedureDefinition),
+	Debug(DebugStatement),
 }
 
 #[derive(Debug, PartialEq)]

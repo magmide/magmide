@@ -1,263 +1,204 @@
-// https://matklad.github.io/2023/05/21/resilient-ll-parsing-tutorial.html
 // http://adam.chlipala.net/cpdt/html/Universes.html
-// https://github.com/rust-analyzer/rowan
-// https://github.com/salsa-rs/salsa
+use std::collections::HashMap;
 
-// https://github.com/rust-bakery/nom
-// https://tfpk.github.io/nominomicon/chapter_1.html
-// https://crates.io/crates/nom-peg
-
-use nom::{
-	bytes::complete::{tag, take_while, take_while1},
-	character::{complete::{tab, newline, char as c}},
-	branch::alt,
-	combinator::{opt, map},
-	multi::{count, many0, many1, separated_list0, separated_list1},
-	sequence::{preceded, delimited, separated_pair, /*tuple*/},
-	// Finish,
-	IResult,
-};
 pub mod ast;
 use ast::*;
 
-type DiscardingResult<T> = Result<T, nom::Err<nom::error::Error<T>>>;
+pub mod parser;
 
-fn is_underscore(chr: char) -> bool {
-	chr == '_'
-}
-fn is_ident(chr: char) -> bool {
-	chr.is_ascii_alphanumeric() || is_underscore(chr)
-}
-fn is_start_ident(chr: char) -> bool {
-	chr.is_ascii_alphabetic() || is_underscore(chr)
+// TODO at some point this will be some kind of id to an interned string, therefore Copy
+type Ident = String;
+// a simple identifier can refer either to some global item with a path like a type or function (types and functions defined inside a block of statements are similar to this, but don't have a "path" in the strict sense since they aren't accessible from the outside)
+// or a mere local variable
+struct Scope<'a> {
+	scope: HashMap<&'a Ident, ScopeItem<'a>>,
 }
 
-fn ident(i: &str) -> IResult<&str, String> {
-	let (i, first) = take_while1(is_start_ident)(i)?;
-	let (i, rest) = take_while(is_ident)(i)?;
-	Ok((i, format!("{}{}", first, rest)))
+#[derive(Debug, PartialEq, Clone)]
+enum ScopeItem<'a> {
+	// Module(Module),
+	Type(&'a TypeDefinition),
+	Procedure(&'a ProcedureDefinition),
+	// Prop(PropDefinition),
+	// Theorem(TheoremDefinition),
+	// Local(Term),
+	Data(Constructor),
 }
 
-fn parse_branch(_: usize, i: &str) -> IResult<&str, String> {
-	let (i, b) = preceded(tag("| "), ident)(i)?;
-	Ok((i, b.into()))
+#[derive(Debug, PartialEq, Clone)]
+struct Constructor {
+	name: String,
+	type_path: String,
+	construction: Construction,
 }
 
-fn indents(i: &str, indentation: usize) -> DiscardingResult<&str> {
-	Ok(count(tab, indentation)(i)?.0)
-}
-fn newlines(i: &str) -> DiscardingResult<&str> {
-	Ok(many0(newline)(i)?.0)
-}
-
-fn indented_line<T>(indentation: usize, i: &str, line_parser: fn(usize, &str) -> IResult<&str, T>) -> IResult<&str, T> {
-	let i = indents(i, indentation)?;
-	line_parser(indentation, i)
+#[derive(Debug, PartialEq, Clone)]
+enum Construction {
+	NotConstructed,
+	Unit,
+	// Tuple,
+	// Record,
 }
 
-fn indented_block<T>(indentation: usize, i: &str, line_parser: fn(usize, &str) -> IResult<&str, T>) -> IResult<&str, Vec<T>> {
-	let indentation = indentation + 1;
-	let i = newlines(i)?;
-	let (i, items) = separated_list1(many1(newline), |i| indented_line(indentation, i, line_parser))(i)?;
+impl<'a> Scope<'a> {
+	fn new() -> (Scope<'a>, Ctx) {
+		(Scope{ scope: HashMap::new() }, Ctx{ errors: Vec::new(), debug_trace: Vec::new() })
+	}
 
-	Ok((i, items))
+	// fn from<const N: usize>(pairs: &[(Ident, ScopeItem); N]) -> Ctx<'a> {
+	// 	Ctx { scope: HashMap::from(pairs), errors: Vec::new(), debug_trace: Vec::new() }
+	// }
+
+	fn checked_insert(&mut self, ctx: &mut Ctx, ident: &'a Ident, scope_item: ScopeItem<'a>) {
+		if let Some(existing_item) = self.scope.insert(ident, scope_item) {
+			ctx.add_error(format!("name {ident} has already been used"));
+		}
+	}
+
+	fn type_check_module(&mut self, ctx: &mut Ctx, module_items: &'a Vec<ModuleItem>) {
+		for module_item in module_items {
+			self.name_pass_type_check_module_item(ctx, module_item);
+		}
+
+		for module_item in module_items {
+			self.main_pass_type_check_module_item(ctx, module_item);
+		}
+	}
+
+	fn name_pass_type_check_module_item(&mut self, ctx: &mut Ctx, module_item: &'a ModuleItem) {
+		match module_item {
+			ModuleItem::Type(type_definition) => {
+				self.checked_insert(ctx, &type_definition.name, ScopeItem::Type(type_definition));
+			},
+			ModuleItem::Procedure(procedure_definition) => {
+				self.checked_insert(ctx, &procedure_definition.name, ScopeItem::Procedure(procedure_definition));
+			},
+			ModuleItem::Debug(_) => {},
+		}
+	}
+
+	fn main_pass_type_check_module_item(&self, ctx: &mut Ctx, module_item: &ModuleItem) {
+		match module_item {
+			ModuleItem::Type(_type_definition) => {
+				// self.type_check_type_definition(type_definition);
+			},
+			ModuleItem::Procedure(_procedure_definition) => {
+				// self.type_check_type_definition(procedure_definition);
+			},
+			ModuleItem::Debug(debug_statement) => {
+				self.type_check_debug_statement(ctx, debug_statement);
+			},
+		}
+	}
+
+	fn type_check_debug_statement(&self, ctx: &mut Ctx, debug_statement: &DebugStatement) {
+		// self.type_check_term(&debug_statement.term);
+		// TODO this probably actually deserves an unwrap/panic, reduction should always work after type checking
+		if let Some(item) = self.reduce_term(ctx, &debug_statement.term) {
+			ctx.debug_trace.push(format!("{:?}", item));
+		}
+	}
+
+	// fn type_check_term(&mut self, term: &Term) {
+	// 	match term {
+	// 		Term::Lone(ident) => {
+	// 			unimplemented!();
+	// 		},
+	// 		Term::Chain(first, rest) => {},
+	// 		Term::Match { discriminant, arms } => {},
+	// 	}
+	// }
+
+	fn reduce_term(&self, ctx: &mut Ctx, term: &Term) -> Option<ScopeItem> {
+		let reduced = match term {
+			Term::Lone(ident) => {
+				self.checked_get(ctx, ident)?.clone()
+			},
+			Term::Chain(first, chain_items) => {
+				let mut current_item = self.checked_get(ctx, first)?.clone();
+				for chain_item in chain_items {
+					match chain_item {
+						ChainItem::Access(path) => {
+							current_item = self.checked_access_path(ctx, &current_item, path)?;
+						},
+						// Call { arguments } => {
+						// 	let arguments = arguments.iter().map(|a| self.reduce_term(a)).collect()?;
+						// 	current_item = self.checked_call(current_item, arguments)?;
+						// },
+						_ => unimplemented!(),
+					}
+				}
+
+				current_item
+			},
+			// Term::Match { discriminant, arms } => {
+			// 	//
+			// },
+			_ => unimplemented!(),
+		};
+
+		Some(reduced)
+	}
+
+	fn checked_access_path(&self, ctx: &mut Ctx, item: &ScopeItem, path: &Ident) -> Option<ScopeItem> {
+		match item {
+			ScopeItem::Type(type_definition) => {
+				// look through the type_definition to see if it has a constructor with this name
+				match &type_definition.body {
+					TypeBody::Unit => {
+						ctx.add_error(format!("can't access property {path} on unit type {}", type_definition.name));
+						None
+					},
+					TypeBody::Union{ branches } => {
+						let branch = branches.iter().find(|b| b == &path)?;
+						Some(ScopeItem::Data(Constructor{ type_path: type_definition.name.clone(), name: branch.clone(), construction: Construction::Unit }))
+					},
+				}
+			},
+			ScopeItem::Procedure(procedure_definition) => {
+				ctx.add_error(format!("can't access property {path} on procedure {}", procedure_definition.name));
+				None
+			},
+			// ScopeItem::Data(constructor) => {
+			// 	//
+			// },
+			_ => unimplemented!(),
+		}
+	}
+
+	fn checked_get<'s>(&'s self, ctx: &mut Ctx, ident: &Ident) -> Option<&'s ScopeItem<'a>> {
+		match self.scope.get(ident) {
+			Some(item) => Some(item),
+			None => {
+				ctx.add_error(format!("{ident} can't be found"));
+				None
+			},
+		}
+	}
 }
 
-fn parse_input(i: &str) -> IResult<&str, Vec<ModuleItem>> {
-	separated_list1(many1(newline), |i| parse_module_item(0, i))(i)
+#[derive(Debug)]
+struct Ctx {
+	errors: Vec<String>,
+	debug_trace: Vec<String>,
 }
 
-fn parse_input_with_indentation(indentation: usize, i: &str) -> IResult<&str, Vec<ModuleItem>> {
-	separated_list1(many1(newline), |i| parse_module_item(indentation, i))(i)
+impl Ctx {
+	fn add_error(&mut self, error: String) {
+		self.errors.push(error);
+	}
+	fn add_debug(&mut self, debug: String) {
+		self.debug_trace.push(debug);
+	}
 }
 
-fn parse_module_item(indentation: usize, i: &str) -> IResult<&str, ModuleItem> {
-	let i = newlines(i)?;
-	let i = indents(i, indentation)?;
-
-	alt((
-		|i| parse_type_definition(indentation, i),
-		|i| parse_procedure_definition(indentation, i),
-		|i| parse_debug(indentation, i),
-	))(i)
-}
-
-fn parse_type_definition(indentation: usize, i: &str) -> IResult<&str, ModuleItem> {
-	let (i, name) = preceded(tag("type "), ident)(i)?;
-	let here_branch = |i| indented_block(indentation, i, parse_branch);
-	let (i, branches) = opt(preceded(c(';'), here_branch))(i)?;
-	let body = match branches {
-		Some(branches) => TypeBody::Union{ branches },
-		None => TypeBody::Unit,
-	};
-
-	Ok((i, ModuleItem::TypeDefinition{ name: name.into(), body }))
-}
-
-fn parse_procedure_definition(indentation: usize, i: &str) -> IResult<&str, ModuleItem> {
-	let (i, name) = preceded(tag("proc "), ident)(i)?;
-	let (i, parameters) = delimited(c('('), parse_parameters, c(')'))(i)?;
-	let (i, return_type) = preceded(tag(": "), ident)(i)?;
-	let here_statement = |i| indented_block(indentation, i, parse_statement);
-	let (i, statements) = preceded(c(';'), here_statement)(i)?;
-
-	Ok((i, ModuleItem::ProcedureDefinition{ name: name.into(), parameters, return_type: return_type.into(), statements }))
-}
-
-fn parse_debug(indentation: usize, i: &str) -> IResult<&str, ModuleItem> {
-	map(preceded(tag("debug "), |i| parse_term(indentation, i)), ModuleItem::Debug)(i)
-}
-
-// fn parse_parameters(indentation: usize) -> impl Fn(&str) -> IResult<&str, ModuleItem> {
-fn parse_parameters(i: &str) -> IResult<&str, Vec<(String, String)>> {
-	separated_list1(tag(", "), parse_parameter)(i)
-}
-fn parse_parameter(i: &str) -> IResult<&str, (String, String)> {
-	separated_pair(ident, tag(": "), ident)(i)
-}
-
-fn parse_statement(indentation: usize, i: &str) -> IResult<&str, Term> {
-	parse_term(indentation, i)
-}
-
-fn parse_term(indentation: usize, i: &str) -> IResult<&str, Term> {
-	alt((
-		|i| parse_match(indentation, i),
-		|i| parse_expression(indentation, i),
-	))(i)
-}
-
-fn parse_match(indentation: usize, i: &str) -> IResult<&str, Term> {
-	let (i, discriminant) = delimited(tag("match "), parse_pattern, c(';'))(i)?;
-	println!("past match");
-	let (i, arms) = indented_block(indentation, i, parse_match_arm)?;
-	println!("past arms");
-
-	Ok((i, Term::Match{ discriminant: discriminant.into(), arms }))
-}
-
-fn parse_match_arm(indentation: usize, i: &str) -> IResult<&str, MatchArm> {
-	println!("in match arm");
-	let here_term = |i| parse_term(indentation, i);
-	let (i, (pattern, statement)) = separated_pair(here_term, tag(" => "), here_term)(i)?;
-	println!("past statement");
-	Ok((i, MatchArm{ pattern, statement }))
-}
-
-// fn parse_pattern(i: &str) -> IResult<&str, Pattern> {
-fn parse_pattern(i: &str) -> IResult<&str, String> {
-	ident(i)
-}
-
-fn parse_expression(indentation: usize, i: &str) -> IResult<&str, Term> {
-	let (i, first) = ident(i)?;
-	let (i, rest) = many0(|i| chain_item(indentation, i))(i)?;
-	let term =
-		if rest.len() == 0 { Term::Lone(first) }
-		else { Term::Chain(first, rest) };
-	Ok((i, term))
-}
-
-fn chain_item(indentation: usize, i: &str) -> IResult<&str, ChainItem> {
-	alt((
-		map(preceded(c('.'), ident), ChainItem::Access),
-		map(
-			delimited(c('('), separated_list0(tag(", "), |i| parse_expression(indentation, i)), c(')')),
-			|arguments| ChainItem::Call{ arguments },
-		),
-	))(i)
-}
 
 #[cfg(test)]
 mod tests {
 	use super::*;
 
-	fn make_lone(s: &str) -> Term {
-		Term::Lone(s.into())
-	}
-	fn make_day(day: &str) -> Term {
-		Term::Chain("Day".into(), vec![ChainItem::Access(day.into())])
-	}
-
 	#[test]
-	fn test_parse_expression() {
-		let i = "Day.Monday";
-		assert_eq!(
-			parse_expression(0, i).unwrap().1,
-			make_day("Monday"),
-		);
-
-		let i = "fn(next, hello)";
-		assert_eq!(
-			parse_expression(0, i).unwrap().1,
-			Term::Chain("fn".into(), vec![ChainItem::Call{ arguments: vec![make_lone("next"), make_lone("hello")] }]),
-		);
-	}
-
-	#[test]
-	fn test_parse_match() {
-		let i = r#"
-			match d;
-				Day.Monday => Day.Tuesday
-				Day.Tuesday => Day.Wednesday
-		"#.trim();
-		assert_eq!(
-			parse_match(3, i).unwrap().1,
-			Term::Match{ discriminant: "d".into(), arms: vec![
-				MatchArm{ pattern: make_day("Monday"), statement: make_day("Tuesday") },
-				MatchArm{ pattern: make_day("Tuesday"), statement: make_day("Wednesday") },
-			] },
-		);
-	}
-
-	#[test]
-	fn test_parse_type_definition() {
-		let i = r#"
-			type Day;
-				| Monday
-				| Tuesday
-		"#.trim();
-		assert_eq!(
-			parse_type_definition(3, i).unwrap().1,
-			ModuleItem::TypeDefinition{
-				name: "Day".into(),
-				body: TypeBody::Union{ branches: vec!["Monday".into(), "Tuesday".into()] },
-			},
-		);
-	}
-
-	#[test]
-	fn test_parse_procedure() {
-		let i = r#"
-			proc dumb(d: Day): Day;
-				d
-		"#.trim();
-		assert_eq!(
-			parse_procedure_definition(3, i).unwrap().1,
-			ModuleItem::ProcedureDefinition{
-				name: "dumb".into(), parameters: vec![("d".into(), "Day".into())],
-				return_type: "Day".into(), statements: vec![Term::Lone("d".into())],
-			},
-		);
-	}
-
-	#[test]
-	fn test_parse_debug() {
-		let i = r#"
-			debug next_weekday(next_weekday(d))
-		"#.trim();
-		assert_eq!(
-			parse_debug(3, i).unwrap().1,
-			ModuleItem::Debug(
-				Term::Chain("next_weekday".into(), vec![ChainItem::Call{ arguments: vec![
-					Term::Chain("next_weekday".into(), vec![ChainItem::Call{ arguments: vec![make_lone("d")] }]),
-				]}]),
-			),
-		);
-	}
-
-	#[test]
-	fn test_parse_foundations_day_of_week() {
+	fn test_foundations_day_of_week() {
 		let i = r#"
 			type Day;
 				| Monday
@@ -277,39 +218,40 @@ mod tests {
 					Day.Friday => Day.Monday
 					Day.Saturday => Day.Monday
 					Day.Sunday => Day.Monday
-
-			debug next_weekday(Day.Friday)
-			debug next_weekday(next_weekday(Day.Saturday))
 		"#;
-		let (remaining, ast) = dbg!(parse_input_with_indentation(3, i)).unwrap();
+		let (remaining, module_items) = parser::parse_input_with_indentation(3, i).unwrap();
 		assert_eq!(remaining.trim(), "");
 
-		// assert_eq!(ast, Ast::TypeDefinition{ name: "Day".into(), body: TypeBody::Union {
-		// 	branches: vec![
-		// 		"Monday".into(),
-		// 		"Tuesday".into(),
-		// 		"Wednesday".into(),
-		// 		"Thursday".into(),
-		// 		"Friday".into(),
-		// 		"Saturday".into(),
-		// 		"Sunday".into(),
-		// 	]
-		// } });
+		let (mut scope, mut ctx) = Scope::new();
+		scope.type_check_module(&mut ctx, &module_items);
+		assert!(ctx.errors.is_empty());
+		assert!(ctx.debug_trace.is_empty());
+
+		let term = parser::parse_expression(0, "Day").unwrap().1;
+		assert_eq!(scope.reduce_term(&mut ctx, &term).unwrap(), *scope.scope.get(&"Day".to_string()).unwrap());
+		assert!(ctx.errors.is_empty());
+
+		let term = parser::parse_expression(0, "Day.Monday").unwrap().1;
+		assert_eq!(
+			scope.reduce_term(&mut ctx, &term).unwrap(),
+			ScopeItem::Data(Constructor{ name: "Monday".into(), type_path: "Day".into(), construction: Construction::Unit }),
+		);
+		assert!(ctx.errors.is_empty());
+
+		// let term = parser::parse_expression(0, "next_weekday(Day.Monday)").unwrap().1;
+		// let expected = parser::parse_expression(0, "Day.Tuesday").unwrap().1;
+		// assert_eq!(ctx.reduce_term(&mut ctx, &term).unwrap(), expected);
+		// assert!(ctx.errors.is_empty());
+
+		// let i = r#"
+		// 	debug next_weekday(Day.Friday)
+		// 	debug next_weekday(next_weekday(Day.Saturday))
+		// "#;
+		// let (remaining, debug_items) = parser::parse_input_with_indentation(3, i).unwrap();
+		// assert_eq!(remaining.trim(), "");
+
+		// ctx.type_check_module(&debug_items);
+		// assert!(ctx.errors.is_empty());
+		// assert_eq!(ctx.debug_trace, vec!["Day.Monday", "Day.Tuesday"]);
 	}
 }
-
-// fn deindent_to_base(s: &str) -> String {
-// 	let s = s.strip_prefix("\n").unwrap_or(s);
-// 	let (s, base_tabs) = match is_a("\t")(s) {
-// 		Ok((s, tabs)) => (s, tabs.len()),
-// 		Err(_) => { return s.into() },
-// 	};
-
-
-// 	let mut final_s = String::new();
-// 	for line in s.split("\n") {
-// 		// take base_tabs number of tabs, always expecting
-// 	}
-
-// 	s.into()
-// }

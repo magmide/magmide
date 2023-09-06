@@ -16,7 +16,7 @@ test:
 	dune runtest
 
 dev:
-	cargo test -- --nocapture
+	cargo test test_foundations_day_of_week -- --nocapture
 
 
 clean:
