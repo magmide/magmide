@@ -23,6 +23,7 @@ pub struct ProcedureDefinition {
 	pub name: String,
 	pub parameters: Vec<(String, String)>,
 	pub return_type: String,
+	// TODO needs to be an actual Statement type, not Term
 	pub statements: Vec<Term>,
 }
 
@@ -43,7 +44,7 @@ pub enum Term {
 	Lone(String),
 	Chain(String, Vec<ChainItem>),
 	Match {
-		discriminant: String,
+		discriminant: Box<Term>,
 		arms: Vec<MatchArm>,
 	},
 }

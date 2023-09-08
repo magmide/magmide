@@ -128,7 +128,8 @@ pub fn parse_term(indentation: usize, i: &str) -> IResult<&str, Term> {
 }
 
 pub fn parse_match(indentation: usize, i: &str) -> IResult<&str, Term> {
-	let (i, discriminant) = delimited(tag("match "), parse_pattern, c(';'))(i)?;
+	// TODO need to figure out how to use the full parse_term for the discriminant
+	let (i, discriminant) = delimited(tag("match "), |i| parse_expression(indentation, i), c(';'))(i)?;
 	let (i, arms) = indented_block(indentation, i, parse_match_arm)?;
 
 	Ok((i, Term::Match{ discriminant: discriminant.into(), arms }))
@@ -200,7 +201,7 @@ mod tests {
 		"#.trim();
 		assert_eq!(
 			parse_match(3, i).unwrap().1,
-			Term::Match{ discriminant: "d".into(), arms: vec![
+			Term::Match{ discriminant: Box::new(Term::Lone("d".into())), arms: vec![
 				MatchArm{ pattern: make_day("Monday"), statement: make_day("Tuesday") },
 				MatchArm{ pattern: make_day("Tuesday"), statement: make_day("Wednesday") },
 			] },

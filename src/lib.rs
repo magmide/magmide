@@ -10,6 +10,7 @@ pub mod parser;
 type Ident = String;
 // a simple identifier can refer either to some global item with a path like a type or function (types and functions defined inside a block of statements are similar to this, but don't have a "path" in the strict sense since they aren't accessible from the outside)
 // or a mere local variable
+#[derive(Debug, Clone)]
 struct Scope<'a> {
 	scope: HashMap<&'a Ident, ScopeItem<'a>>,
 }
@@ -49,9 +50,13 @@ impl<'a> Scope<'a> {
 	// 	Ctx { scope: HashMap::from(pairs), errors: Vec::new(), debug_trace: Vec::new() }
 	// }
 
-	fn checked_insert(&mut self, ctx: &mut Ctx, ident: &'a Ident, scope_item: ScopeItem<'a>) {
-		if let Some(existing_item) = self.scope.insert(ident, scope_item) {
-			ctx.add_error(format!("name {ident} has already been used"));
+	fn checked_insert(&mut self, ctx: &mut Ctx, ident: &'a Ident, scope_item: ScopeItem<'a>) -> Option<()> {
+		match self.scope.insert(ident, scope_item) {
+			Some(_) => {
+				ctx.add_error(format!("name {ident} has already been used"));
+				None
+			},
+			None => Some(()),
 		}
 	}
 
@@ -109,10 +114,10 @@ impl<'a> Scope<'a> {
 	// 	}
 	// }
 
-	fn reduce_term(&self, ctx: &mut Ctx, term: &Term) -> Option<ScopeItem> {
-		let reduced = match term {
+	fn reduce_term(&self, ctx: &mut Ctx, term: &Term) -> Option<ScopeItem<'a>> {
+		match term {
 			Term::Lone(ident) => {
-				self.checked_get(ctx, ident)?.clone()
+				Some(self.checked_get(ctx, ident)?.clone())
 			},
 			Term::Chain(first, chain_items) => {
 				let mut current_item = self.checked_get(ctx, first)?.clone();
@@ -121,26 +126,69 @@ impl<'a> Scope<'a> {
 						ChainItem::Access(path) => {
 							current_item = self.checked_access_path(ctx, &current_item, path)?;
 						},
-						// Call { arguments } => {
-						// 	let arguments = arguments.iter().map(|a| self.reduce_term(a)).collect()?;
-						// 	current_item = self.checked_call(current_item, arguments)?;
-						// },
-						_ => unimplemented!(),
+						ChainItem::Call { arguments } => {
+							let arguments = arguments.iter().map(|arg| self.reduce_term(ctx, arg)).collect::<Option<_>>()?;
+							current_item = self.checked_call(ctx, &current_item, arguments)?;
+						},
 					}
 				}
 
-				current_item
+				Some(current_item)
 			},
-			// Term::Match { discriminant, arms } => {
-			// 	//
-			// },
-			_ => unimplemented!(),
-		};
-
-		Some(reduced)
+			Term::Match { discriminant, arms } => {
+				let discriminant = self.reduce_term(ctx, discriminant)?;
+				for MatchArm { pattern, statement } in arms {
+					if self.pattern_matches(ctx, pattern, &discriminant) {
+						return self.reduce_term(ctx, statement);
+					}
+				}
+				None
+			},
+		}
 	}
 
-	fn checked_access_path(&self, ctx: &mut Ctx, item: &ScopeItem, path: &Ident) -> Option<ScopeItem> {
+	fn pattern_matches(&self, ctx: &mut Ctx, pattern: &Term, discriminant: &ScopeItem) -> bool {
+		// this pattern matching code will be one of the most complicated parts of the entire language
+		// for now, we're just going to go through the arms and reduce everything and check equality
+		match pattern {
+			Term::Lone(s) if s == "_" => true,
+			pattern => {
+				if let Some(pattern) = self.reduce_term(ctx, pattern) {
+					pattern == *discriminant
+				}
+				else { false }
+			},
+		}
+	}
+
+	fn reduce_statements(&mut self, ctx: &mut Ctx, statements: &Vec<Term>) -> Option<ScopeItem<'a>> {
+		let mut current_item = None;
+		for statement in statements {
+			current_item = Some(self.reduce_term(ctx, statement)?);
+		}
+		current_item
+	}
+
+	fn checked_call(&self, ctx: &mut Ctx, item: &ScopeItem<'a>, arguments: Vec<ScopeItem<'a>>) -> Option<ScopeItem<'a>> {
+		match item {
+			ScopeItem::Type(type_definition) => {
+				ctx.add_error(format!("type {} is a type, not a callable", type_definition.name));
+				None
+			},
+			ScopeItem::Procedure(procedure_definition) => {
+				let mut call_scope: Scope<'a> = self.clone();
+				for (arg, (param_name, _)) in std::iter::zip(arguments.into_iter(), procedure_definition.parameters.iter()) {
+					call_scope.checked_insert(ctx, &param_name, arg)?;
+				}
+				call_scope.reduce_statements(ctx, &procedure_definition.statements)
+			},
+			// TODO look up original type definition, and use to build a construction of type tuple
+			// ScopeItem::Data(constructor) => Some(constructor),
+			_ => unimplemented!(),
+		}
+	}
+
+	fn checked_access_path(&self, ctx: &mut Ctx, item: &ScopeItem<'a>, path: &Ident) -> Option<ScopeItem<'a>> {
 		match item {
 			ScopeItem::Type(type_definition) => {
 				// look through the type_definition to see if it has a constructor with this name
@@ -151,6 +199,7 @@ impl<'a> Scope<'a> {
 					},
 					TypeBody::Union{ branches } => {
 						let branch = branches.iter().find(|b| b == &path)?;
+						// TODO construction will get more complex as the nature of a branch gets more complex
 						Some(ScopeItem::Data(Constructor{ type_path: type_definition.name.clone(), name: branch.clone(), construction: Construction::Unit }))
 					},
 				}
@@ -159,10 +208,7 @@ impl<'a> Scope<'a> {
 				ctx.add_error(format!("can't access property {path} on procedure {}", procedure_definition.name));
 				None
 			},
-			// ScopeItem::Data(constructor) => {
-			// 	//
-			// },
-			_ => unimplemented!(),
+			data => Some(data.clone()),
 		}
 	}
 
@@ -215,9 +261,10 @@ mod tests {
 					Day.Tuesday => Day.Wednesday
 					Day.Wednesday => Day.Thursday
 					Day.Thursday => Day.Friday
-					Day.Friday => Day.Monday
-					Day.Saturday => Day.Monday
-					Day.Sunday => Day.Monday
+					_ => Day.Monday
+
+			proc same_day(d: Day): Day;
+				d
 		"#;
 		let (remaining, module_items) = parser::parse_input_with_indentation(3, i).unwrap();
 		assert_eq!(remaining.trim(), "");
@@ -231,17 +278,38 @@ mod tests {
 		assert_eq!(scope.reduce_term(&mut ctx, &term).unwrap(), *scope.scope.get(&"Day".to_string()).unwrap());
 		assert!(ctx.errors.is_empty());
 
-		let term = parser::parse_expression(0, "Day.Monday").unwrap().1;
-		assert_eq!(
-			scope.reduce_term(&mut ctx, &term).unwrap(),
-			ScopeItem::Data(Constructor{ name: "Monday".into(), type_path: "Day".into(), construction: Construction::Unit }),
-		);
-		assert!(ctx.errors.is_empty());
+		fn make_day(day: &str) -> ScopeItem {
+			ScopeItem::Data(Constructor{ name: day.into(), type_path: "Day".into(), construction: Construction::Unit })
+		}
 
-		// let term = parser::parse_expression(0, "next_weekday(Day.Monday)").unwrap().1;
-		// let expected = parser::parse_expression(0, "Day.Tuesday").unwrap().1;
-		// assert_eq!(ctx.reduce_term(&mut ctx, &term).unwrap(), expected);
+		for (input, expected) in [
+			("Day.Monday", "Monday"),
+			("same_day(Day.Monday)", "Monday"),
+			("next_weekday(Day.Friday)", "Monday"),
+			("next_weekday(next_weekday(Day.Friday))", "Tuesday"),
+		] {
+			let term = parser::parse_expression(0, input).unwrap().1;
+			assert_eq!(scope.reduce_term(&mut ctx, &term).unwrap(), make_day(expected));
+			assert!(ctx.errors.is_empty());
+		}
+
+		// let i = r#"
+		// 	prop Eq(@T: type): [T, T];
+		// 		(t: T): [t, t]
+
+		// 	thm example_next_weekday: Eq[next_weekday(Day.Saturday), Day.Monday];
+		// 		Eq(Day.Monday)
+
+		// 	thm example_next_weekday_cleaner: next_weekday(Day.Saturday) :Eq Day.Monday; _
+		// 	thm example_next_weekday_sugar: next_weekday(Day.Saturday) == Day.Monday; _
+		// "#;
+		// let (remaining, proof_items) = parser::parse_input_with_indentation(3, i).unwrap();
+		// assert_eq!(remaining.trim(), "");
+
+		// scope.type_check_module(&mut ctx, &proof_items);
 		// assert!(ctx.errors.is_empty());
+		// assert!(ctx.debug_trace.is_empty());
+
 
 		// let i = r#"
 		// 	debug next_weekday(Day.Friday)
@@ -250,7 +318,7 @@ mod tests {
 		// let (remaining, debug_items) = parser::parse_input_with_indentation(3, i).unwrap();
 		// assert_eq!(remaining.trim(), "");
 
-		// ctx.type_check_module(&debug_items);
+		// scope.type_check_module(&mut ctx, &debug_items);
 		// assert!(ctx.errors.is_empty());
 		// assert_eq!(ctx.debug_trace, vec!["Day.Monday", "Day.Tuesday"]);
 	}
