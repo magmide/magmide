@@ -9,6 +9,7 @@
 pub enum TypeBody {
 	Unit,
 	Union { branches: Vec<String> },
+	// Tuple {  },
 	// Record { fields: Vec<(String, String)> },
 }
 
@@ -23,9 +24,17 @@ pub struct ProcedureDefinition {
 	pub name: String,
 	pub parameters: Vec<(String, String)>,
 	pub return_type: String,
-	// TODO needs to be an actual Statement type, not Term
-	pub statements: Vec<Term>,
+	pub statements: Vec<Statement>,
 }
+
+// #[derive(Debug)]
+// pub enum Statement {
+// 	Bare(Term),
+// 	Let(),
+// 	// Module
+// }
+// TODO
+pub type Statement = Term;
 
 #[derive(Debug, PartialEq)]
 pub struct DebugStatement {

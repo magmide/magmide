@@ -10,9 +10,9 @@ use nom::{
 	bytes::complete::{tag, take_while, take_while1},
 	character::{complete::{tab, newline, char as c}},
 	branch::alt,
-	combinator::{opt, map},
+	combinator::{opt, map, all_consuming},
 	multi::{count, many0, many1, separated_list0, separated_list1},
-	sequence::{preceded, delimited, separated_pair, /*tuple*/},
+	sequence::{preceded, delimited, separated_pair, terminated, tuple},
 	// Finish,
 	IResult,
 };
@@ -42,11 +42,17 @@ pub fn parse_branch(_: usize, i: &str) -> IResult<&str, String> {
 	Ok((i, b.into()))
 }
 
+fn parse_indents(indentation: usize, i: &str) -> IResult<&str, Vec<char>> {
+	count(tab, indentation)(i)
+}
 fn indents(i: &str, indentation: usize) -> DiscardingResult<&str> {
-	Ok(count(tab, indentation)(i)?.0)
+	Ok(parse_indents(indentation, i)?.0)
+}
+fn parse_newlines(i: &str) -> IResult<&str, Vec<char>> {
+	many0(newline)(i)
 }
 fn newlines(i: &str) -> DiscardingResult<&str> {
-	Ok(many0(newline)(i)?.0)
+	Ok(parse_newlines(i)?.0)
 }
 
 fn indented_line<T>(indentation: usize, i: &str, line_parser: fn(usize, &str) -> IResult<&str, T>) -> IResult<&str, T> {
@@ -62,11 +68,24 @@ fn indented_block<T>(indentation: usize, i: &str, line_parser: fn(usize, &str) -
 	Ok((i, items))
 }
 
-pub fn parse_input(i: &str) -> IResult<&str, Vec<ModuleItem>> {
-	separated_list1(many1(newline), |i| parse_module_item(0, i))(i)
+pub fn parse_file(i: &str) -> IResult<&str, Vec<ModuleItem>> {
+	parse_file_with_indentation(0, i)
 }
 
-pub fn parse_input_with_indentation(indentation: usize, i: &str) -> IResult<&str, Vec<ModuleItem>> {
+pub fn parse_file_with_indentation(indentation: usize, i: &str) -> IResult<&str, Vec<ModuleItem>> {
+	all_consuming(
+		terminated(
+			|i| parse_module_items_with_indentation(indentation, i),
+			tuple((parse_newlines, |i| parse_indents(usize::max(indentation - 1, 0), i), parse_newlines)),
+		)
+	)(i)
+}
+
+pub fn parse_module_items(i: &str) -> IResult<&str, Vec<ModuleItem>> {
+	parse_module_items_with_indentation(0, i)
+}
+
+pub fn parse_module_items_with_indentation(indentation: usize, i: &str) -> IResult<&str, Vec<ModuleItem>> {
 	separated_list1(many1(newline), |i| parse_module_item(indentation, i))(i)
 }
 
@@ -110,7 +129,7 @@ pub fn parse_debug_statement(indentation: usize, i: &str) -> IResult<&str, Debug
 
 // fn parse_parameters(indentation: usize) -> impl Fn(&str) -> IResult<&str, ModuleItem> {
 pub fn parse_parameters(i: &str) -> IResult<&str, Vec<(String, String)>> {
-	separated_list1(tag(", "), parse_parameter)(i)
+	separated_list0(tag(", "), parse_parameter)(i)
 }
 pub fn parse_parameter(i: &str) -> IResult<&str, (String, String)> {
 	separated_pair(parse_ident, tag(": "), parse_ident)(i)
@@ -227,13 +246,25 @@ mod tests {
 	#[test]
 	fn test_parse_procedure() {
 		let i = r#"
-			proc dumb(d: Day): Day;
+			proc same_day(d: Day): Day;
 				d
 		"#.trim();
 		assert_eq!(
 			parse_procedure_definition(3, i).unwrap().1,
 			ProcedureDefinition{
-				name: "dumb".into(), parameters: vec![("d".into(), "Day".into())],
+				name: "same_day".into(), parameters: vec![("d".into(), "Day".into())],
+				return_type: "Day".into(), statements: vec![Term::Lone("d".into())],
+			},
+		);
+
+		let i = r#"
+			proc same_day(): Day;
+				d
+		"#.trim();
+		assert_eq!(
+			parse_procedure_definition(3, i).unwrap().1,
+			ProcedureDefinition{
+				name: "same_day".into(), parameters: vec![],
 				return_type: "Day".into(), statements: vec![Term::Lone("d".into())],
 			},
 		);
