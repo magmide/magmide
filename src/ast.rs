@@ -32,31 +32,33 @@ pub enum TypeBody {
 // 	pub module_items: Vec<ModuleItem>,
 // }
 
-// #[salsa::interned]
-// pub struct TypeId {
-// 	#[return_ref]
-// 	pub text: String,
-// }
-#[derive(Debug, Eq, PartialEq)]
+#[salsa::interned]
+pub struct TypeId {
+	#[return_ref]
+	pub text: String,
+}
+#[salsa::tracked]
 pub struct TypeDefinition {
-	// #[id]
-	// pub name: TypeId,
-	pub name: String,
+	#[id]
+	pub name: TypeId,
+	#[return_ref]
 	pub body: TypeBody,
 }
 
-// #[salsa::interned]
-// pub struct ProcedureId {
-// 	#[return_ref]
-// 	pub text: String,
-// }
-#[derive(Debug, Eq, PartialEq)]
+#[salsa::interned]
+pub struct ProcedureId {
+	#[return_ref]
+	pub text: String,
+}
+#[salsa::tracked]
 pub struct ProcedureDefinition {
-	// #[id]
-	// pub name: ProcedureId,
-	pub name: String,
+	#[id]
+	pub name: ProcedureId,
+	#[return_ref]
 	pub parameters: Vec<(String, String)>,
+	#[return_ref]
 	pub return_type: String,
+	#[return_ref]
 	pub statements: Vec<Statement>,
 }
 

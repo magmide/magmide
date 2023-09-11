@@ -21,7 +21,7 @@ pub struct Diagnostic(String);
 #[salsa::tracked]
 pub fn tracked_parse_file(db: &dyn Db, source: SourceFile) -> ParsedFile {
 	let contents = source.contents(db);
-	let module_items = match parser::parse_file(contents).map(|(_, module_items)| module_items) {
+	let module_items = match parser::parse_file(db, contents).map(|(_, module_items)| module_items) {
 		Ok(module_items) => module_items,
 		Err(_) => {
 			Diagnostic::push(db, "some problem while parsing".into());
@@ -35,6 +35,10 @@ pub fn tracked_parse_file(db: &dyn Db, source: SourceFile) -> ParsedFile {
 
 #[salsa::jar(db = Db)]
 pub struct Jar(
+	ast::TypeId,
+	ast::TypeDefinition,
+	ast::ProcedureId,
+	ast::ProcedureDefinition,
 	SourceFile,
 	ParsedFile,
 	Diagnostic,

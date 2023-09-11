@@ -16,7 +16,7 @@ test:
 	dune runtest
 
 dev:
-	cargo test basic_type_errors -- --nocapture
+	cargo test test_parse_type_definition -- --nocapture
 
 
 clean:
