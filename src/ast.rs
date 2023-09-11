@@ -11,7 +11,7 @@
 // 	pub end: usize,
 // }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum TypeBody {
 	Unit,
 	Union { branches: Vec<String> },
@@ -32,33 +32,25 @@ pub enum TypeBody {
 // 	pub module_items: Vec<ModuleItem>,
 // }
 
-// #[salsa::input]
-// struct SourceFile {
-// 	// path: PathBuf,
-// 	#[return_ref]
-// 	contents: String,
-// }
-
 // #[salsa::interned]
 // pub struct TypeId {
 // 	#[return_ref]
 // 	pub text: String,
 // }
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct TypeDefinition {
 	// #[id]
 	// pub name: TypeId,
 	pub name: String,
 	pub body: TypeBody,
 }
-// TODO PropDefinition or just add a flag to Type?
 
 // #[salsa::interned]
 // pub struct ProcedureId {
 // 	#[return_ref]
 // 	pub text: String,
 // }
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct ProcedureDefinition {
 	// #[id]
 	// pub name: ProcedureId,
@@ -67,7 +59,6 @@ pub struct ProcedureDefinition {
 	pub return_type: String,
 	pub statements: Vec<Statement>,
 }
-// TODO TheoremDefinition or just add a flag to Procedure?
 
 // #[derive(Debug)]
 // pub enum Statement {
@@ -78,19 +69,19 @@ pub struct ProcedureDefinition {
 // TODO
 pub type Statement = Term;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct DebugStatement {
 	pub term: Term,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum ModuleItem {
 	Type(TypeDefinition),
 	Procedure(ProcedureDefinition),
 	Debug(DebugStatement),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum Term {
 	Lone(String),
 	Chain(String, Vec<ChainItem>),
@@ -100,7 +91,7 @@ pub enum Term {
 	},
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct MatchArm {
 	// pattern: Pattern,
 	pub pattern: Term,
@@ -108,7 +99,7 @@ pub struct MatchArm {
 	pub statement: Term,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum ChainItem {
 	Access(String),
 	Call { arguments: Vec<Term> },

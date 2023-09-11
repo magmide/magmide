@@ -422,6 +422,26 @@ mod tests {
 	use super::*;
 	use crate::parser;
 
+	// #[cfg(test)]
+	// fn parse_string(source_text: &str) -> String {
+	// 	use salsa::debug::DebugWithDb;
+
+	// 	// Create the database
+	// 	let db = crate::db::Database::default();
+
+	// 	// Create the source program
+	// 	let source_program = SourceProgram::new(&db, source_text.to_string());
+
+	// 	// Invoke the parser
+	// 	let statements = parse_statements(&db, source_program);
+
+	// 	// Read out any diagnostics
+	// 	let accumulated = parse_statements::accumulated::<Diagnostics>(&db, source_program);
+
+	// 	// Format the result as a string and return it
+	// 	format!("{:#?}", (statements.debug_all(&db), accumulated))
+	// }
+
 	#[test]
 	fn basic_type_errors() {
 		let i = r#"

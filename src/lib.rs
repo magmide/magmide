@@ -2,144 +2,102 @@ pub mod ast;
 pub mod parser;
 pub mod checker;
 
-// #[salsa::jar(db = Db)]
-// struct Jar(
-// 	SourceFile,
-// 	ParsedFile,
-// 	parse_file,
+#[salsa::input]
+pub struct SourceFile {
+	// path: PathBuf,
+	#[return_ref]
+	contents: String,
+}
 
-// 	Diagnostic, , , compile, parse, sum,
-// );
+#[salsa::tracked]
+pub struct ParsedFile {
+	#[return_ref]
+	module_items: Vec<ast::ModuleItem>,
+}
 
-// use std::{
-// 	// path::PathBuf,
-// 	sync::Mutex,
-// 	// time::Duration,
-// };
+#[salsa::accumulator]
+pub struct Diagnostic(String);
 
-// trait Db: salsa::DbWithJar<Jar> {
-// 	fn input(&self, contents: &str) -> SourceFile;
-// }
+#[salsa::tracked]
+pub fn tracked_parse_file(db: &dyn Db, source: SourceFile) -> ParsedFile {
+	let contents = source.contents(db);
+	let module_items = match parser::parse_file(contents).map(|(_, module_items)| module_items) {
+		Ok(module_items) => module_items,
+		Err(_) => {
+			Diagnostic::push(db, "some problem while parsing".into());
+			Vec::new()
+		},
+	};
 
-// #[salsa::db(Jar)]
-// struct Database {
-// 	storage: salsa::Storage<Self>,
-// 	logs: Mutex<Vec<String>>,
-// }
+	ParsedFile::new(db, module_items)
+}
+
+
+#[salsa::jar(db = Db)]
+pub struct Jar(
+	SourceFile,
+	ParsedFile,
+	Diagnostic,
+	tracked_parse_file,
+);
+
+pub trait Db: salsa::DbWithJar<Jar> {}
+
+impl<DB> Db for DB where DB: ?Sized + salsa::DbWithJar<Jar> {}
+
+
+// use std::sync::{Arc, Mutex};
+
+#[derive(Default)]
+#[salsa::db(Jar)]
+pub struct Database {
+	storage: salsa::Storage<Self>,
+
+	// The logs are only used for testing and demonstrating reuse:
+	// logs: Option<Arc<Mutex<Vec<String>>>>,
+}
 
 // impl Database {
-// 	fn new() -> Self {
-// 		let storage = Default::default();
+// 	/// Enable logging of each salsa event.
+// 	#[cfg(test)]
+// 	pub fn enable_logging(self) -> Self {
+// 		assert!(self.logs.is_none());
 // 		Self {
-// 			storage,
-// 			logs: Default::default(),
+// 			storage: self.storage,
+// 			logs: Some(Default::default()),
+// 		}
+// 	}
+
+// 	#[cfg(test)]
+// 	pub fn take_logs(&mut self) -> Vec<String> {
+// 		if let Some(logs) = &self.logs {
+// 			std::mem::take(&mut *logs.lock().unwrap())
+// 		} else {
+// 			panic!("logs not enabled");
 // 		}
 // 	}
 // }
 
-// impl Db for Database {
-// 	fn input(&self, contents: &str) -> SourceFile {
-// 		SourceFile::new(self, contents)
-// 	}
-// }
+impl salsa::Database for Database {
+	// fn salsa_event(&self, event: salsa::Event) {
+	// 	use salsa::DebugWithDb;
+	// 	// Log interesting events, if logging is enabled
+	// 	if let Some(logs) = &self.logs {
+	// 		// don't log boring events
+	// 		if let salsa::EventKind::WillExecute { .. } = event.kind {
+	// 			logs.lock()
+	// 				.unwrap()
+	// 				.push(format!("Event: {:?}", event.debug(self)));
+	// 		}
+	// 	}
+	// }
+}
 
-// impl salsa::Database for Database {
-// 	fn salsa_event(&self, event: salsa::Event) {
-// 		// don't log boring events
-// 		if let salsa::EventKind::WillExecute { .. } = event.kind {
-// 			self.logs
-// 				.lock()
-// 				.unwrap()
-// 				.push(format!("{:?}", event.debug(self)));
-// 		}
-// 	}
-// }
-
-// #[salsa::accumulator]
-// struct Diagnostic(String);
-
-// impl Diagnostic {
-// 	fn push_error(db: &dyn Db, file: SourceFile, error: Report) {
-// 		Diagnostic::push(
-// 			db,
-// 			format!(
-// 				"Error in file {}: {:?}\n",
-// 				file.path(db)
-// 					.file_name()
-// 					.unwrap_or_else(|| "<unknown>".as_ref())
-// 					.to_string_lossy(),
-// 				error,
-// 			),
-// 		)
-// 	}
-// }
-
-// #[salsa::tracked]
-// struct ParsedFile {
-// 	value: u32,
-// 	#[return_ref]
-// 	links: Vec<ParsedFile>,
-// }
-
-// #[salsa::tracked]
-// fn compile(db: &dyn Db, input: SourceFile) -> u32 {
-// 	let parsed = parse(db, input);
-// 	sum(db, parsed)
-// }
-
-// #[salsa::tracked]
-// fn parse(db: &dyn Db, input: SourceFile) -> ParsedFile {
-// 	let mut lines = input.contents(db).lines();
-// 	let value = match lines.next().map(|line| (line.parse::<u32>(), line)) {
-// 		Some((Ok(num), _)) => num,
-// 		Some((Err(e), line)) => {
-// 			Diagnostic::push_error(
-// 				db,
-// 				input,
-// 				Report::new(e).wrap_err(format!(
-// 					"First line ({}) could not be parsed as an integer",
-// 					line
-// 				)),
-// 			);
-// 			0
-// 		}
-// 		None => {
-// 			Diagnostic::push_error(db, input, eyre!("SourceFile must contain an integer"));
-// 			0
-// 		}
-// 	};
-// 	let links = lines
-// 		.filter_map(|path| {
-// 			let relative_path = match path.parse::<PathBuf>() {
-// 				Ok(path) => path,
-// 				Err(err) => {
-// 					Diagnostic::push_error(
-// 						db,
-// 						input,
-// 						Report::new(err).wrap_err(format!("Failed to parse path: {}", path)),
-// 					);
-// 					return None;
-// 				}
-// 			};
-// 			let link_path = input.path(db).parent().unwrap().join(relative_path);
-// 			match db.input(link_path) {
-// 				Ok(file) => Some(parse(db, file)),
-// 				Err(err) => {
-// 					Diagnostic::push_error(db, input, err);
-// 					None
-// 				}
-// 			}
+// impl salsa::ParallelDatabase for Database {
+// 	fn snapshot(&self) -> salsa::Snapshot<Self> {
+// 		salsa::Snapshot::new(Database {
+// 			storage: self.storage.snapshot(),
+// 			logs: self.logs.clone(),
 // 		})
-// 		.collect();
-// 	ParsedFile::new(db, value, links)
-// }
-
-// #[salsa::tracked]
-// fn sum(db: &dyn Db, input: ParsedFile) -> u32 {
-// 	input.value(db)
-// 		+ input
-// 			.links(db)
-// 			.iter()
-// 			.map(|&file| sum(db, file))
-// 			.sum::<u32>()
+// 	}
 // }
