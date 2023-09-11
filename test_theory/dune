@@ -1,7 +1,0 @@
-; https://dune.readthedocs.io/en/stable/dune-files.html#coq-theory-1
-
-(coq.theory
-	(name test_theory)
-	(package magmide)
-	(libraries magmide.plugin)
-)
