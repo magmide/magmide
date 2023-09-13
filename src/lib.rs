@@ -4,9 +4,10 @@ pub mod checker;
 
 #[salsa::input]
 pub struct SourceFile {
-	// path: PathBuf,
 	#[return_ref]
 	contents: String,
+	indentation: usize,
+	// path: PathBuf,
 }
 
 #[salsa::tracked]

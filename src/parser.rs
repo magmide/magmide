@@ -10,7 +10,7 @@ use nom::{
 	bytes::complete::{tag, take_while, take_while1},
 	character::{complete::{tab, newline, char as c}},
 	branch::alt,
-	combinator::{opt, map, all_consuming},
+	combinator::{value, opt, map, all_consuming},
 	multi::{count, many0, many1, separated_list0, separated_list1},
 	sequence::{preceded, delimited, separated_pair, terminated, tuple},
 	// Finish,
@@ -185,10 +185,156 @@ pub fn parse_chain_item(indentation: usize, i: &str) -> IResult<&str, ChainItem>
 }
 
 
+#[salsa::tracked]
+pub struct ProgramBlocks {
+	#[return_ref]
+	module_item_blocks: Vec<ModuleItemBlock>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ModuleItemBlock {
+	line: usize,
+	body: String,
+	kind: ModuleItemBlockKind,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum ModuleItemBlockKind {
+	Procedure{ name: String },
+	Type{ name: String },
+	Debug,
+	Error,
+}
+
+#[salsa::tracked]
+pub fn tracked_parse_module_item_blocks(db: &dyn Db, source_file: SourceFile) -> ProgramBlocks {
+	let module_item_blocks = parse_module_item_blocks(
+		source_file.indentation,
+		&source_file.contents,
+	);
+	ProgramBlocks:new(db, module_item_blocks)
+}
+
+pub fn parse_module_item_blocks(indentation: usize, i: &str) -> Vec<ModuleItemBlock> {
+	let i = &source_file.contents;
+	let indentation = source_file.indentation;
+
+	let mut module_item_blocks = Vec::new();
+	let mut current_block_body = Vec::new();
+	let mut current_block_info = (1, None);
+
+	fn close_block(
+		module_item_blocks: &mut Vec<ModuleItemBlock>,
+		current_block_body: &mut Vec<&str>,
+		current_block_info: &(usize, Option<ModuleItemBlockKind>),
+	) {
+		// TODO change this to copy once block kind is some sort of tracked id
+		let (line, kind) = current_block_info.clone();
+		let body = current_block_body.join("\n");
+		current_block_body.clear();
+		module_item_blocks.push(ModuleItemBlock{ line, body, kind: kind.unwrap_or(ModuleItemBlockKind::Error) });
+	}
+
+	for (index, body_line) in i.lines().enumerate() {
+		let line = index + 1;
+		let tab_count = get_tab_count(body_line);
+
+		if tab_count != indentation {
+			current_block_body.push(body_line);
+			continue;
+		}
+
+		let trimmed_body_line = body_line.trim_start();
+		if trimmed_body_line.starts_with(';') {
+			current_block_body.push(body_line);
+			if current_block_info.1.is_none() {
+				current_block_info.1 = Some(ModuleItemBlockKind::Error);
+			}
+			continue;
+		}
+
+		use ModuleItemBlockKind::*;
+		let kind = alt((
+			map(preceded(tag("proc "), parse_ident), |name| Procedure{ name: name.to_string() }),
+			map(preceded(tag("type "), parse_ident), |name| Type{ name: name.to_string() }),
+			value(Debug, tag("debug ")),
+		))(trimmed_body_line)
+			.map(|(_, kind)| kind)
+			.unwrap_or(ModuleItemBlockKind::Error);
+
+		if current_block_info.1.is_some() {
+			close_block(&mut module_item_blocks, &mut current_block_body, &current_block_info);
+			current_block_info.0 = line;
+		}
+		current_block_info.1 = Some(kind);
+		current_block_body.push(body_line);
+	}
+	close_block(&mut module_item_blocks, &mut current_block_body, &current_block_info);
+
+	module_item_blocks
+}
+
+fn get_tab_count(i: &str) -> usize {
+	let mut tab_count = 0;
+	let mut line_chars = i.chars();
+	while line_chars.next() == Some('\t') {
+		tab_count = tab_count + 1;
+	}
+	tab_count
+}
+
+
 #[cfg(test)]
 mod tests {
 	use super::*;
 	use salsa::DebugWithDb;
+
+	#[test]
+	fn test_parse_module_item_blocks() {
+		let i = r#"
+			proc hello
+				what
+				here
+			;
+				actual body
+				is::
+					arbitary
+						nested
+					things
+				yo
+
+					sup
+
+			type hey; sup
+			type yoyo;
+				| whatev
+				| thing
+					and stuff
+						and whatever
+
+			bad
+			alsobad
+				| thing
+				| hmm
+				sdfjdk
+					dkfjdk
+
+			debug hey
+			debug sup
+				big
+				things
+					poppin
+				and such
+
+			proc same_day(d: Day): Day; asdf
+
+		"#;
+
+		assert_eq!(dbg!(parse_module_item_blocks(3, i)), [
+			// ModuleItemBlock{}
+		]);
+	}
+
 
 	fn make_lone(s: &str) -> Term {
 		Term::Lone(s.into())
