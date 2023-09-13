@@ -185,20 +185,38 @@ pub fn parse_chain_item(indentation: usize, i: &str) -> IResult<&str, ChainItem>
 }
 
 
+
+
+#[salsa::input]
+pub struct SourceFile {
+	#[return_ref]
+	contents: String,
+	indentation: usize,
+	// #[return_ref]
+	// path: PathBuf,
+}
+
 #[salsa::tracked]
 pub struct ProgramBlocks {
 	#[return_ref]
 	module_item_blocks: Vec<ModuleItemBlock>,
 }
 
-#[derive(Debug, PartialEq)]
+// #[salsa::tracked]
+// pub struct ParsedFile {
+// 	#[return_ref]
+// 	module_items: Vec<ast::ModuleItem>,
+// }
+
+
+#[derive(Debug, Eq, PartialEq)]
 pub struct ModuleItemBlock {
 	line: usize,
 	body: String,
 	kind: ModuleItemBlockKind,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum ModuleItemBlockKind {
 	Procedure{ name: String },
 	Type{ name: String },
@@ -209,30 +227,27 @@ pub enum ModuleItemBlockKind {
 #[salsa::tracked]
 pub fn tracked_parse_module_item_blocks(db: &dyn Db, source_file: SourceFile) -> ProgramBlocks {
 	let module_item_blocks = parse_module_item_blocks(
-		source_file.indentation,
-		&source_file.contents,
+		source_file.indentation(db),
+		&source_file.contents(db),
 	);
-	ProgramBlocks:new(db, module_item_blocks)
+	ProgramBlocks::new(db, module_item_blocks)
 }
 
 pub fn parse_module_item_blocks(indentation: usize, i: &str) -> Vec<ModuleItemBlock> {
-	let i = &source_file.contents;
-	let indentation = source_file.indentation;
-
 	let mut module_item_blocks = Vec::new();
 	let mut current_block_body = Vec::new();
-	let mut current_block_info = (1, None);
+	let mut current_block_line = 0;
+	let mut current_block_kind = None;
 
 	fn close_block(
 		module_item_blocks: &mut Vec<ModuleItemBlock>,
 		current_block_body: &mut Vec<&str>,
-		current_block_info: &(usize, Option<ModuleItemBlockKind>),
+		line: usize,
+		kind: ModuleItemBlockKind,
 	) {
-		// TODO change this to copy once block kind is some sort of tracked id
-		let (line, kind) = current_block_info.clone();
 		let body = current_block_body.join("\n");
 		current_block_body.clear();
-		module_item_blocks.push(ModuleItemBlock{ line, body, kind: kind.unwrap_or(ModuleItemBlockKind::Error) });
+		module_item_blocks.push(ModuleItemBlock{ line, body, kind });
 	}
 
 	for (index, body_line) in i.lines().enumerate() {
@@ -247,13 +262,14 @@ pub fn parse_module_item_blocks(indentation: usize, i: &str) -> Vec<ModuleItemBl
 		let trimmed_body_line = body_line.trim_start();
 		if trimmed_body_line.starts_with(';') {
 			current_block_body.push(body_line);
-			if current_block_info.1.is_none() {
-				current_block_info.1 = Some(ModuleItemBlockKind::Error);
+			if current_block_kind.is_none() {
+				current_block_kind = Some(ModuleItemBlockKind::Error);
 			}
 			continue;
 		}
 
 		use ModuleItemBlockKind::*;
+
 		let kind = alt((
 			map(preceded(tag("proc "), parse_ident), |name| Procedure{ name: name.to_string() }),
 			map(preceded(tag("type "), parse_ident), |name| Type{ name: name.to_string() }),
@@ -262,14 +278,14 @@ pub fn parse_module_item_blocks(indentation: usize, i: &str) -> Vec<ModuleItemBl
 			.map(|(_, kind)| kind)
 			.unwrap_or(ModuleItemBlockKind::Error);
 
-		if current_block_info.1.is_some() {
-			close_block(&mut module_item_blocks, &mut current_block_body, &current_block_info);
-			current_block_info.0 = line;
+		let previous_kind = std::mem::replace(&mut current_block_kind, Some(kind));
+		if let Some(previous_kind) = previous_kind {
+			close_block(&mut module_item_blocks, &mut current_block_body, current_block_line, previous_kind);
+			current_block_line = line;
 		}
-		current_block_info.1 = Some(kind);
 		current_block_body.push(body_line);
 	}
-	close_block(&mut module_item_blocks, &mut current_block_body, &current_block_info);
+	close_block(&mut module_item_blocks, &mut current_block_body, current_block_line, current_block_kind.unwrap_or(ModuleItemBlockKind::Error));
 
 	module_item_blocks
 }
@@ -288,6 +304,10 @@ fn get_tab_count(i: &str) -> usize {
 mod tests {
 	use super::*;
 	use salsa::DebugWithDb;
+
+	fn make_block(line: usize, kind: ModuleItemBlockKind, body: &str) -> ModuleItemBlock {
+		ModuleItemBlock{ line, body: body.into(), kind }
+	}
 
 	#[test]
 	fn test_parse_module_item_blocks() {
@@ -330,8 +350,15 @@ mod tests {
 
 		"#;
 
-		assert_eq!(dbg!(parse_module_item_blocks(3, i)), [
-			// ModuleItemBlock{}
+		assert_eq!(parse_module_item_blocks(3, i), [
+			make_block(0, ModuleItemBlockKind::Procedure{ name: "hello".into() }, "\n\t\t\tproc hello\n\t\t\t\twhat\n\t\t\t\there\n\t\t\t;\n\t\t\t\tactual body\n\t\t\t\tis::\n\t\t\t\t\tarbitary\n\t\t\t\t\t\tnested\n\t\t\t\t\tthings\n\t\t\t\tyo\n\n\t\t\t\t\tsup\n"),
+			make_block(15, ModuleItemBlockKind::Type{ name: "hey".into() }, "\t\t\ttype hey; sup"),
+			make_block(16, ModuleItemBlockKind::Type{ name: "yoyo".into() }, "\t\t\ttype yoyo;\n\t\t\t\t| whatev\n\t\t\t\t| thing\n\t\t\t\t\tand stuff\n\t\t\t\t\t\tand whatever\n"),
+			make_block(22, ModuleItemBlockKind::Error, "\t\t\tbad"),
+			make_block(23, ModuleItemBlockKind::Error, "\t\t\talsobad\n\t\t\t\t| thing\n\t\t\t\t| hmm\n\t\t\t\tsdfjdk\n\t\t\t\t\tdkfjdk\n"),
+			make_block(29, ModuleItemBlockKind::Debug, "\t\t\tdebug hey"),
+			make_block(30, ModuleItemBlockKind::Debug, "\t\t\tdebug sup\n\t\t\t\tbig\n\t\t\t\tthings\n\t\t\t\t\tpoppin\n\t\t\t\tand such\n"),
+			make_block(36, ModuleItemBlockKind::Procedure{ name: "same_day".into() }, "\t\t\tproc same_day(d: Day): Day; asdf\n\n\t\t"),
 		]);
 	}
 
@@ -374,26 +401,21 @@ mod tests {
 		);
 	}
 
-	#[test]
-	fn test_parse_type_definition() {
-		let mut db = crate::Database::default();
-
-		let i = r#"
-			type Day;
-				| Monday
-				| Tuesday
-		"#.trim();
-		let source_program = crate::SourceFile::new(&db, i.to_string());
-		assert_eq!(
-			format!("{:?}", parse_type_definition(&db, 3, i).unwrap().1.debug(&db)),
-			"",
-
-			// TypeDefinition{
-			// 	name: "Day".into(),
-			// 	body: TypeBody::Union{ branches: vec!["Monday".into(), "Tuesday".into()] },
-			// },
-		);
-	}
+	// #[test]
+	// fn test_parse_type_definition() {
+	// 	let i = r#"
+	// 		type Day;
+	// 			| Monday
+	// 			| Tuesday
+	// 	"#.trim();
+	// 	assert_eq!(
+	// 		parse_type_definition(&db, 3, i).unwrap()
+	// 		TypeDefinition{
+	// 			name: "Day".into(),
+	// 			body: TypeBody::Union{ branches: vec!["Monday".into(), "Tuesday".into()] },
+	// 		},
+	// 	);
+	// }
 
 	// #[test]
 	// fn test_parse_procedure() {

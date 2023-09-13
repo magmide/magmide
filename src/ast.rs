@@ -112,3 +112,6 @@ pub enum ChainItem {
 	// CatchCall { parameters: Either<NamedPattern, Vec<NamedPattern>>, statements: Vec<Term>, is_tap: bool },
 	// ChainedMatch { return_type: Term, arms: Vec<MatchArm> },
 }
+
+#[salsa::accumulator]
+pub struct Diagnostic(String);

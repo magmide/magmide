@@ -2,48 +2,16 @@ pub mod ast;
 pub mod parser;
 pub mod checker;
 
-#[salsa::input]
-pub struct SourceFile {
-	#[return_ref]
-	contents: String,
-	indentation: usize,
-	// path: PathBuf,
-}
-
-#[salsa::tracked]
-pub struct ParsedFile {
-	#[return_ref]
-	module_items: Vec<ast::ModuleItem>,
-}
-
-#[salsa::accumulator]
-pub struct Diagnostic(String);
-
-#[salsa::tracked]
-pub fn tracked_parse_file(db: &dyn Db, source: SourceFile) -> ParsedFile {
-	let contents = source.contents(db);
-	let module_items = match parser::parse_file(db, contents).map(|(_, module_items)| module_items) {
-		Ok(module_items) => module_items,
-		Err(_) => {
-			Diagnostic::push(db, "some problem while parsing".into());
-			Vec::new()
-		},
-	};
-
-	ParsedFile::new(db, module_items)
-}
-
-
 #[salsa::jar(db = Db)]
 pub struct Jar(
 	ast::TypeId,
 	ast::TypeDefinition,
 	ast::ProcedureId,
 	ast::ProcedureDefinition,
-	SourceFile,
-	ParsedFile,
-	Diagnostic,
-	tracked_parse_file,
+	ast::Diagnostic,
+	parser::SourceFile,
+	parser::ProgramBlocks,
+	parser::tracked_parse_module_item_blocks,
 );
 
 pub trait Db: salsa::DbWithJar<Jar> {}

@@ -1,7 +1,7 @@
-#[salsa::tracked]
-pub fn determine_ident_type(db: &dyn crate::Db, program: Program, name: FunctionId) -> Option<Function> {
-	unimplemented!()
-}
+// #[salsa::tracked]
+// pub fn determine_ident_type(db: &dyn crate::Db, program: Program, name: FunctionId) -> Option<Function> {
+// 	unimplemented!()
+// }
 
 
 // // http://adam.chlipala.net/cpdt/html/Universes.html
