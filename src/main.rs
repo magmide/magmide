@@ -1,8 +1,22 @@
 // use magmide::ast;
-// use magmide::parser;
+use magmide::parser;
+use magmide::Database;
 // use magmide::checker;
 
 fn main() {
+	let target_block_name = "same_day";
+
+	let contents = std::fs::read_to_string("./mg_examples/main.mg").unwrap();
+
+	let mut db = Database::default();
+	let source_file = parser::SourceFile::new(&db, contents, 0);
+	let program_blocks = parser::tracked_parse_module_item_blocks(&db, source_file);
+
+	// find program_block with target_block_name
+	let target_block = parser::tracked_find_block_with_name(&db, program_blocks, target_block_name.into()).unwrap();
+	let module_item = dbg!(parser::parse_module_item(&db, 0, &target_block.body).unwrap());
+
+
 	// let path = PathBuf::from(r"/");
 
 	// // starting from the original source file, we walk the imports (which for now don't exist) and add source files as we go (which probably requires intelligent separation to make sure we can do import tracking without an incremental database present)

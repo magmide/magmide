@@ -209,11 +209,11 @@ pub struct ProgramBlocks {
 // }
 
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct ModuleItemBlock {
-	line: usize,
-	body: String,
-	kind: ModuleItemBlockKind,
+	pub line: usize,
+	pub body: String,
+	pub kind: ModuleItemBlockKind,
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
@@ -231,6 +231,18 @@ pub fn tracked_parse_module_item_blocks(db: &dyn Db, source_file: SourceFile) ->
 		&source_file.contents(db),
 	);
 	ProgramBlocks::new(db, module_item_blocks)
+}
+
+#[salsa::tracked]
+pub fn tracked_find_block_with_name(db: &dyn Db, program_blocks: ProgramBlocks, block_name: String) -> Option<ModuleItemBlock> {
+	for module_item_block in program_blocks.module_item_blocks(db) {
+		match &module_item_block.kind {
+			ModuleItemBlockKind::Procedure{ name } if *name == block_name => { return Some(module_item_block.clone()); },
+			ModuleItemBlockKind::Type{ name } if *name == block_name => { return Some(module_item_block.clone()); },
+			_ => {},
+		}
+	}
+	None
 }
 
 pub fn parse_module_item_blocks(indentation: usize, i: &str) -> Vec<ModuleItemBlock> {
@@ -252,9 +264,8 @@ pub fn parse_module_item_blocks(indentation: usize, i: &str) -> Vec<ModuleItemBl
 
 	for (index, body_line) in i.lines().enumerate() {
 		let line = index + 1;
-		let tab_count = get_tab_count(body_line);
 
-		if tab_count != indentation {
+		if get_tab_count(body_line) != indentation || body_line.len() == 0 {
 			current_block_body.push(body_line);
 			continue;
 		}

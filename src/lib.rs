@@ -12,6 +12,7 @@ pub struct Jar(
 	parser::SourceFile,
 	parser::ProgramBlocks,
 	parser::tracked_parse_module_item_blocks,
+	parser::tracked_find_block_with_name,
 );
 
 pub trait Db: salsa::DbWithJar<Jar> {}
