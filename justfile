@@ -16,7 +16,7 @@ test:
 	dune runtest
 
 dev:
-	cargo test parse_module_item_blocks -- --nocapture
+	cargo test parser -- --nocapture
 
 
 clean:

@@ -14,7 +14,8 @@ fn main() {
 
 	// find program_block with target_block_name
 	let target_block = parser::tracked_find_block_with_name(&db, program_blocks, target_block_name.into()).unwrap();
-	let module_item = dbg!(parser::parse_module_item(&db, 0, &target_block.body).unwrap());
+
+	let module_item = parser::tracked_parse_module_item(&db, 0, &target_block.body).unwrap();
 
 
 	// let path = PathBuf::from(r"/");

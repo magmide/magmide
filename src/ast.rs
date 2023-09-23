@@ -45,6 +45,12 @@ pub struct TypeDefinition {
 	pub body: TypeBody,
 }
 
+#[derive(Debug, Eq, PartialEq)]
+pub struct RawTypeDefinition {
+	pub name: String,
+	pub body: TypeBody,
+}
+
 #[salsa::interned]
 pub struct ProcedureId {
 	#[return_ref]
@@ -59,6 +65,14 @@ pub struct ProcedureDefinition {
 	#[return_ref]
 	pub return_type: String,
 	#[return_ref]
+	pub statements: Vec<Statement>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct RawProcedureDefinition {
+	pub name: String,
+	pub parameters: Vec<(String, String)>,
+	pub return_type: String,
 	pub statements: Vec<Statement>,
 }
 
@@ -78,8 +92,8 @@ pub struct DebugStatement {
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ModuleItem {
-	Type(TypeDefinition),
-	Procedure(ProcedureDefinition),
+	Type(RawTypeDefinition),
+	Procedure(RawProcedureDefinition),
 	Debug(DebugStatement),
 }
 
