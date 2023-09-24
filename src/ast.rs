@@ -33,6 +33,20 @@ pub enum TypeBody {
 // }
 
 #[salsa::interned]
+pub struct Ident {
+	#[return_ref]
+	pub text: String,
+}
+
+#[derive(Debug)]
+enum Statement {
+	Let(),
+	Debug(DebugStatement),
+	Named(ModuleItem),
+}
+
+
+#[salsa::interned]
 pub struct TypeId {
 	#[return_ref]
 	pub text: String,
@@ -89,6 +103,15 @@ pub type Statement = Term;
 pub struct DebugStatement {
 	pub term: Term,
 }
+
+#[salsa::tracked]
+pub struct Statements {
+	pub statements: Vec<>,
+}
+
+
+
+
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ModuleItem {
