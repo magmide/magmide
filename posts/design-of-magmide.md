@@ -1,5 +1,101 @@
 # Design of Magmide
 
+To achieve the goals of the Magmide project, we have to arrive at a system with these essential components:
+
+- The Logic language, a dependently typed lambda calculus of constructions. This is where "imaginary" types are defined and proofs are conducted.
+- The Host language, an imperative language that actually runs on real machines.
+
+If we have such a system, then *both* components (Logic and Host) can *formally reason about each other and themselves*, and can *run with bare-metal performance*.
+
+```
+             represents and
+               implements
+      +------------+------------+
+      |            |            |
+      |            |            |
+      v            |            |
+Logic Magmide      +-----> Host Magmide
+      |                         ^
+      |                         |
+      |                         |
+      +-------------------------+
+            logically defines
+              and verifies
+```
+
+These two components have a symbiotic relationship with one another: Logic is used to define and make assertions about Host, and Host computationally represents and implements both Logic and Host itself.
+
+The easiest way to understand this is to think of Logic as the type system of Host. Logic is "imaginary" and only exists at compile time, and constrains/defines the behavior of Host. Logic just happens to itself be a dependently typed functional programming language!
+
+For a long time the goal of this project was to build a *new* Host language, something analogous to [LLVM](TODO), so that all the formal reasoning could be made *foundational* or reaching all the way down to hardware, and so that extreme portability could be achieved. Those aims are absolutely still a part of the long-term vision of the project, but after discussions with [Juan Benet](TODO) and [Tej Chajed](TODO) it was realized the project is more realistic if it "latches on" (TODO) to an established language and seeks to provide value to it. The obvious choice is Rust!
+
+So after this realization, the new project roadmap has these essential milestones:
+
+### Build a proof assistant in Rust.
+
+Since a proof assistant must be some sort of new language to be powerful enough to represent pure logic, this TODO. This is what "Magmide" will actually be, a proof assistant written in Rust, designed from the beginning to be high-performing, highly reusable from the outside, with all base level proof tactics and metaprogramming intended to occur in Rust.
+
+In this situation, Rust would be to Magmide what [OCaml is to Coq](TODO). This means that Magmide will be the "Logic" language in the above diagram.
+
+### Formalize Rust inside Magmide.
+
+A proof assistant is powerful enough to formally specify all the rules of any programming language less logically powerful than it, so just how [researchers have defined semantics for many languages in Coq](TODO), so too could we define the semantics of Rust in Magmide.
+
+Doing this will *mostly* involve following in the lead of the various [RustBelt projects](TODO) (and so would need to also translate Iris into Magmide). However it will be somewhat more difficult in our case, since we'll need to define the semantics more precisely in order to achieve the next milestone.
+
+### Allow Magmide to formally certify Rust!
+
+If Magmide is implemented in Rust, and the formal semantics of Rust are transcribed in Magmide, then it's possible to ingest *real* Rust code and formally reason about it in Magmide!
+
+[Reflective proofs](http://adam.chlipala.net/cpdt/html/Reflection.html) are ones in which a *computable function* is used to certify some input data has some properties. To do this you need to be able to prove that certain results of the *certifying function* itself in fact proves something about the input data.
+
+To make this dream possible we'll do the following:
+
+- Implement the "Host reflection" rule in Magmide. This means writing a special rule into the proof checker that accepts a proposition as proven if given an *AST* of a Rust function and a normal Magmide proof that this AST is a "certifier", and it is able to compile/run that AST over whatever inputs are necessary.
+- Then implement the systems that can actually ingest real rust ASTs in whatever way is necessary for the Host reflection rule.
+- Design and implement whatever syntactic affordances make it clean and ergonomic to make proof assertions about real Rust. *Handwaving goes here!* This could happen in a multitude of different ways, and could be incrementally improved over time, and these decisions are still pretty far off.
+- Figuring out the [Trackable Effects](TODO) system. This seems important to really make Rust fully formalizable, since effects are such a critical part of real system correctness.
+
+After these milestones are achieved, we've officially achieved the base goals of the Magmide project! From there we'd be able to incrementally improve performance and usability, and also take on further challenges:
+
+- Circle back to extending the formal foundations all the way to the hardware! LLVM analogue TODO
+- Build a formally verified Rust compiler! If we can formally verify Rust code, then we can incrementally verify the compiler itself.
+- Formally verify the Magmide proof checker using a trusted theory base, much like was done in the [metacoq project](TODO).
+
+
+
+
+
+## An interlude on proof assistant performance.
+
+One of the main reasons proof assistants and formal verification in general aren't mainstream is because existing proof assistants are *slow*. It isn't uncommon for large academic formalizations to take *many hours* to complete proof checking. This obviously can't scale to industrial codebases.
+
+This performance problem is largely caused by these factors:
+
+- Proof assistants aren't really designed from the beginning to be high-performance! Good work is certainly done to improve their performance, but few of them concern themselves with that from the beginning. There is some low-hanging fruit to be had here, such as using [incremental compilation](TODO) and heavy use of [string interning](TODO). Overall though, these design questions aren't the most concerning.
+- Proof assistants aren't written in high-perofmrn
+
+But it seems pretty obvious that the *most* concerning problem is the poor performance of [proof searching tactics](TODO). In languages such as Coq, proof tactics perform poorly for a few reasons:
+
+- The [Coq Ltac language is separate interpreted language](TODO). Interpreted languages are slow! And such an ad-hoc language embedded into a larger system will never get the amount of performance attention it needs. Tactics don't actually have to be "correct" or "sound", they're just computations that *attempt* to find a proof term that seems like it will correctly proof-check to solve some goal. So
+- Tactics often function by *searching* using various heuristics to find proof terms, and these searches can sometimes take a long time!
+
+Magmide intends to attack these performance problems in these ways:
+
+- Using and emphasizing a high-performance language for proof tactics. Rust is an amazing language, and it seems like a perfect choice, especially since using Rust allows [binding to basically any other language](TODO), so we could allow people to bring whatever tools they want to bear on proof search.
+- Proof *search* is slower than proof *checking*. Once a proof search has successfully found a correct proof term, it is wasteful and slow to run that proof term again instead of merely caching the proof term. Intelligently implemented incremental compilation can absolutely prevent many of these wasteful repeat proof searches.
+- Emphasizing [*reflective* proofs](http://adam.chlipala.net/cpdt/html/Reflection.html) for whatever situations allow it. Reflection has the potential to be much much faster than proof search, since it's usually faster to run a decidable algorithm in a high-performance language that yields a tiny/closed witness of a proof rather than using a slow interpreted embedded language to perform heuristic search. Proof reflection can't always be used (you have to both have and know how to implement a closed proof certifying algorithm).
+
+Taken all together these improvements
+
+
+
+
+
+
+
+
+
 Magmide has two essential components:
 
 - Logic Magmide, the dependently typed lambda calculus of constructions. This is where "imaginary" types are defined and proofs are conducted.
