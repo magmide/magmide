@@ -31,6 +31,24 @@ fn is_start_ident(chr: char) -> bool {
 	chr.is_ascii_alphabetic() || is_underscore(chr)
 }
 
+
+#[derive(Debug)]
+pub struct Parser<'d> {
+	db: &'d dyn Db,
+	indentation: usize,
+	i: &'d str,
+}
+
+impl Parser<'_> {
+	pub fn new(db: &dyn Db, indentation: usize, i: &str) -> Parser {
+		Parser{ db, indentation, i }
+	}
+
+	pub fn parse_ident(&mut self) -> IResult<> {
+		unimplemented!()
+	}
+}
+
 pub fn parse_ident(i: &str) -> IResult<&str, String> {
 	let (i, first) = take_while1(is_start_ident)(i)?;
 	let (i, rest) = take_while(is_ident)(i)?;

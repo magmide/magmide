@@ -11,6 +11,8 @@
 // 	pub end: usize,
 // }
 
+
+
 #[derive(Debug, Eq, PartialEq)]
 pub enum TypeBody {
 	Unit,
@@ -39,22 +41,18 @@ pub struct Ident {
 }
 
 #[derive(Debug)]
-enum Statement {
-	Let(),
+pub enum Statement {
+	// Use(UseTree),
+	Let(LetStatement),
 	Debug(DebugStatement),
 	Named(ModuleItem),
 }
 
 
-#[salsa::interned]
-pub struct TypeId {
-	#[return_ref]
-	pub text: String,
-}
 #[salsa::tracked]
 pub struct TypeDefinition {
 	#[id]
-	pub name: TypeId,
+	pub name: Ident,
 	#[return_ref]
 	pub body: TypeBody,
 }
@@ -65,15 +63,10 @@ pub struct RawTypeDefinition {
 	pub body: TypeBody,
 }
 
-#[salsa::interned]
-pub struct ProcedureId {
-	#[return_ref]
-	pub text: String,
-}
 #[salsa::tracked]
 pub struct ProcedureDefinition {
 	#[id]
-	pub name: ProcedureId,
+	pub name: Ident,
 	#[return_ref]
 	pub parameters: Vec<(String, String)>,
 	#[return_ref]
@@ -98,6 +91,14 @@ pub struct RawProcedureDefinition {
 // }
 // TODO
 pub type Statement = Term;
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct LetStatement {
+	// pub pattern: Pattern,
+	pub pattern: Ident,
+	pub type: Option<Term>,
+	pub term: Term,
+}
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct DebugStatement {
