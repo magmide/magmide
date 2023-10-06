@@ -1,6 +1,84 @@
-pub mod ast;
-pub mod parser;
-pub mod checker;
+#[salsa::interned]
+pub struct FileId {
+	#[return_ref]
+	pub text: String,
+}
+
+#[salsa::input]
+pub struct SourceFile {
+	#[id]
+  pub path: FileId,
+
+	#[return_ref]
+	pub contents: String,
+	pub indentation: usize,
+}
+
+
+#[salsa::interned]
+pub struct InternedStr {
+	#[return_ref]
+	pub contents: String,
+}
+
+
+
+#[derive(Debug)]
+struct Token {
+	kind: TokenKind,
+	text: InternedStr,
+	file: FileId,
+	position: usize,
+	line: usize,
+	character: usize,
+}
+
+#[derive(Debug)]
+enum TokenKind {
+	ErrorToken, Eof,
+
+	LParen, RParen,
+	LCurly, RCurly,
+	LSquare, RSquare,
+	Symbol,
+	Space,
+	ErrorSpace,
+	Indent, UnIndent,
+	Newline,
+	BlockString,
+	BlockMacroInput,
+	Comment,
+
+	Ident, Int,
+}
+
+fn lex(text: &str) -> Vec<Token> {
+	unimplemented!()
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// pub mod ast;
+// pub mod parser;
+// pub mod checker;
 
 #[salsa::jar(db = Db)]
 pub struct Jar(
