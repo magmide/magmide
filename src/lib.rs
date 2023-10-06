@@ -1,155 +1,180 @@
-#[salsa::interned]
-pub struct FileId {
-	#[return_ref]
-	pub text: String,
-}
-
-#[salsa::input]
-pub struct SourceFile {
-	#[id]
-  pub path: FileId,
-
-	#[return_ref]
-	pub contents: String,
-	pub indentation: usize,
-}
-
-
-#[salsa::interned]
-pub struct InternedStr {
-	#[return_ref]
-	pub contents: String,
-}
-
-
-
-#[derive(Debug)]
-struct Token {
-	kind: TokenKind,
-	text: InternedStr,
-	file: FileId,
-	position: usize,
-	line: usize,
-	character: usize,
-}
-
-#[derive(Debug)]
-enum TokenKind {
-	ErrorToken, Eof,
-
-	LParen, RParen,
-	LCurly, RCurly,
-	LSquare, RSquare,
-	Symbol,
-	Space,
-	ErrorSpace,
-	Indent, UnIndent,
-	Newline,
-	BlockString,
-	BlockMacroInput,
-	Comment,
-
-	Ident, Int,
-}
-
-fn lex(text: &str) -> Vec<Token> {
-	unimplemented!()
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// pub mod ast;
-// pub mod parser;
-// pub mod checker;
-
-#[salsa::jar(db = Db)]
-pub struct Jar(
-	ast::TypeId,
-	ast::TypeDefinition,
-	ast::ProcedureId,
-	ast::ProcedureDefinition,
-	ast::Diagnostic,
-	parser::SourceFile,
-	parser::ProgramBlocks,
-	parser::tracked_parse_module_item_blocks,
-	parser::tracked_find_block_with_name,
-);
-
-pub trait Db: salsa::DbWithJar<Jar> {}
-
-impl<DB> Db for DB where DB: ?Sized + salsa::DbWithJar<Jar> {}
-
-
-// use std::sync::{Arc, Mutex};
-
-#[derive(Default)]
-#[salsa::db(Jar)]
-pub struct Database {
-	storage: salsa::Storage<Self>,
-
-	// The logs are only used for testing and demonstrating reuse:
-	// logs: Option<Arc<Mutex<Vec<String>>>>,
-}
-
-// impl Database {
-// 	/// Enable logging of each salsa event.
-// 	#[cfg(test)]
-// 	pub fn enable_logging(self) -> Self {
-// 		assert!(self.logs.is_none());
-// 		Self {
-// 			storage: self.storage,
-// 			logs: Some(Default::default()),
-// 		}
-// 	}
-
-// 	#[cfg(test)]
-// 	pub fn take_logs(&mut self) -> Vec<String> {
-// 		if let Some(logs) = &self.logs {
-// 			std::mem::take(&mut *logs.lock().unwrap())
-// 		} else {
-// 			panic!("logs not enabled");
-// 		}
-// 	}
+// #[salsa::interned]
+// pub struct FileId {
+// 	#[return_ref]
+// 	pub text: String,
 // }
 
-impl salsa::Database for Database {
-	// fn salsa_event(&self, event: salsa::Event) {
-	// 	use salsa::DebugWithDb;
-	// 	// Log interesting events, if logging is enabled
-	// 	if let Some(logs) = &self.logs {
-	// 		// don't log boring events
-	// 		if let salsa::EventKind::WillExecute { .. } = event.kind {
-	// 			logs.lock()
-	// 				.unwrap()
-	// 				.push(format!("Event: {:?}", event.debug(self)));
-	// 		}
-	// 	}
-	// }
+// #[salsa::input]
+// pub struct SourceFile {
+// 	#[id]
+//   pub path: FileId,
+
+// 	#[return_ref]
+// 	pub contents: String,
+// 	pub indentation: usize,
+// }
+
+
+// #[salsa::interned]
+// pub struct InternedStr {
+// 	#[return_ref]
+// 	pub contents: String,
+// }
+
+
+
+// #[derive(Debug)]
+// struct Token {
+// 	kind: TokenKind,
+// 	text: InternedStr,
+// 	file: FileId,
+// 	position: usize,
+// 	line: usize,
+// 	character: usize,
+// }
+
+// #[derive(Debug)]
+// enum TokenKind {
+// 	ErrorToken, Eof,
+
+// 	LParen, RParen,
+// 	LCurly, RCurly,
+// 	LSquare, RSquare,
+// 	Symbol,
+// 	Space,
+// 	ErrorSpace,
+// 	Indent, UnIndent,
+// 	Newline,
+// 	BlockLine,
+// 	Comment,
+
+// 	Ident, Int,
+// }
+
+// #[derive(Debug)]
+// enum Lexer {
+// 	Statements,
+// 	Expressions,
+// 	OpaqueBlocks,
+// }
+
+// fn lex(text: &str) -> Vec<Token> {
+// 	unimplemented!()
+// }
+
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use indoc::indoc;
+
+	#[test]
+	fn test_lex() {
+		let text = indoc!{"
+			type Day;
+				| Monday
+				| Tuesday
+				| Wednesday
+				| Thursday
+				| Friday
+				| Saturday
+				| Sunday
+		"};
+		println!("{text}");
+	}
 }
 
-// impl salsa::ParallelDatabase for Database {
-// 	fn snapshot(&self) -> salsa::Snapshot<Self> {
-// 		salsa::Snapshot::new(Database {
-// 			storage: self.storage.snapshot(),
-// 			logs: self.logs.clone(),
-// 		})
-// 	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // pub mod ast;
+// // pub mod parser;
+// // pub mod checker;
+
+// #[salsa::jar(db = Db)]
+// pub struct Jar(
+// 	ast::TypeId,
+// 	ast::TypeDefinition,
+// 	ast::ProcedureId,
+// 	ast::ProcedureDefinition,
+// 	ast::Diagnostic,
+// 	parser::SourceFile,
+// 	parser::ProgramBlocks,
+// 	parser::tracked_parse_module_item_blocks,
+// 	parser::tracked_find_block_with_name,
+// );
+
+// pub trait Db: salsa::DbWithJar<Jar> {}
+
+// impl<DB> Db for DB where DB: ?Sized + salsa::DbWithJar<Jar> {}
+
+
+// // use std::sync::{Arc, Mutex};
+
+// #[derive(Default)]
+// #[salsa::db(Jar)]
+// pub struct Database {
+// 	storage: salsa::Storage<Self>,
+
+// 	// The logs are only used for testing and demonstrating reuse:
+// 	// logs: Option<Arc<Mutex<Vec<String>>>>,
 // }
+
+// // impl Database {
+// // 	/// Enable logging of each salsa event.
+// // 	#[cfg(test)]
+// // 	pub fn enable_logging(self) -> Self {
+// // 		assert!(self.logs.is_none());
+// // 		Self {
+// // 			storage: self.storage,
+// // 			logs: Some(Default::default()),
+// // 		}
+// // 	}
+
+// // 	#[cfg(test)]
+// // 	pub fn take_logs(&mut self) -> Vec<String> {
+// // 		if let Some(logs) = &self.logs {
+// // 			std::mem::take(&mut *logs.lock().unwrap())
+// // 		} else {
+// // 			panic!("logs not enabled");
+// // 		}
+// // 	}
+// // }
+
+// impl salsa::Database for Database {
+// 	// fn salsa_event(&self, event: salsa::Event) {
+// 	// 	use salsa::DebugWithDb;
+// 	// 	// Log interesting events, if logging is enabled
+// 	// 	if let Some(logs) = &self.logs {
+// 	// 		// don't log boring events
+// 	// 		if let salsa::EventKind::WillExecute { .. } = event.kind {
+// 	// 			logs.lock()
+// 	// 				.unwrap()
+// 	// 				.push(format!("Event: {:?}", event.debug(self)));
+// 	// 		}
+// 	// 	}
+// 	// }
+// }
+
+// // impl salsa::ParallelDatabase for Database {
+// // 	fn snapshot(&self) -> salsa::Snapshot<Self> {
+// // 		salsa::Snapshot::new(Database {
+// // 			storage: self.storage.snapshot(),
+// // 			logs: self.logs.clone(),
+// // 		})
+// // 	}
+// // }

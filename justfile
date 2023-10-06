@@ -16,7 +16,7 @@ test:
 	dune runtest
 
 dev:
-	cargo test parser -- --nocapture
+	cargo test test_lex -- --nocapture
 
 
 clean:
