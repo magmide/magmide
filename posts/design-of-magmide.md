@@ -1,124 +1,103 @@
 # Design of Magmide
 
-Magmide has two essential components:
+To achieve the goals of the Magmide project, we have to arrive at a system with these essential components:
 
-- Logic Magmide, the dependently typed lambda calculus of constructions. This is where "imaginary" types are defined and proofs are conducted.
-- Host Magmide, the imperative language that actually runs on real machines.
+- The Logic language, a dependently typed lambda calculus of constructions. This is where "imaginary" types are defined and proofs are conducted.
+- The Host language, an imperative language that actually runs on real machines.
 
-These two components have a symbiotic relationship with one another: Logic Magmide is used to define and make assertions about Host Magmide, and Host Magmide computationally represents and implements both Logic Magmide and Host Magmide itself.
+If we have such a system, then *both* components (Logic and Host) can *formally reason about each other and themselves*, and can *run with bare-metal performance*.
 
 ```
-             represents and
-               implements
-      +------------+------------+
-      |            |            |
-      |            |            |
-      v            |            |
-Logic Magmide      +-----> Host Magmide
-      |                         ^
-      |                         |
-      |                         |
-      +-------------------------+
-            logically defines
-              and verifies
+         represents and
+           implements
+  +------------+------------+
+  |            |            |
+  |            |            |
+  v            |            |
+Logic          +---------> Host
+  |                         ^
+  |                         |
+  |                         |
+  +-------------------------+
+        logically defines
+          and verifies
 ```
 
-The easiest way to understand this is to think of Logic Magmide as the type system of Host Magmide. Logic Magmide is "imaginary" and only exists at compile time, and constrains/defines the behavior of Host Magmide. Logic Magmide just happens to itself be a dependently typed functional programming language!
+These two components have a symbiotic relationship with one another: Logic is used to define and make assertions about Host, and Host computationally represents and implements both Logic and Host itself.
+
+The easiest way to understand this is to think of Logic as the type system of Host. Logic is "imaginary" and only exists at compile time, and constrains/defines the behavior of Host. Logic just happens to itself be a dependently typed functional programming language!
 
 This architecture makes it possible to max out all the important aspects of the language:
 
 - **Max out logical power** by making the full power of dependent type theory available to all components at all stages. Without this the design wouldn't be able to handle lots of interesting/useful/necessary problems, and couldn't be adopted by many teams. It wouldn't be able to act as a true *foundation* for verified computing.
-- **Max out computational power** by self-hosting in a bare metal language. If the language were interpreted or garbage collected then it would always perform worse than is strictly possible. It would be silly for metaprogramming to be done in a different language than the intended target languages. If we're going to formalize bare metal computation, we might as well use it to build the tool itself!
+- **Max out computational power** by self-hosting in a bare metal language. If the language were interpreted or garbage collected then it would always perform worse than is strictly possible.
 - **Max out expressive power** by allowing deep metaprogramming capability. Metaprogramming is basically a cheat code for language design, since it gives a language access to an infinite range of possible features without having to explicitly support them. It's the single best primitive to add in terms of implementation overhead versus expressiveness.
 
-Host Magmide must be runnable on the various development machines that could be used by engineers, so it needs to be highly abstract and capable of being assembled or "rendered" to many different specific architectures/environments. This means it must be similar to LLVM in terms of abstractness.
+For a long time the goal of this project was to build a *new* Host language, something analogous to [LLVM](https://en.wikipedia.org/wiki/LLVM), so that all the formal reasoning could be made *foundational* (reaching all the way down to hardware), and so that extreme portability could be achieved. Those aims are absolutely still a part of the long-term vision of the project, but after discussions with [Juan Benet](https://www.linkedin.com/in/jbenetcs) and [Tej Chajed](https://www.chajed.io/) it was realized the project would be more realistic if it first sought to serve the needs of an existing language community. Rust is the obvious choice!
 
-The initial bootstrapped version of the compiler will actually literally target LLVM intermediate representation! By doing this we'll be able to benefit from LLVM's maturity and large feature set to quickly build working programs. We'll also sacrifice perfect initial verification, since the LLVM implementation isn't verified. This is a worthwhile tradeoff to keep the project tractable.
+With this realization the new project roadmap has these essential milestones:
 
-The long term goal however is for Magmide to step into the same role as LLVM. Magmide will define an abstract assembly language similar in function to LLVM intermediate representation, intended to be assembled to real machine code by various "backends".
+### Build a proof assistant in Rust.
 
-![LLVM compiler infrastructure](https://i.stack.imgur.com/9xGDe.png)
+A proof assistant is just a programming language with a type system powerful enough to represent pure logic, perhaps with some convenience features added on top to make it easier to practically use. This is what "Magmide" will actually be, a proof assistant written in Rust, designed from the beginning to be high-performing, highly modular and reusable from other projects, with support for and emphasis of Rust as the language of proof tactics and metaprogramming.
 
-However in contrast to LLVM, this process can be end-to-end verified if backends formally define the semantics of the target instruction set architecture and operating environment and prove the assembly process correctly translates programs to the target.
+So Rust will be to Magmide what [OCaml is to Coq](https://github.com/coq/coq). This means that Magmide will be the "Logic" language in the above diagram.
 
-Magmide has the opportunity to expose a more pleasant language than LLVM though, and to use metaprogramming to actually expose several layers at different levels of abstraction. I feel it's very important that programmers have access to lower levels of abstraction without having to drop all the way down to a specific assembly language. So I propose three layers of Host Magmide:
+### Formalize Rust inside Magmide.
 
-- Host Magmide itself, essentially at the level of C or Rust. This will be the actual syntactic language exposed by the compiler. It will have roughly the same syntactic feel as its Logic counterpart, so it should have functions, struct/tuple/union type definitions, match/if statements, and some reasonable loops (`for .. in`, `while`, `forever`) (it's unclear at this point if we want to give it a Rust-like ownership/lifetime system). Lower levels can be exposed using macros.
-- Low Level Host Magmide, at the same level of LLVM. This means it has typed functions with labeled blocks and parameters that abstract away details of calling conventions and ABIs, as well as abstractions for system/external calls.
-- Assembly Host Magmide, at the same level as a real assembly language, but with abstract instructions and registers so it can still be rendered to different architectures. This means it only has labeled sections with jump/branch instructions, allowing it to encode arbitrarily exotic control flow. However we can still use type preconditions over registers and memory locations. This layer is where calling conventions and function behaviors would be implemented.
+A proof assistant is powerful enough to formally specify all the rules of any programming language less logically powerful than it, so just how [researchers have defined semantics for many languages in Coq](https://softwarefoundations.cis.upenn.edu/plf-current/Preface.html), so too could we define the semantics of Rust in Magmide.
 
-Host Magmide is named intentionally, since it is only really intended to function for "typical" architectures, ones with a sufficient operating system environment to run the actual Magmide compiler. However the tool will be useful to write code for any architecture, since Logic Magmide can be used to define *other* languages than Host Magmide. All these use cases will be directly supported:
+Doing this will *mostly* involve following in the lead of the various [RustBelt projects](https://plv.mpi-sws.org/rustbelt/) (and so would need to also translate Iris into Magmide). However it will be somewhat more difficult in our case, since we'll need to define the semantics more precisely in order to achieve the next milestone.
 
-- Writing code for an architecture compatible with Host Magmide. This is obvious, since Host Magmide will be able to compile or cross-compile to any architecture is has a backend for. Initially this will be any architecture supported by LLVM.
-- Writing code for an architecture that *isn't* compatible with Host Magmide. To do this you would formalize your target architecture/environment in Logic Magmide, write your program in whatever format you choose, use Host Magmide to parse and convert that format to the language's Logic Magmide form so you can make assertions about it, and then use Host Magmide to render the program so it can be used elsewhere. This pattern can support literally any language imaginable, from arbitrary assembly languages to custom DSLs to smart contract languages.
-- Formalizing logic/mathematics, not intending to create runnable programs. Although it would seem this use case doesn't need to be able to check/compile/run computable programs, the user might still use metaprogramming to manipulate proofs, or use libraries that do. Before sending Logic Magmide structures to the kernel, any metaprogrammatic constructs need to be unfolded, which means the Host Magmide programs that are implied by those metaprogrammatic constructs need to be checked/compiled/run.
+### Allow Magmide to formally certify Rust!
 
-I believe this Logic/Host separation is one of the key ideas that will make Magmide successful. If a dependently typed language is going to be self-hosting/verifying, then it will necessarily formalize a computational language capable of being compiled for many different specific architectures and environments. The very act of doing that *for itself* has the happy coincidence of also giving it the ability to do so *for anything else*. We can support two massive families of use cases with one body of work. By "maxing out" both logical and computational power, we ironically end up having to make fewer built-in decisions.
+If Magmide is implemented in Rust, and the formal semantics of Rust are transcribed in Magmide, then it's possible to ingest *real* Rust code and formally reason about it in Magmide!
 
-Since Host Magmide is the computational language, it would make most sense to use it for metaprogramming routines, including ones that are intended to produce Logic Magmide terms. This means the compiler has to be built with a definition of Host Magmide present so it knows how to check and run metaprograms. (Since Logic Magmide strictly speaking can be evaluated at compile time by the reduction rules in the kernel, users could write compile-time functions using it, but the functions would be much slower. Language guides should focus on using Host Magmide for metaprogramming.)
+[Reflective proofs](http://adam.chlipala.net/cpdt/html/Reflection.html) are ones in which a *computable function* is used to certify some input data has some properties. To do this you need to be able to prove that certain properties of the *certifying function* demonstrate properties of the *input data*. This technique allows the proof assistant to merely run a function at proof-checking time rather than checking a possibly massive proof object.
 
-To support all of this, the final compiler must include:
+This kind of recursive self-analysis will be extremely powerful, especially to [hopefully dramatically improve the performance of many proof search/checking scenarios](https://gmalecha.github.io/reflections/2017/speeding-up-proofs-with-computational-reflection) (more discussion about performance below).
 
-- Syntax tree datatypes and a parser for whatever top-level syntax we choose. This syntax must support all of Logic Magmide (inductive types, proofs, functions, theorems), Host Magmide, and whatever top-level metaprogrammatic entrypoints we choose.
-- Core libraries defining and exposing Host Magmide. These core libraries can also include whatever other theories of logic or computation we think could be helpful for users.
-- A proof checking kernel for Logic Magmide programs. This must include an interpreter that can evaluate Logic Magmide terms according to the [calculus of constructions reduction rules](https://coq.inria.fr/refman/language/core/conversion.html). This kernel should be verified to correspond to a trusted theory base of the calculus of constructions, heavily inspired by [Coq Coq Correct](https://metacoq.github.io/coqcoqcorrect). This means that Magmide won't only be self-hosting, but self-verifying.
-- A build/run engine capable of running a cascade of metaprograms. This engine will accept a metaprogram AST representation and use the builtin Host Magmide definition/renderer to process it into a runnable program, set up the program's inputs, jump to the rendered metaprogram in memory, collect the outputs of the program, and continue that process using the outputs of each metaprogram until a stopping point is reached. An implied part of this loop is running proof checking to verify each program, since type checking a Host Magmide program is merely proof checking the various assertions made within it both by type annotations and things like `assert` statements.
-- The above build/run engine must also be capable of rendering programs in any language with a full definition to the filesystem, including Host Magmide.
+To achieve recursive self-analysis we will:
 
-# Project plan
+- Implement the "Host reflection" rule in Magmide. This means writing a special rule into the proof checker that accepts a proposition as proven if: given an *AST* of a Rust function and a normal Magmide proof that this AST is a "certifier", it compiles and successfully runs over whatever inputs are conditions of the proposition in question.
+- Implement the systems that can actually ingest real rust ASTs in whatever way is necessary for the Host reflection rule.
+- Design and implement whatever syntactic affordances make it clean and ergonomic to make proof assertions about real Rust. *Handwaving goes here!* This could happen in a multitude of different ways, and could be incrementally improved over time.
+- Figure out the [Trackable Effects](https://github.com/magmide/magmide#gradually-verifiable) system. This seems important to really make Rust fully formalizable, since effects are such a critical part of real system correctness.
 
-To build a self-hosting and self-verifying compiler, we need to bootstrap it from a language capable of performing both functions. For this I've chosen Coq.
+---
 
-In order to make sure the project is reasonable and going in the right direction, we need to prioritize working code and steady incremental iteration. It would be unwise to simply jump into bootstrapping the full real compiler. We also need to design our milestones strategically so that each milestone will be useful or exciting enough to inspire contributors to help push the project to the next milestone.
+After the above milestones are achieved, we will have officially achieved the base goals of the Magmide project! From there we'd be able to incrementally improve performance and usability, and also take on further challenges:
 
-My general project plan is this:
+- Circle back to extending the formal foundations all the way to the hardware! This would involve verifying LLVM or building some new LLVM analogue, as well as the specific [architecture backends](https://en.wikipedia.org/wiki/LLVM#Backends).
+- Build a formally verified Rust compiler! If we can formally verify Rust code, then we can incrementally verify the compiler itself.
+- Formally verify the Magmide proof checker using a trusted theory base, much like was done in the [metacoq project](https://metacoq.github.io/).
 
-- First create a toolchain capable of parsing Low Level Host Magmide code (easiest since it's just a razor thin convenience layer around LLVM), verifying assertions about it inside Coq, and rendering it to real LLVM. This whole pipeline will be a combination of Rust functions to parse source code and [construct LLVM](https://github.com/TheDan64/inkwell), linked together with a [Coq Ocaml plugin](http://gallium.inria.fr/blog/your-first-coq-plugin/) using the [Rust Ocaml bindings](https://docs.rs/ocaml/latest/ocaml/). Using unverified languages like Rust and Ocaml mean that this first version won't itself be verified, but it will still be capable of producing LLVM programs verified by the Coq kernel. These verified LLVM programs can be linked with any compatible language, such as Rust or WebAssembly. This milestone will already be useful to anyone willing to write their own theory and proofs in Coq and deal with this awkward toolchain.
-- Then we can expand the syntax, capabilities, and theory of the language, and integrate Iris into the theory. Since Magmide isn't a lambda calculus, we will have to define our own weakest-precondition proposition rather than reusing those already built for other languages. Using Iris we can define how trackable effects work, and define the most important trackable effects relating to termination, execution safety, memory safety, and memory conservation. With each step of this milestone the language gets more legitimately useful to more people, since more things can be done and more things proven safe, they just have to write proofs in Coq. It would be possible and maybe useful to create Rust macros to allow easily binding to these externally verified programs.
-- Build metaprogramming capability into the language, by using the Rust LLVM bindings to JIT compile metaprograms, set up their inputs, pass them control, gather their outputs, and continue the cycle.
-- Now we can bootstrap the real compiler. More on that below.
-- After the full language is bootstrapped it can be used for non-trivial but still extremely low level applications such as cryptography/networking libraries, deeply embedded applications such as IOT devices or firmware, or OS kernel level functions. During this phase we can begin to aggressively seek support and contributions from a much larger community, and start building the ecosystem foundations (awesome educational materials, standard libraries for Logic and Host Magmide, a package management system, a cli, a standard formatter, syntax highlighting and auto-completion plugins for common editors).
-- With confidence in the design and growing support, begin to use Magmide to define *other* languages. Magmide could be used to incrementally reimplement the foundations of Rust, giving it built-in access to a proof checker. Magmide would be a perfect fit to implement smart contract languages. I have some fun ideas for a highly inferred async actor language. It might even be cool to write something at the level of Typescript with a verified interpreter. These higher level languages will likely be even more exciting to a broader audience and can give the project even more momentum.
-- Then with higher level and more diverse languages, we can start to tackle ambitious projects that are uniquely enabled by Magmide. I've shared some ideas in [this section of the README](https://github.com/magmide/magmide#what-could-we-build-with-magmide) (operating systems, databases, UI frameworks, etc etc).
+# Interlude on proof assistant performance
 
-To summarize:
+One of the main reasons proof assistants and formal verification in general aren't mainstream is because existing proof assistants are *slow*. It isn't uncommon for large academic formalizations to take *many hours* to complete proof checking. This obviously can't scale to industrial codebases.
 
-- Write/verify *any* program.
-- Write/verify small programs with useful theory.
-- Build metaprogramming.
-- Bootstrap the compiler.
-- Write/verify interesting but low level programs.
-- Implement higher level languages in Magmide.
-- Tackle truly novel projects.
+This performance problem is largely a consequence of lack of priority. Almost all proof assistants were designed and built by academics for their own purposes, and industrial use is largely considered a bonus. Good work is certainly done to improve performance, but few projects concern themselves with that from the beginning. There is some low-hanging fruit to be had here, such as using [incremental compilation](https://blog.rust-lang.org/2016/09/08/incremental.html). Overall though, mere compiler design probably isn't the biggest problem.
 
-Bootstrapping the compiler is just one bullet in the above plan, but it's a massive endeavor all its own! At that stage we'll have a Coq compiler capable of parsing/verifying/rendering Host Magmide, but with all propositions and proofs existing in Coq.
+It seems pretty obvious that the *most* concerning problem is the poor performance of proof searching tactics. In languages such as Coq, proof tactics perform poorly for a few reasons:
 
-The final compiler however must be fully integrated, with all the theory, proofs, and implementation together in one codebase. Although the most straightforward way to achieve this is to simply implement the entire compiler all at once in Host Magmide, I think we can wriggle our way there incrementally by following this path:
+- The [Coq Ltac language is a separate interpreted language](https://coq.inria.fr/refman/proof-engine/ltac2.html#ltac2). Interpreted languages are slow! And such an ad-hoc language embedded into a larger system will never get the amount of performance attention it needs. Tactics don't actually have to be "correct" or "sound", they're just computations that *attempt* to find a proof term that seems like it will correctly proof-check to solve some goal. This means they can be written in any language we want.
+- Tactics often function by *searching* using various heuristics to find proof terms, and these searches by their very nature can sometimes take a long time!
 
-- Implement Logic Magmide (parsing, AST, proof checker) using Host Magmide, checking the implementation using a Coq trusted theory base, which must be very carefully defined and audited by as many qualified people as possible.
-- Implement an interactive proof system as a cli or language server. It will be extremely painful to implement the total compiler in an integrated way without this capability. We now officially have a usable proof assistant!
-- Now we can port the theory and Host Magmide formalization from Coq to Logic Magmide, and get it working correctly with the new bare metal proof checker.
-- And finally we can reimplement Host Magmide compilation using Host Magmide!
+Magmide intends to attack these performance problems in these ways:
 
-This first version will only focus on correctness, and leave performance and ergonomics for future iterations.
+- Using and emphasizing a high-performance language for proof tactics. Rust is an amazing language, and it seems like a perfect choice, especially since using Rust allows [binding to basically any other language](https://www.hobofan.com/rust-interop/). We could allow people to bring whatever tools they want to bear on proof search!
+- Proof *search* is often slower than proof *checking*. Once proof search has successfully found a correct proof term, it is wasteful and slow to run that search again instead of merely caching the proof term. Intelligently implemented incremental compilation can absolutely prevent many of these wasteful repeat proof searches.
+- Emphasizing [reflective proofs](http://adam.chlipala.net/cpdt/html/Reflection.html) for whatever situations allow it, as discussed above. I have a hunch many of the most common industrial use cases will be amenable to reflective proof. For example, just imagine if the Rust borrow checker was sufficiently verified to be a certifier!
 
-As we progress from Coq bootstrapping compiler to real compiler, we'll need to formalize many different aspects of computation, all of which will be exposed in the final standard library for reuse by other projects. Examples are:
+Taken all together these improvements make a convincing case for Magmide as a foundation for a fully verified software ecosystem, and the first proof assistant to go mainstream among industrial engineers.
 
-- A formalization of binary values and operations, as well as common type patterns (tuples/structs, unions, lists, etc) as propositional predicates over binary arrays. This is pretty straightforward, and has already been done in [several](https://github.com/coq-community/bits) [other](https://github.com/mit-plv/bbv) [projects](https://github.com/jasmin-lang/coqword). However since Magmide intends to tie many trackable effects to binary operations such as integer overflow or division by zero, we might have to have our own implementation.
-- A formalization of generic abstract machine states. Essentially we need a machine state definition that is polymorphic in what cores/instruction sets, register/memory banks, and environmental system calls it has access to. This definition should be as generic as possible so it can support even software hosted environments such as what's available to WebAssembly.
-- A formalization of a reusable theory of well-founded termination in assembly languages. Especially we want a proof obligation generator capable of finding the smallest number of control flow jumps that need special proof justification. More in [`posts/toward-termination-vcgen.md`](./posts/toward-termination-vcgen.md). Possibility of non-termination can be allowed, but needs to be signaled with trackable effects.
-- A formalization of a step relation compatible with mixed data/instruction memory. Fully modeling execution as what it really is, a program counter accessing arbitrary locations in memory, allows us to verify the correctness of truly exotic programs, such as those that execute foreign code after checking it (this is necessary in order to verify a metaprogrammable compiler) or even that modify themselves! Normal techniques such as defining a small-step relation and its big-step transitive closure don't work in this context, so reasoning about total program execution requires some inductive trace type. Alongside this step relation we need theory and helpers for reasoning about execution of well-formed (as in truly executable) and safe (as in checked) instructions. These also need to have accompanying trackable effects.
-- A formalization of trackable effects with inspiration from Iron-style fractional tokens. This could need a custom resource algebra in order to be reusable for different types of effects, that remains to be seen.
-
-# Notable design choices
+# Other notable design choices
 
 ## Corruption Panics
 
-Magmide will have some kind of `panic` operator that safely halts the program when unexpected conditions arise. However since it is a proof language, it makes sense to attach a trackable effect to possible panics, so that ambitious projects can prove their program can never possibly panic.
+Magmide will formalizes some kind of `panic` effect that can be used to mark programs, making it possible for ambitious projects to prove that they *cannot* panic. However realistic low-level software must contend with the possibility of *hardware* failure that has created data corruption. It should be possible to write code that asserts the maintenance of invariants despite possible hardware failure.
 
-However very low level software often needs to directly contend with the possibility that some *hardware* failure has created data corruption, and these scenarios are guarded against with data consistency checks that ensure invariants have been maintained. If hardware could be trusted absolutely, then we could simply remove those low-level consistency checks if we first proved those invariants will always hold, but we will never live in that world.
-
-Do we have to tolerate ubiquitous `panic` trackable effects on all our code, even when we can prove that in the absence of hardware failure the code will always operate correctly? Not if we introduce a separate idea of a *corruption* panic, a `panic` operator that requires a proof that, *assuming the hardware axioms*, the `panic` is impossible. Normal panics infect their enclosing code with a trackable effect, whereas corruption panics don't but require a proof of *logical* impossibility.
+Excitingly the need to check possible hardware failure doesn't have to mean we must tolerate ubiquitous `panic` trackable effects on all our code. If we introduce a separate idea of a *corruption* panic, an effect requiring a proof that, *assuming consistency of the hardware axioms*, the `panic` is impossible, we can write highly defensive software without giving up proof of panic freedom under normal hardware operation.
 
 ## Assumption Panics
 
@@ -159,12 +138,6 @@ thm four_is_even: even(4); prf;
 thm four_is_even: even(4); my_prf$
   ++crushit
 ```
-
-## Heavy use of computational reflection to improve proof performance
-
-[Computational reflection](https://gmalecha.github.io/reflections/2017/speeding-up-proofs-with-computational-reflection) is a technique that can dramatically speeds up proof discovery or proof checking by running *verified* functions *at proof checking time* to check some values meet some condition or discover remaining verification conditions or both.
-
-Computational reflection is only possible if the proof language can both verify facts about a runnable function and call that runnable function at proof checking time. Coq is an example of a language that can do so, but Coq itself is still quite slow. However because Magmide will use the split Logic/Host architecture, it has the opportunity to use verified *bare metal* functions for computational reflection, which can be *dramatically* faster than Coq.
 
 ## Incremental compilation as widely as possible
 
@@ -299,15 +272,11 @@ Asserted types are simply a broader variant of [liquid types](https://goto.ucsd.
 
 ## Cargo-like tooling
 
-To actually interact with Magmide, I imagine using a cli with these basic commands:
-
-- `magmide check` would perform proof checking. If there are any computable code blocks that make any kind of assertions (even type annotations are assertions!) then those assertions are checked. This implies the necessity to run the cascade of metaprograms, and therefore perform any side-effects performed by those metaprograms. Any commands that ask for Logic Magmide to be "evaluated" (such as Coq's `Compute` command) would happen at this level, since evaluation of Logic Magmide is merely done in the kernel.
-- `magmide compile` would perform `check` first, and implies the presence of *some* computational programs, and therefore a full definition for it that includes a renderer. The compiler ships with a full definition for Host Magmide, so users don't have to supply a definition if that's their target. If there isn't any configured path to a computational program and its definition, an error is thrown. We could include a flag to merely exit successfully if there isn't any computational program present.
-- `magmide run` would perform `check` and `compile` first, and so again implies a computational program and full definition. It also implies the availability of a machine capable of running the rendered artifact, either the host machine itself if the program is in or compatible with Host Magmide, or some connected debuggable device. If there isn't a usable machine available, an error is thrown.
+There's no reason to not make the tooling awesome!
 
 ## Metaprogramming instead of custom Notation
 
-Coq's [Notation system](https://coq.inria.fr/refman/user-extensions/syntax-extensions.html) is extremely complex. It essentially allows creating arbitrary custom parsers within Coq. While this may seem like a good thing, it's a bad thing. Reasoning about these custom parsing and scoping rules is extremely difficult, and easy to get wrong. It adds a huge amount of work to maintain the system in Coq, and learn the rules for users.
+Coq's [Notation system](https://coq.inria.fr/refman/user-extensions/syntax-extensions.html) is extremely convoluted. It essentially allows creating arbitrary custom parsers within Coq. While this may seem like a good thing, it's a bad thing. Reasoning about these custom parsing and scoping rules is extremely difficult, and easy to get wrong. It adds a huge amount of work to maintain the system in Coq, and learn the rules for users.
 
 It also makes it extremely easy to create custom symbolic notation that makes code much more difficult to learn and understand. Allowing custom symbolic notation is a bad design choice, since it blurs the line between the primitive notations defined by the language (which are reasonable to expect as prerequisite knowledge for all users) and custom notations. Although Coq makes it possible to query for notation definitions, this is again just more maintenance burden and complexity that still adds significant reading friction.
 
@@ -398,20 +367,20 @@ logic types constrain/define and can make assertions about logic values
 logic values fulfill logic types
 logic values can
 
-what's the difference between a bit array defined in Logic Magmide but computationally represented in the smart packed format, and a real bit array? there's no difference at all, at least between a particular concrete one.
+what's the difference between a bit array defined Logic Magmide but computationally represented in the smart packed format, and a real bit array? there's no difference at all, at least between a particular concrete one.
  -->
 <!--
 However there are some subtleties we have to contend with since Magmide is so inherently intended for verification of *real* computational programs.
-The kernel has to be actually *implemented* in some real computational language, and we'd prefer it was a maximally performant one. Also, metaprogramming of all kinds, whether manipulating Logic Magmide terms or anything else, also has to be implemented in a real computational language. These might as well be the same language. This language needs to be one that can be run on *development* machines, the ones that will compile whatever final artifacts. Let's define the term Host Magmide to refer to this aspect.
+The kernel has to be actually *implemented* in some real computational language, and we'd prefer it was a maximally performant one. Also, metaprogramming of all kinds, whether manipulating Logic terms or anything else, also has to be implemented in a real computational language. These might as well be the same language. This language needs to be one that can be run on *development* machines, the ones that will compile whatever final artifacts. Let's define the term Host to refer to this aspect.
 
 So the final compiler will be a binary artifact runnable on some collection of host architectures. This artifact will have a few components:
 
-parser, capable of parsing Logic Magmide, metaprogramming constructs, and any other constructs we choose to include in the shipped language syntax, all into Host Magmide data structures.
-proof checking kernel, which accepts some Host Magmide data structure representing Logic Magmide terms.
-metaprogramming checker/runner. the compiler has builtin definitions and models of Host Magmide, so it can take AST structures representing Host Magmide and check them (Host Magmide likely includes syntax to make assertions about state, which are implicitly predicates over binary arrays), render/assemble them to some place in memory or a file, and jump to them to execute them (possibly having provided arguments by fulfilling whatever calling convention)
+parser, capable of parsing Magmide, metaprogramming constructs, and any other constructs we choose to include in the shipped language syntax, all into Host data structures.
+proof checking kernel, which accepts some Host data structure representing Logic terms.
+metaprogramming checker/runner. the compiler has builtin definitions and models of Host, so it can take AST structures representing Host and check them (Host likely includes syntax to make assertions about state, which are implicitly predicates over binary arrays), render/assemble them to some place in memory or a file, and jump to them to execute them (possibly having provided arguments by fulfilling whatever calling convention)
 
 
-the magmide compiler is a program that can operate in any specific machine of a universe of machines that have been modeled at the time of the compiler being compiled. this universe of machines has been modeled with some kind of with input/output capabilities and probably some concepts of operating system services such a filesystem. so Host Magmide can include functions to write to files, and can expose functions for core concepts such as rendering compilation artifacts (probably accepting custom AST/assertions/checkers/renders etc)
+the magmide compiler is a program that can operate in any specific machine of a universe of machines that have been modeled at the time of the compiler being compiled. this universe of machines has been modeled with some kind of with input/output capabilities and probably some concepts of operating system services such a filesystem. so Host can include functions to write to files, and can expose functions for core concepts such as rendering compilation artifacts (probably accepting custom AST/assertions/checkers/renders etc)
  -->
 
 <!--

@@ -24,38 +24,40 @@ Isn't that amazing?!? A system that can prove completely and eternally that a us
 
 But as is common with academic projects, it's only being used to write papers rather than build real software systems. All the existing uses of Iris perform the proofs "on the side", analyzing [manual transcriptions of the source code as Coq notation](https://coq.inria.fr/refman/user-extensions/syntax-extensions.html) rather than directly reading the original source. And although the papers are more approachable than most academic papers, they're still academic papers, and so basically no working engineers have even heard of any of this.
 
-This is why I'm building Magmide, which is intended to be to both Coq and LLVM what Rust has been to C. There are quite a few proof languages capable of proving logical assertions in code, but none exist that are specifically designed to be used by working engineers to build real imperative programs. None have placed a full separation logic, particularly one as powerful as Iris, at the heart of their design, but instead are overly dogmatic about the pure functional paradigm. None make it possible to type-check, prove assertions about, and compile practical programs all using one unified tool. And all existing proof languages are hopelessly mired in the obtuse and unapproachable fog of [research debt](https://distill.pub/2017/research-debt/) created by the culture of academia. Even if formal verification is already capable of producing [provably safe and secure code](https://www.quantamagazine.org/formal-verification-creates-hacker-proof-code-20160920/), it isn't good enough if only professors have the time to gain the necessary expertise. We need to pull all this amazing knowledge out of the ivory tower and finally put it to work to make computing truly safe and robust.
+This is why I'm building Magmide, which is intended to be to Coq what Rust has been to C. There are quite a few proof languages capable of proving logical assertions in code, but none exist that are specifically designed to be used by working engineers to build real imperative programs. None have placed a full separation logic, particularly one as powerful as Iris, at the heart of their design, but instead are overly dogmatic about the pure functional paradigm. And all existing proof languages are hopelessly mired in the obtuse and unapproachable fog of [research debt](https://distill.pub/2017/research-debt/) created by the culture of academia. Even if formal verification is already capable of producing [provably safe and secure code](https://www.quantamagazine.org/formal-verification-creates-hacker-proof-code-20160920/), it isn't good enough if only professors have the time to gain the necessary expertise. We need to pull all this amazing knowledge out of the ivory tower and finally put it to work to make computing truly safe and robust.
 
 I strongly believe a world with mainstream formal verification would not only see a significant improvement in *magnitude* of social good produced by software, but a significant improvement in *kind* of social good. In the same way that Rust gave engineers much more capability to safely compose pieces of software therefore enabling them to confidently build much more ambitious systems, a language that gives them the ability to automatically check arbitrary conditions will make safe composition and ambitious design arbitrarily easier to do correctly.
 
 What kinds of ambitious software projects have been conceived but not pursued because getting them working would simply be too difficult? With machine checkable proofs in many more hands could we finally build *truly secure* operating systems, trustless networks, or electronic voting methods? How many people could be making previously unimagined contributions to computer science, mathematics, and even other logical fields such as economics and philosophy if only they had approachable tools to do so? I speculate about some possibilities at the end of this readme.
 
-To achieve this goal I've chosen an architecture I call the "split Logic/Host" architecture, where the two domains of software thinking are separated into two sub-languages:
+To achieve this goal I've chosen an architecture I call the "split Logic/Host" architecture, where the two domains of software thinking are separated into two languages:
 
-- Logic Magmide, the dependently typed lambda calculus of constructions. This is where "imaginary" types are defined and proofs are conducted.
-- Host Magmide, the imperative language that actually runs on real machines.
+- Logic, the dependently typed lambda calculus of constructions. This is where "imaginary" types are defined and proofs are conducted.
+- Host, the imperative language that actually runs on real machines.
 
-These two components have a symbiotic relationship with one another: Logic Magmide is used to define and make assertions about Host Magmide, and Host Magmide computationally represents and implements both Logic Magmide and Host Magmide itself.
+These two components must have a symbiotic relationship with one another: Logic is used to define and make assertions about Host, and Host computationally represents and implements both Logic and Host itself.
 
 ```
-             represents and
-               implements
-      +------------+------------+
-      |            |            |
-      |            |            |
-      v            |            |
-Logic Magmide      +-----> Host Magmide
-      |                         ^
-      |                         |
-      |                         |
-      +-------------------------+
-            logically defines
-              and verifies
+         represents and
+           implements
+  +------------+------------+
+  |            |            |
+  |            |            |
+  v            |            |
+Logic          +---------> Host
+  |                         ^
+  |                         |
+  |                         |
+  +-------------------------+
+        logically defines
+          and verifies
 ```
 
-The easiest way to understand this is to think of Logic Magmide as the type system of Host Magmide. Logic Magmide is "imaginary" and only exists at compile time, and constrains/defines the behavior of Host Magmide. Logic Magmide just happens to itself be a dependently typed functional programming language! This design takes the concept of [self-hosting](https://en.wikipedia.org/wiki/Self-hosting_(compilers)) to its logical extreme.
+The easiest way to understand this is to think of Logic as the type system of Host. Logic is "imaginary" and only exists at compile time, and constrains/defines the behavior of Host. Logic just happens to itself be a dependently typed functional programming language! This design takes the concept of [self-hosting](https://en.wikipedia.org/wiki/Self-hosting_(compilers)) to its logical extreme.
 
-I'm convinced this general architecture is the only one that can achieve Magmide's extremely ambitious goal. It feels like an optimal point in the design space, since I can't imagine another architecture that would allow all of the language components (proof checker, code compiler, target code being compiled) the possibility to be both bare metal and fully verified. I would of course love to be persuaded some other simpler architecture would also work, but so far that hasn't happened.
+We intend to achieve this goal by [building Magmide as the Logic portion with Rust as Host, then defining the semantics of Rust *within* Magmide, and finally building a "reflective proof rule" into Magmide to allow it to use verified Rust code during proof checking.](https://github.com/magmide/magmide/blob/main/posts/design-of-magmide.md) This seems the most realistic way to bootstrap the project!
+
+I'm convinced this general architecture is the only one that can achieve Magmide's extremely ambitious goal. It feels like an optimal point in the design space, since I can't imagine another architecture that would allow all of the language components (proof checker, code compiler, target code being compiled) the possibility to be both bare metal and fully verified.
 
 But it's not good enough for the architecture to *allow* a great language design. Everything else about the design has to be chosen correctly as well. I claim that in order for the language to achieve its goal, it has to meet all these descriptions:
 
@@ -71,9 +73,9 @@ It's absolutely possible for mainstream engineers to learn and use these powerfu
 
 Software needs to perform well! Not all software has the same requirements, but often performance is intrinsically tied to correct execution. Very often the software that most importantly needs to be correct also most importantly needs to perform well. **If the language is capable of truly bare metal performance, it can still choose to create easy abstractions that sacrifice performance where that makes sense.**
 
-To meet this description, the language will include in its core libraries a formalization of the basic principles of von Neumann computation, allowing users to specify the axiomatic assumptions of any software execution environment, from concrete instruction set architectures, to any abstract assembly language such as LLVM capable of compiling to many targets, and even up to operating system userlands or bytecode environments such as WebAssembly. Making it possible to specify software at this level of fidelity helps ensure it is aligned with reality and isn't making unrealistic assumptions.
+To meet this description Magmide will be built in and deeply integrated with Rust. Excitingly because of the inherent power and flexibility of a proof assistant this integration with Rust doesn't have to be permanent, and we could build other languages to act as Host as long as we can specify their semantics and make them interoperable!
 
-Because of separation logic and Iris, it is finally possible to verify code at this extremely granular level.
+Because of separation logic and Iris, it is finally possible to verify code as low-level as Rust and more!
 
 ## Gradually verifiable
 
@@ -105,7 +107,7 @@ You can find rough notes about the current design thinking for the metaprogrammi
 
 My experience using languages like Coq has been extremely painful, and the interface is "more knife than handle". I've been astounded how willing academics seem to be to use extremely clunky workflows and syntaxes just to avoid having to build better tools.
 
-To meet this description, this project will learn heavily from `cargo` and other excellent projects. **It should be possible to verify, interactively prove, query, compile, and run any Magmide code with a single tool.** The split Logic/Host architecture will likely make it easier to understand and use Magmide.
+To meet this description, this project will learn heavily from `cargo` and other excellent projects. **It should be possible to verify, interactively prove, and query Magmide code with a single tool.** The split Logic/Host architecture will likely make it easier to understand and use Magmide.
 
 It will also fully embrace ergonomic type inference, and use techniques such as those from ["Flux: Liquid Types for Rust"](https://arxiv.org/abs/2207.04034) to allow even many *proof* conditions to be inferred.
 
@@ -220,10 +222,6 @@ Firmware and operating systems already include state consistency assertions and 
 
 Yes it's true that we can only go so far with formal verification, so we should always remain humble and remember that real machines in the real world fail for lots of reasons we can't control. But we can go much much farther with formal verification than we can with testing alone! Proving correctness against a mere model with possible caveats is incalculably more robust than doing the same thing we've been doing for decades.
 
-## Why use Coq to bootstrap the compiler?
-
-The biggest reason is that Coq is the language [Iris](https://gitlab.mpi-sws.org/iris/iris/) is implemented in, and since that project will be a core component of Magmide it makes the most sense to be as compatible as possible. Iris will likely need to be ported to Magmide once it's bootstrapped, so it would be nice to avoid also porting it to the bootstrapping language.
-
 ## Why can't you just teach people how to use existing proof languages like Coq?
 
 The short answer is that languages like Coq weren't designed with the intent of making formal verification mainstream, so they're all pretty mismatched to the task. If you want a deep answer to this question both for Coq and several other projects, check out [`posts/comparisons-with-other-projects.md`](./posts/comparisons-with-other-projects.md).
@@ -266,8 +264,8 @@ As for questions like combinatorial explosion of verification conditions, it's a
 
 A few techniques can help us improve the situation:
 
-- [Incremental compilation of proof terms](./posts/design-of-magmide.md#incremental-compilation-as-widely-as-possible).
-- [Computational reflection](./posts/design-of-magmide.md#heavy-use-of-computational-reflection-to-improve-proof-performance). For many specific problem domains it's possible to write very targeted decidable algorithms to find proofs or at least discharge many trivial proof obligations (the Rust borrow checker is an example!). Since such algorithms are narrowly targeted at a specific domain, they can perform much better than a general purpose tactic or constraint solver.
+- [Incremental compilation of proof terms](https://github.com/salsa-rs/salsa).
+- [Computational reflection](https://gmalecha.github.io/reflections/2017/speeding-up-proofs-with-computational-reflection). For many specific problem domains it's possible to write very targeted decidable algorithms to find proofs or at least discharge many trivial proof obligations (the Rust borrow checker is an example!). Since such algorithms are narrowly targeted at a specific domain, they can perform much better than a general purpose tactic or constraint solver.
 - Allowing manual/interactive proofs rather than requiring full automation. This may seem like a cop-out, and it certainly adds work for engineers, but if some theorem is simple to manually prove but would lead an automated system on a costly run through a massive search space, it's probably worth the time.
 
 Just like ergonomics, compiler performance can be improved over time. Type systems can potentially add a huge amount of usability pain and compilation cost, but if the right design tradeoffs are found then type systems are well worth the trouble. Proof systems are simply much more advanced type systems, and I'm willing to bet the combination of Iris and a few of the design ideas I've referenced can achieve a worthwhile set of tradeoffs.
@@ -292,7 +290,7 @@ Academic researchers are not a separate race of super geniuses who are the only 
 
 ## Why build a system focused on engineers when even academics don't always use proof assistants? Shouldn't we try to build a system researchers will use first?
 
-No. If you create a tool that is both a proof language and an abstract assembly language, primarily intended for approachable use by engineers, you'll necessarily have created a theorem prover that's enjoyable and ergonomic to use, and that supports easy sharing and reuse of proof labor across an entire community.
+No. If you create a tool that allows practical verification of real software systems, primarily intended for approachable use by engineers, you'll necessarily have created a theorem prover that's enjoyable and ergonomic to use, and that supports easy sharing and reuse of proof labor across an entire community.
 
 That design doesn't in any way preclude supporting the patterns that researchers like (using/supporting homotopy type theory, allowing concise notation using a flexible metaprogramming system, rendering proofs as latex/pdf/html/whatever documents). A highly metaprogrammable bare metal proof assistant would attract researchers, but a beautiful theorem prover without any special capability to reason about or compile bare metal code wouldn't attract engineers.
 
@@ -328,7 +326,7 @@ Read [this blog post discussing my journey to this project](https://blainehansen
 
 I (Blaine Hansen, the maintainer and author of this document) have recently enabled Github Sponsors for Magmide, but **you likely shouldn't sponsor the project yet**. You are likely to be disappointed at how little influence a small sponsorship has on the speed of progress.
 
-The ambition of this project means it's pretty "all or nothing". If the project never reaches the point where we've [bootstrapped an initial version of the compiler](./posts/design-of-magmide.md#project-plan), it would be difficult to say the project has provided any value at all. The chasm between here and there is pretty wide, with the most harrowing step being the definition of the language theory (operational semantics and custom weakest-precondition proposition to instantiate Iris).
+The ambition of this project means it's pretty "all or nothing". If the project never reaches the point where we've bootstrapped an initial version of the compiler, it would be difficult to say the project has provided any value at all. The chasm between here and there is pretty wide, with the most harrowing step being the definition of the language theory (operational semantics and custom weakest-precondition proposition to instantiate Iris).
 
 I'm confident I could get the project to that point if I had some help/pointers from Iris experts *and the freedom to work on this project full-time*. I'm not at all confident I can do so in my nights and weekends, even with occasional code contributions from others. I've actually been looking around at various ways to support the project at the level of a full-time pursuit, but haven't been able to find anything that makes sense. The most natural path to complete a project like this would be to pursue it in a PhD program, and as exciting as that would be it isn't possible because of a flurry of personal constraints.
 
