@@ -322,6 +322,7 @@ In [`posts/design-of-magmide.md`](./posts/design-of-magmide.md) I outline my gue
 
 Read [this blog post discussing my journey to this project](https://blainehansen.me/post/my-path-to-magmide/) if you're interested in a more personal view.
 
+<!--
 ## Should I financially support this project?
 
 I (Blaine Hansen, the maintainer and author of this document) have recently enabled Github Sponsors for Magmide, but **you likely shouldn't sponsor the project yet**. You are likely to be disappointed at how little influence a small sponsorship has on the speed of progress.
@@ -331,6 +332,7 @@ The ambition of this project means it's pretty "all or nothing". If the project 
 I'm confident I could get the project to that point if I had some help/pointers from Iris experts *and the freedom to work on this project full-time*. I'm not at all confident I can do so in my nights and weekends, even with occasional code contributions from others. I've actually been looking around at various ways to support the project at the level of a full-time pursuit, but haven't been able to find anything that makes sense. The most natural path to complete a project like this would be to pursue it in a PhD program, and as exciting as that would be it isn't possible because of a flurry of personal constraints.
 
 If you know of a company that would be willing to make a series of short bets on an unproven researcher, then please let me know. Otherwise the volume of support that will come through Github Sponsors is unlikely to materially effect how much time I or anyone else will have to work on this project. I'm not going to make anyone a promise I'm not sure I can keep.
+-->
 
 ## This is an exciting idea! How can I help?
 
