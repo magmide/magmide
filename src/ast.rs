@@ -1,18 +1,3 @@
-// #[derive(Debug)]
-// enum TypeBody {
-// 	Unit,
-// 	Tuple { name: String, items: Vec<String> },
-// 	Record { name: String },
-// }
-
-// #[salsa::tracked]
-// pub struct Span {
-// 	pub start: usize,
-// 	pub end: usize,
-// }
-
-
-
 #[derive(Debug, Eq, PartialEq)]
 pub enum TypeBody {
 	Unit,
@@ -21,62 +6,23 @@ pub enum TypeBody {
 	// Record { fields: Vec<(String, String)> },
 }
 
-
-// #[salsa::tracked]
-// pub struct Program {
-// 	#[return_ref]
-// 	pub modules: Vec<Module>,
+// #[derive(Debug, Eq, PartialEq)]
+// pub enum Statement {
+// 	// Use(UseTree),
+// 	Let(LetStatement),
+// 	Debug(DebugStatement),
+// 	Named(ModuleItem),
 // }
-
-// #[salsa::tracked]
-// pub struct FileModule {
-// 	#[return_ref]
-// 	pub module_items: Vec<ModuleItem>,
-// }
-
-#[salsa::interned]
-pub struct Ident {
-	#[return_ref]
-	pub text: String,
-}
-
-#[derive(Debug)]
-pub enum Statement {
-	// Use(UseTree),
-	Let(LetStatement),
-	Debug(DebugStatement),
-	Named(ModuleItem),
-}
-
-
-#[salsa::tracked]
-pub struct TypeDefinition {
-	#[id]
-	pub name: Ident,
-	#[return_ref]
-	pub body: TypeBody,
-}
+pub type Statement = Term;
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct RawTypeDefinition {
+pub struct TypeDefinition {
 	pub name: String,
 	pub body: TypeBody,
 }
 
-#[salsa::tracked]
-pub struct ProcedureDefinition {
-	#[id]
-	pub name: Ident,
-	#[return_ref]
-	pub parameters: Vec<(String, String)>,
-	#[return_ref]
-	pub return_type: String,
-	#[return_ref]
-	pub statements: Vec<Statement>,
-}
-
 #[derive(Debug, Eq, PartialEq)]
-pub struct RawProcedureDefinition {
+pub struct ProcedureDefinition {
 	pub name: String,
 	pub parameters: Vec<(String, String)>,
 	pub return_type: String,
@@ -90,13 +36,13 @@ pub struct RawProcedureDefinition {
 // 	// Module
 // }
 // TODO
-pub type Statement = Term;
+// pub type Statement = Term;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct LetStatement {
 	// pub pattern: Pattern,
-	pub pattern: Ident,
-	pub type: Option<Term>,
+	pub pattern: String,
+	pub type_declaration: Option<Term>,
 	pub term: Term,
 }
 
@@ -105,19 +51,12 @@ pub struct DebugStatement {
 	pub term: Term,
 }
 
-#[salsa::tracked]
-pub struct Statements {
-	pub statements: Vec<>,
-}
-
-
-
 
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ModuleItem {
-	Type(RawTypeDefinition),
-	Procedure(RawProcedureDefinition),
+	Type(TypeDefinition),
+	Procedure(ProcedureDefinition),
 	Debug(DebugStatement),
 }
 
@@ -150,6 +89,3 @@ pub enum ChainItem {
 	// CatchCall { parameters: Either<NamedPattern, Vec<NamedPattern>>, statements: Vec<Term>, is_tap: bool },
 	// ChainedMatch { return_type: Term, arms: Vec<MatchArm> },
 }
-
-#[salsa::accumulator]
-pub struct Diagnostic(String);

@@ -14,10 +14,5 @@ edition = "2021"
 
 # # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-indoc = "2"
 nom = "7"
-# salsa = { version = "0.17.0-pre.2", package = "salsa-2022" }
-salsa = { git = "https://github.com/salsa-rs/salsa.git", package = "salsa-2022", branch = "master" }
 # anyhow = "1.0.57"
-# inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm13-0"] }
-# ocaml-interop = "0.8.8"
