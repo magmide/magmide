@@ -1,4 +1,4 @@
-# :construction: Magmide is purely a research project at this point :construction:
+# :construction: Magmide is dormant for now as I rethink what it could/should be :construction:
 
 This repo is still very early and rough, it's mostly just notes, speculative writing, and exploratory theorem proving. Most of the files in this repo are just "mad scribblings" that I haven't refined enough to actually stand by!
 
